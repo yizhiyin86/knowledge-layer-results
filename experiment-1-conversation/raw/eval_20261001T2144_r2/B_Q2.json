@@ -1,0 +1,90 @@
+{
+  "run_id": "eval_20261001T2144_r2",
+  "agent": "B",
+  "qid": "Q2",
+  "question": "Which company product had the highest claim rejection rate in the last 13 weeks, and what is driving the rejections?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "**Answer:** Lacrivia (cyclosporine 0.1%) had the highest claim rejection rate of any company product in the last 13 weeks: **18.4%** (2,147 rejected out of 11,664 paid plus rejected claims). The 10 mL pack was the worst single pack at **20.8%**; the 5 mL pack was 17.2%. Prior authorization rejections are the main driver, followed by formulary exclusions at a few specific plans. The rate has stayed between 17% and 20% every week since January, so this is a long-running access problem, not a recent spike.\n\n**Company products, last 13 weeks** (rejected \u00f7 (paid + rejected))\n| Product | Rejection rate |\n|---|---|\n| Lacrivia 10 mL | 20.8% (817 / 3,929) |\n| Lacrivia 5 mL | 17.2% (1,330 / 7,735) |\n| Oculon 5 mL / 2.5 mL | 15.1% / 14.2% (brand 14.5%) |\n| Cyclosporine OS 0.05% | 5.9% |\n\nFor context, Lacrivia's rate is about the same as its direct competitor Tearsol (18.1%), and much higher than Cyclomist (9.6%) and generic cyclosporine (4.8%).\n\n**What's driving Lacrivia's rejections**\n1. **Prior authorization: 58% of rejections** (1,241 claims, 10.6 of the 18.4 points).\n   - The largest single reason is \"PA exhausted / not renewable\" (454). That points to PA renewals for continuing patients, not just first-time approvals. \"PA denied\" (394) and \"PA required\" (393) are close behind.\n   - These rejections are concentrated in a few plans:\n     - **Northstar Health Commercial (OptiScript):** the biggest single source, with 250 rejections (25.5% rate), 210 of them PA.\n     - Bluecrest Mutual Commercial: 123 PA rejections.\n     - Redwood Benefit Trust Commercial: 104.\n     - Keystone Medical Plan Part D: 74.\n     - Lakeshore Health Managed Medicaid and Part D: 72 and 60.\n2. **Not covered / off formulary: 22% of rejections** (466 claims, 4.0 points). About 78% of these come from three payers:\n   - **Harborview Health (Vantage PBM):** 202 across its plans. Its Health Exchange plan rejects 50% of Lacrivia claims.\n   - **Evergreen Health Plans Part D:** 85, with a 58% rejection rate.\n   - **Granite Plains Health:** 76, including a 54% rejection rate in its Managed Medicaid plan.\n3. **Smaller groups:** refill-too-soon and drug review edits (6.6%), days-supply and plan limits (6.5%), other (5.1%) and specialty or limited-distribution pharmacy requirements (2.4%). There were no step-therapy rejections.\n4. **Who is affected:** new and continuing patients are rejected at about the same rate (18.1% vs 18.5%). The 10 mL pack's higher rate comes mostly from more prior-auth rejections (12.8% of its claims vs 9.6% for the 5 mL).\n\n**What happens after a rejection:** 25% of rejected scripts were abandoned (540) and 37% were switched to another product (805): Tearsol 386, generic cyclosporine 188, Cyclomist 141 and Hydrova 90. None were switched to the company's own Cyclosporine OS. Most rejections therefore end up as lost patients or volume going to competitors. The best places to act are PA renewal support at Northstar, Bluecrest and Redwood, and formulary talks with Harborview, Evergreen and Granite Plains.\n\n**Sources and definitions**\n- **Data:** claim lines from `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ`, with reject codes decoded and grouped through `REF.REJ_CODE`. I did not use the deprecated backup table `CLMLNS_ADJ_BKP_2025`.\n- **Lookups:** company products identified from `CORE.PRODUCT` (`CO_FLG = 'Y'`); payer, PBM and channel from `CORE.PAYER_SPINE`, with channel names from the governed channels reference list.\n- **Metrics:** the approved definitions `rejection_rate` and `rejection_rate_by_group` (rejected \u00f7 (paid + rejected), reversals excluded), plus `abandonment_after_rejection`.\n- **Policy:** Market Access is cleared for this analysis. The only restricted table (incentive-compensation goals) wasn't needed.\n\n**Assumptions**\n- \"Last 13 weeks\" means the 13 most recent Monday-start weeks: 2026-07-06 to 2026-09-30.\n- Claim counts drop sharply after 2026-09-25, which looks like a claims reporting lag. That makes the final week partial, but leaving it out doesn't change the ranking.\n- \"Product\" is ranked at brand level, with pack-level detail shown in the table.",
+  "stop_reason": "end_turn",
+  "model_turns": 8,
+  "tool_calls": [
+    "get_context",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_reference"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT MIN(CLM_DT), MAX(CLM_DT), COUNT(*), COUNT(DISTINCT PROD_NDC11), COUNT(DISTINCT DATE_TRUNC('week', CLM_DT)) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 2.09
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CLM_DT, DAYNAME(CLM_DT) d, COUNT(*) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ WHERE CLM_DT >= '2026-06-20' GROUP BY 1,2 ORDER BY 1 DESC LIMIT 30",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 4.25
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH c AS (SELECT * FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ WHERE DATE_TRUNC('week', CLM_DT) >= DATEADD('week', -12, DATE_TRUNC('week', '2026-09-30'::date)))\nSELECT p.BRAND_NM, p.PACK_DESC, c.PROD_NDC11, p.CO_FLG,\n SUM(IFF(ADJ_STAT='P',1,0)) paid, SUM(IFF(ADJ_STAT='R',1,0)) rej, SUM(IFF(ADJ_STAT='V',1,0)) rev,\n ROUND(SUM(IFF(ADJ_STAT='R',1,0))/NULLIF(SUM(IFF(ADJ_STAT IN ('P','R'),1,0)),0),4) rej_rate,\n MIN(CLM_DT), MAX(CLM_DT)\nFROM c LEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=c.PROD_NDC11\nGROUP BY 1,2,3,4 ORDER BY p.CO_FLG DESC, rej_rate DESC",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.59
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH c AS (SELECT * FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ WHERE DATE_TRUNC('week', CLM_DT) >= DATEADD('week', -12, DATE_TRUNC('week', '2026-09-30'::date)) AND PROD_NDC11 IN ('99101010105','99101010110') AND ADJ_STAT IN ('P','R'))\nSELECT r.REJ_GRP, c.REJ_RSN_CD, r.REJ_DESC, COUNT(*) n,\n ROUND(COUNT(*)/ (SELECT COUNT(*) FROM c),4) rate_contrib,\n ROUND(COUNT(*)/ (SELECT COUNT(*) FROM c WHERE ADJ_STAT='R'),4) share_of_rej,\n SUM(IFF(PROD_NDC11='99101010110',1,0)) n_10ml, SUM(IFF(PROD_NDC11='99101010105',1,0)) n_5ml,\n ROUND(AVG(IFF(ABNDN_FLG='Y',1,0)),3) abandon, ROUND(AVG(IFF(SUBST_NDC11 IS NOT NULL,1,0)),3) subst\nFROM c LEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON r.REJ_RSN_CD=c.REJ_RSN_CD\nWHERE ADJ_STAT='R' GROUP BY 1,2,3 ORDER BY n DESC",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 2.36
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH c AS (SELECT * FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ WHERE CLM_DT >= '2026-01-01' AND PROD_NDC11 IN ('99101010105','99101010110') AND ADJ_STAT IN ('P','R'))\nSELECT DATE_TRUNC('week',CLM_DT) wk, COUNT(*) adj, SUM(IFF(ADJ_STAT='R',1,0)) rej,\n ROUND(SUM(IFF(ADJ_STAT='R',1,0))/COUNT(*),3) rate,\n ROUND(SUM(IFF(ADJ_STAT='R' AND r.REJ_GRP='PRIOR_AUTH',1,0))/COUNT(*),3) pa,\n ROUND(SUM(IFF(ADJ_STAT='R' AND r.REJ_GRP='NOT_COVERED',1,0))/COUNT(*),3) nc,\n ROUND(SUM(IFF(ADJ_STAT='R' AND r.REJ_GRP='STEP',1,0))/COUNT(*),3) step,\n ROUND(SUM(IFF(ADJ_STAT='R' AND r.REJ_GRP='PLAN_LIMIT',1,0))/COUNT(*),3) lim,\n ROUND(SUM(IFF(ADJ_STAT='R' AND r.REJ_GRP NOT IN ('PRIOR_AUTH','NOT_COVERED','STEP','PLAN_LIMIT'),1,0))/COUNT(*),3) oth\nFROM c LEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON r.REJ_RSN_CD=c.REJ_RSN_CD\nGROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 40,
+      "error": null,
+      "elapsed_s": 3.82
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH c AS (SELECT c.*, r.REJ_GRP FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c LEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON r.REJ_RSN_CD=c.REJ_RSN_CD WHERE DATE_TRUNC('week', CLM_DT) >= DATEADD('week', -12, DATE_TRUNC('week', '2026-09-30'::date)) AND PROD_NDC11 IN ('99101010105','99101010110') AND ADJ_STAT IN ('P','R'))\nSELECT s.PAYER_NM, s.PBM_NM, s.CHNL_CD, COUNT(*) adj, SUM(IFF(ADJ_STAT='R',1,0)) rej,\n ROUND(SUM(IFF(ADJ_STAT='R',1,0))/COUNT(*),3) rate,\n SUM(IFF(REJ_GRP='PRIOR_AUTH',1,0)) pa, SUM(IFF(REJ_GRP='NOT_COVERED',1,0)) nc,\n ROUND(SUM(IFF(ADJ_STAT='R',1,0))/(SELECT COUNT(*) FROM c WHERE ADJ_STAT='R'),3) share_rej\nFROM c JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON s.PLAN_ID=c.PLAN_ID\nGROUP BY 1,2,3 ORDER BY rej DESC LIMIT 40",
+      "ok": true,
+      "rows": 38,
+      "error": null,
+      "elapsed_s": 2.26
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH c AS (SELECT c.*, r.REJ_GRP FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c LEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON r.REJ_RSN_CD=c.REJ_RSN_CD WHERE DATE_TRUNC('week', CLM_DT) >= DATEADD('week', -12, DATE_TRUNC('week', '2026-09-30'::date)) AND PROD_NDC11 IN ('99101010105','99101010110') AND ADJ_STAT IN ('P','R'))\nSELECT 'pat_typ' dim, PAT_TYP val, COUNT(*) adj, ROUND(AVG(IFF(ADJ_STAT='R',1,0)),3) rate, ROUND(AVG(IFF(REJ_GRP='PRIOR_AUTH',1,0)),3) pa_rate FROM c GROUP BY 1,2\nUNION ALL\nSELECT 'subst', COALESCE(p.BRAND_NM, c.SUBST_NDC11, 'none'), COUNT(*), NULL, NULL FROM c LEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=c.SUBST_NDC11 WHERE ADJ_STAT='R' GROUP BY 1,2\nUNION ALL\nSELECT 'abandon', ABNDN_FLG, COUNT(*), NULL, NULL FROM c WHERE ADJ_STAT='R' GROUP BY 1,2\nORDER BY 1,3 DESC",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 2.31
+    }
+  ],
+  "cypher_queries": 12,
+  "usage": {
+    "input": 18,
+    "output": 6778,
+    "cache_read": 88453,
+    "cache_write": 21834
+  },
+  "cost_usd": 0.2625,
+  "latency_s": 109.2
+}

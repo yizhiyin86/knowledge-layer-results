@@ -1,0 +1,42 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "B",
+  "qid": "Q9",
+  "question": "Which sources feed \"paid rate\", and is it defined the same way in the Payer Report and the Rep Report?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Both reports get paid rate from the same place, but they calculate it differently. Across the full claims history, the Rep Report's version comes out about 2 points lower than the approved one (85.06% vs 87.08%).\n\n**Sources**\n- Both reports compute paid rate from one column: `ADJ_STAT` in `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ`, the pharmacy claim-line table. P means paid, R rejected and V reversed.\n- That table is the approved source for paid rate and rejection rate in the Market Access data product.\n- The Payer Report also reads `MART.PYR_SHR_WK`, and the Rep Report also reads `CORE.IC_GOAL` and `RAW_3P.RXT_WKLY`. Those tables feed other metrics in the reports, not paid rate.\n- The old backup table `RAW_3P.CLMLNS_ADJ_BKP_2025` is retired and shouldn't be used for paid rate.\n\n**The definitions differ**\n\n| | Payer Report | Rep Report |\n|---|---|---|\n| Metric | `paid_rate` (approved by Market Access) | `paid_rate_rep_v1` (older version from Field Operations, never approved) |\n| Formula | Paid \u00f7 (Paid + Rejected) | Paid \u00f7 all claim lines |\n| Reversals (V) | Left out entirely | Counted as not paid, which lowers the rate |\n\n**How big the gap is** (all claims, 27 Sep 2025 \u2013 30 Sep 2026)\n- 287,395 claim lines: 244,448 paid, 36,258 rejected, 6,689 reversed. No other status codes appear.\n- Payer Report version: **87.08%**\n- Rep Report version: **85.06%**\n- Gap: **about 2.0 points**. It comes entirely from the reversals in the Rep Report's denominator. That matches the knowledge layer's note that the two differ by about 1\u20132 points.\n\n**Recommendation:** For market-access reporting, use the approved `paid_rate`. Numbers from the Rep Report shouldn't be compared directly with the Payer Report. The simplest fix is to rebuild the Rep Report on the approved formula. The approved `rejection_rate` also leaves out reversals, so its denominator matches `paid_rate`.\n\n**Sources and definitions**\n- Knowledge layer: metrics `paid_rate`, `paid_rate_rep_v1` and `rejection_rate`; the lineage for the Payer Report and the Rep Report; the Market Access data product (Claim concept); the list of retired tables.\n- The policy check for MARKET_ACCESS on `RAW_3P.CLMLNS_ADJ` returned \"allow\" with no masking.\n- I ran one query on Snowflake that counts by status across the whole table. The decision was logged (trace 8d790515\u2026).\n\n**Assumptions**\n- I compared the two over the full claims history, not a particular reporting week, and didn't filter by brand or plan. The gap in any one week will depend on that week's share of reversals.",
+  "stop_reason": "end_turn",
+  "model_turns": 6,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_metric",
+    "get_report",
+    "get_report",
+    "get_data_product",
+    "list_deprecated_tables",
+    "check_policy",
+    "describe_table",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) AS total_lines,\n SUM(IFF(ADJ_STAT='P',1,0)) AS paid,\n SUM(IFF(ADJ_STAT='R',1,0)) AS rejected,\n SUM(IFF(ADJ_STAT='V',1,0)) AS reversed,\n SUM(IFF(ADJ_STAT NOT IN ('P','R','V') OR ADJ_STAT IS NULL,1,0)) AS other_stat,\n SUM(IFF(ADJ_STAT='P',1,0)) / NULLIF(SUM(IFF(ADJ_STAT IN ('P','R'),1,0)),0) AS paid_rate_ratified,\n SUM(IFF(ADJ_STAT='P',1,0)) / COUNT(*) AS paid_rate_rep_v1,\n MIN(CLM_DT) AS min_dt, MAX(CLM_DT) AS max_dt\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.78
+    }
+  ],
+  "usage": {
+    "input": 14,
+    "output": 3170,
+    "cache_read": 54397,
+    "cache_write": 14659
+  },
+  "cost_usd": 0.1476,
+  "latency_s": 57.9,
+  "cypher_queries": 15
+}

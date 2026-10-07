@@ -1,0 +1,131 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "A",
+  "qid": "Q3",
+  "question": "In district D-03, what is each rep's Lacrivia TRx attainment versus their IC goal quarter-to-date?",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "I checked for data-use restrictions for your role. This answer only shows rep and territory totals, with no prescriber-level detail.\n\n**Answer: None of the eight Lacrivia reps in D-03 has reached their Q3 2026 TRx goal quarter-to-date.** Attainment ranges from 62% to 99%, and the district as a whole is at about 81%. Sawyer Upton (98.6%) and Indy Calder (96.4%) are closest. The biggest gaps are Emerson Dorsey (62.4%) and Vale Dorsey (67.0%). The data runs through the week ending 25 Sep 2026, so 13 of the quarter's 13 weeks are in and these numbers are close to final.\n\n| Rep | Team | Territory | Q3 IC goal | QTD TRx | Attainment | Gap to goal |\n|---|---|---|---|---|---|---|\n| Emerson Dorsey (R017) | TEAL | T031 | 1,013 | 632 | **62.4%** | \u2212381 |\n| Finley Stroud (R018) | CORAL | T031 | 713 | 632 | 88.6% | \u221281 |\n| Sawyer Upton (R019) | TEAL | T032 | 352 | 347 | **98.6%** | \u22125 |\n| Indy Calder (R020) | CORAL | T032 | 360 | 347 | 96.4% | \u221213 |\n| Vale Rourke (R021) | TEAL | T033 | 900 | 844 | 93.8% | \u221256 |\n| Vale Dorsey (R022) | CORAL | T033 | 1,259 | 844 | **67.0%** | \u2212415 |\n| Dana Calder (R023) | TEAL | T034 | 441 | 376 | 85.3% | \u221265 |\n| Quinn Abbott (R024) | CORAL | T034 | 412 | 376 | 91.3% | \u221236 |\n\n- **District roll-up:** 2,199 Lacrivia TRx across the four territories. That's 81.3% of the TEAL goals (2,706) and 80.1% of the CORAL goals (2,744).\n- **Main driver:** Most of the shortfall comes from two goals set well above what their territory has written. T033's CORAL goal is 1,259 against 844 TRx, and T031's TEAL goal is 1,013 against 632 TRx. The partner reps in those same territories are at 94% and 89%.\n- **Other districts:** D-03 is the only district where every rep is under goal. Most reps in the other districts are at or above 100%.\n- **Not included:** Marlow Lowry (R051, INDIGO team) is on the D-03 roster, but their goal is for Oculon, not Lacrivia.\n\n**Sources and definitions**\n- **Goals:** `CORE.IC_GOAL`, brand LACRIVIA, quarter 2026Q3. Reps come from `CORE.REP_ROSTER` where district is D-03.\n- **TRx:** Sum of TRX_QTY in `RAW_3P.RXT_WKLY` for the two Lacrivia NDCs (99101010105 and 99101010110, both 0.1%), weeks ending 3 Jul to 25 Sep 2026. All payer channels are included, from commercial to cash/discount.\n- **How TRx is credited to reps:** Each prescription is assigned to a territory through the prescriber's territory in `CORE.PRESCRIBER`. Every Lacrivia TRx in this period matched to a prescriber.\n\n**Assumptions**\n- **Quarter:** I treated the fiscal quarter as the calendar quarter (Jul\u2013Sep), and assigned each week to the quarter its end date falls in. The data has no fiscal calendar table. TRx from 26\u201330 Sep isn't loaded yet.\n- **Shared territories:** The TEAL and CORAL reps in each territory both get full credit for all of that territory's TRx. No crediting rule is documented. I assumed this because goals across all districts track total territory TRx, and each CORAL call plan covers every prescriber in its territory.\n- **Channels:** No IC channel exclusions are documented, so none were applied. If the official IC plan excludes a channel (for example cash/discount, about 120 TRx in D-03), attainment would be lower.",
+  "stop_reason": "end_turn",
+  "model_turns": 9,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select r.*, t.terr_nm, t.district_id t_dist, g.brand_nm, g.fqtr, g.trx_goal from PHARMA_DEMO.CORE.REP_ROSTER r left join PHARMA_DEMO.CORE.TERRITORY t on r.terr_id=t.terr_id left join PHARMA_DEMO.CORE.IC_GOAL g on g.rep_id=r.rep_id where r.district_id='D-03' or t.district_id='D-03' order by r.terr_id, r.rep_id",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 3.92
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select brand_nm, fqtr, count(*), sum(trx_goal) from PHARMA_DEMO.CORE.IC_GOAL group by 1,2",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 2.23
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.CORE.PRODUCT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.36
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select prod_ndc11, length(prod_ndc11) l, count(*), sum(trx_qty), min(wk_end_dt), max(wk_end_dt) from PHARMA_DEMO.RAW_3P.RXT_WKLY group by 1,2 order by 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.71
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select c.rep_id, c.fqtr, c.target_typ, count(*) n, count(distinct c.prscrbr_me) d, sum(iff(p.terr_id=r.terr_id,1,0)) in_terr from PHARMA_DEMO.CORE.CALL_PLAN c join PHARMA_DEMO.CORE.REP_ROSTER r on r.rep_id=c.rep_id left join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=c.prscrbr_me where r.district_id='D-03' group by 1,2,3 order by 1",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.45
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select terr_id, count(*), count(distinct prscrbr_me) from PHARMA_DEMO.CORE.PRESCRIBER group by 1 order by 1",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 1.05
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with rx as (select p.terr_id, sum(x.trx_qty) trx from PHARMA_DEMO.RAW_3P.RXT_WKLY x left join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=x.prscrbr_me where x.prod_ndc11 in ('99101010105','99101010110') and x.wk_end_dt between '2026-07-01' and '2026-09-30' group by 1)\nselect r.rep_id, r.team, r.terr_id, r.district_id, g.trx_goal, rx.trx, round(rx.trx/g.trx_goal,3) att from PHARMA_DEMO.CORE.REP_ROSTER r join PHARMA_DEMO.CORE.IC_GOAL g on g.rep_id=r.rep_id left join rx on rx.terr_id=r.terr_id order by r.terr_id, r.team",
+      "ok": true,
+      "rows": 54,
+      "error": null,
+      "elapsed_s": 1.41
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*) rows_, count(distinct wk_end_dt||prscrbr_me||prod_ndc11||plan_id||chnl_cd) uniq, sum(iff(p.prscrbr_me is null,1,0)) unaligned_rows, count(distinct wk_end_dt) wks, min(wk_end_dt), max(wk_end_dt) from PHARMA_DEMO.RAW_3P.RXT_WKLY x left join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=x.prscrbr_me where x.prod_ndc11 in ('99101010105','99101010110') and x.wk_end_dt between '2026-07-01' and '2026-09-30'",
+      "ok": false,
+      "rows": null,
+      "error": "002028 (42601): SQL compilation error:\nambiguous column name 'PRSCRBR_ME'",
+      "elapsed_s": 1.19
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*) rows_, count(distinct x.wk_end_dt||x.prscrbr_me||x.prod_ndc11||x.plan_id||x.chnl_cd) uniq, sum(iff(p.prscrbr_me is null,x.trx_qty,0)) unaligned_trx, sum(x.trx_qty) trx, sum(iff(x.trx_qty<0,1,0)) neg, count(distinct x.wk_end_dt) wks, min(x.wk_end_dt), max(x.wk_end_dt) from PHARMA_DEMO.RAW_3P.RXT_WKLY x left join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=x.prscrbr_me where x.prod_ndc11 in ('99101010105','99101010110') and x.wk_end_dt between '2026-07-01' and '2026-09-30'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 4.21
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select p.terr_id, x.chnl_cd, sum(x.trx_qty) trx from PHARMA_DEMO.RAW_3P.RXT_WKLY x join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=x.prscrbr_me where x.prod_ndc11 in ('99101010105','99101010110') and x.wk_end_dt between '2026-07-01' and '2026-09-30' and p.terr_id like 'T03%' group by 1,2 order by 1,2",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 3.88
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.REF.CHNL",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.06
+    }
+  ],
+  "usage": {
+    "input": 20,
+    "output": 6368,
+    "cache_read": 81352,
+    "cache_write": 18059
+  },
+  "cost_usd": 0.234,
+  "latency_s": 135.2
+}

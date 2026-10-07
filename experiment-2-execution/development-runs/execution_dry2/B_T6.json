@@ -1,0 +1,133 @@
+{
+  "run_id": "execution_dry2",
+  "agent": "B",
+  "task": "T6",
+  "qid": "T6",
+  "question": "Supplier S-106 will miss its next CMP-520 shipment by four weeks. Handle it.",
+  "role": "SUPPLY_PLANNER",
+  "badge": "Supply Response Agent",
+  "effort": "high",
+  "answer": "I handled it. Next week's labels are now on order from the backup supplier, and I did not need to ration any product. No trusted playbook covered this case, so I followed the Supply Disruption Response process.\n\n**Late shipment**\n- S-106 (Fairmont Label Co) is late on its next CMP-520 order, PO001082: 3,800 units promised to ship 2026-10-04. Four weeks late puts shipment around 2026-11-01. Four more S-106 orders (PO001083\u2013086) are open but not reported late.\n- CMP-520 is a set of product labels. Plant PL-01 uses it to build the pack kit KIT-100. That kit goes into five products: Lacrivia 5 mL and 10 mL, Cyclosporine 0.05% 5 mL, and Oculon 2.5 mL and 5 mL. It also goes into about 50 non-prescription products (lens care, surgical, supplements, diagnostics, antibiotics) that aren't in the commercial database.\n\n**Backup supplier**\n- S-113 (Monarch Print Solutions) is the only other qualified supplier for CMP-520. The supplier portal shows it as active, with no hold, approved for CMP-520 and approved to ship to PL-01, the plant that builds the kit.\n- **Action: purchase requisition PR-54EE4C26.** It is for 3,800 units of CMP-520 from S-113, shipped to PL-01. I set the need-by date to 2026-10-07, when S-106's labels would have reached the plant (promised ship date plus 3 days' transit).\n\n**Stock check (2026-09-25 inventory)**\n- At DC-EAST, Lacrivia 5 mL (FG-1001) has 46 units against a safety stock of 471. Lacrivia 10 mL (FG-1002) has 34 against 233.\n- Every other affected product is at or above safety stock at every DC.\n- Once labels reach PL-01, it takes 23 days for finished stock to reach a DC. That includes a 14-day sterility test.\n\n**What I did not do, and why**\n- **No allocation and no approval request.** Allocation rule BR-ALLOC-02 only applies when the disruption actually cuts off a product's supply. Because S-113 is a qualified, active backup approved for PL-01, it doesn't. The low Lacrivia stock at DC-EAST was already there before this delay.\n- **No substitute offered.** Both Lacrivia packs are short at DC-EAST, and the approved substitute, Cyclosporine 0.05%, uses the same labels, so it doesn't qualify. If an allocation is needed later, there is no company substitute and Medical Affairs would advise on alternatives.\n- **No customer or wholesaler notices.** No product loses supply, so a delay notice would be inaccurate. Wholesaler notices can't be sent by electronic message anyway. If they're needed, they go to Trade Relations as a case.\n\n**Assumptions and risks**\n- The PR quantity matches the late order (3,800 units). I treated S-113 as able to deliver because the portal shows it active and approved, and it has delivered on time before.\n- **S-113 may not make the need-by date.** Its past orders took about 39 days from order to shipment, so it may not ship faster than S-106's delayed shipment. If it can't confirm an early ship date when it accepts the PR, the Lacrivia packs at DC-EAST should go through the allocation steps (contract tiers, approval if the plan is $50,000 or more, account team notices). The tier A/B contracts are with AC00117, AC00038, AC00059, AC00001 and AC00138.\n- DC-EAST's existing Lacrivia shortfall may be worth fixing separately, for example by moving stock from DC-CENTRAL or DC-WEST, which both have stock above safety stock. That's outside this task, and any move between DCs needs the Supply Planning lead's approval.\n\n**Knowledge-layer sources:** the Supply Disruption Response process (steps SDR-1.1 to SDR-2.4, SDR-3.1) and rules BR-ALLOC-01/02, BR-SUB-01/02, BR-LEAD-01, BR-APPR-01 and BR-CUST-01. Data came from the supply-exposure trace, the get_lead_times stage times (CMP-520 \u2192 FG-1001), the supply_contracts and approved_substitutes reference sets, and the ratified tables PURCH_ORD, SUPPLIER_MATERIAL, SUPPLIER, BOM (current version), PLANT_MATERIAL and DC_INV.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "get_process",
+    "find_playbooks",
+    "get_context",
+    "trace_supply_exposure",
+    "run_sql",
+    "run_sql",
+    "get_supplier_status",
+    "get_supplier_status",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_reference",
+    "get_lead_times",
+    "get_reference",
+    "run_sql",
+    "create_purchase_requisition"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE MATERIAL_ID='CMP-520' ORDER BY PROMISED_SHIP_DT DESC",
+      "ok": true,
+      "rows": 66,
+      "error": null,
+      "elapsed_s": 2.62
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, s.SUPPLIER_NM, s.TIER FROM dbo.SUPPLIER_MATERIAL sm JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID IN ('CMP-520','KIT-100')",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.64
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT pm.PLANT_ID, COUNT(*) n, MIN(pm.MATERIAL_ID) mn, MAX(pm.MATERIAL_ID) mx FROM dbo.PLANT_MATERIAL pm WHERE pm.MATERIAL_ID IN (SELECT PARENT_MATERIAL_ID FROM dbo.BOM WHERE CHILD_MATERIAL_ID='KIT-100' AND EFF_TO >= '2026-09-30') OR pm.MATERIAL_ID='KIT-100' GROUP BY pm.PLANT_ID",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.76
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT pm.PLANT_ID, pm.MATERIAL_ID FROM dbo.PLANT_MATERIAL pm WHERE pm.MATERIAL_ID IN ('KIT-100','CMP-520','FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') ORDER BY 2,1",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.55
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PARENT_MATERIAL_ID, CHILD_MATERIAL_ID, QTY_PER, EFF_FROM, EFF_TO FROM dbo.BOM WHERE CHILD_MATERIAL_ID IN ('CMP-520','KIT-100') AND PARENT_MATERIAL_ID IN ('KIT-100','FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') ORDER BY 1",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 2.17
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH l AS (SELECT DC_ID, MATERIAL_ID, MAX(SNAPSHOT_DT) sd FROM dbo.DC_INV GROUP BY DC_ID, MATERIAL_ID)\nSELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS, CASE WHEN i.ON_HAND_UNITS < i.SAFETY_STOCK_UNITS THEN 'BELOW' ELSE 'OK' END st\nFROM dbo.DC_INV i JOIN l ON l.DC_ID=i.DC_ID AND l.MATERIAL_ID=i.MATERIAL_ID AND l.sd=i.SNAPSHOT_DT\nWHERE i.MATERIAL_ID IN (SELECT PARENT_MATERIAL_ID FROM dbo.BOM WHERE CHILD_MATERIAL_ID='KIT-100' AND EFF_TO >= '2026-09-30')\nORDER BY CASE WHEN i.ON_HAND_UNITS < i.SAFETY_STOCK_UNITS THEN 0 ELSE 1 END, i.MATERIAL_ID, i.DC_ID",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.93
+    }
+  ],
+  "cypher_queries": 35,
+  "usage": {
+    "input": 22,
+    "output": 7148,
+    "cache_read": 234401,
+    "cache_write": 36852
+  },
+  "cost_usd": 0.3742,
+  "latency_s": 103.6,
+  "final_state": {
+    "allocation_plans": [],
+    "purchase_requisitions": [
+      {
+        "pr_id": "PR-54EE4C26",
+        "material_id": "CMP-520",
+        "supplier_id": "S-113",
+        "quantity": 3800,
+        "ship_to_plant": "PL-01",
+        "need_by": "2026-10-07",
+        "reason": "Supply Disruption Response SDR-2.2: primary supplier S-106 (Fairmont Label Co) will miss open PO001082 (CMP-520 label set, 3,800 units, promised ship 2026-10-04) by ~4 weeks (now ~2026-11-01). Sourcing replacement quantity from qualified alternate S-113 (Monarch Print Solutions; portal: ACTIVE, CMP-520 APPROVED for PL-01). PL-01 makes KIT-100, which feeds Lacrivia 5/10 mL, Cyclosporine 0.05%, Oculon 2.5/5 mL and other FGs; Lacrivia FG-1001/FG-1002 already below safety stock at DC-EAST. Need-by = date S-106 material was due at PL-01 (promised ship + 3d transit); please expedite and confirm earliest ship date.",
+        "created_at": "2026-10-07T15:47:35+00:00"
+      }
+    ],
+    "approvals": [],
+    "crm_tasks": [],
+    "edi_messages": [],
+    "escalation_cases": [],
+    "tool_calls": [
+      {
+        "seq": 1,
+        "tool": "create_purchase_requisition",
+        "args": "{\"material_id\": \"CMP-520\", \"supplier_id\": \"S-113\", \"quantity\": 3800, \"ship_to_plant\": \"PL-01\", \"need_by\": \"2026-10-07\", \"reason\": \"Supply Disruption Response SDR-2.2: primary supplier S-106 (Fairmont Label Co) will miss open PO001082 (CMP-520 label set, 3,800 units, promised ship 2026-10-04) by ~4 weeks (now ~2026-11-01). Sourcing replacement quantity from qualified alternate S-113 (Monarch Print Solutions; portal: ACTIVE, CMP-520 APPROVED for PL-01). PL-01 makes KIT-100, which feeds Lacrivia 5/10 mL, Cyclosporine 0.05%, Oculon 2.5/5 mL and other FGs; Lacrivia FG-1001/FG-1002 already below safety stock at DC-EAST. Need-by = date S-106 material was due at PL-01 (promised ship + 3d transit); please expedite and confirm earliest ship date.\"}",
+        "accepted": 1,
+        "result": "{\"pr_id\": \"PR-54EE4C26\", \"status\": \"created\"}",
+        "created_at": "2026-10-07T15:47:35+00:00"
+      }
+    ]
+  },
+  "discovery": false,
+  "trusted_playbooks_offered": {},
+  "execution_trace": {
+    "trace_id": "f8676a23-7cd2-44a0-8799-bd750cdfc077",
+    "followed": [
+      "SDR-1.2",
+      "SDR-2.1",
+      "SDR-2.4",
+      "SDR-2.2"
+    ],
+    "seeded_asset": null
+  }
+}

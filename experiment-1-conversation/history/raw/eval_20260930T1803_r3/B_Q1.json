@@ -1,0 +1,73 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "B",
+  "qid": "Q1",
+  "question": "What is Lacrivia's market share by payer channel over the last 13 weeks, and how is it trending?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Over the last 13 weeks (weeks ending 3 Jul to 25 Sep 2026), Lacrivia had **23.8% of dry-eye prescriptions (TRx)**: 10,442 of 43,975. Its share is rising overall, from 22.8% in the first 4 weeks to 24.6% in the last 4. That gain comes almost entirely from Commercial, while Medicare Part D is falling clearly.\n\n| Payer channel | Lacrivia TRx | Market TRx | 13-wk share | First 4 wks | Last 4 wks | Trend |\n|---|---|---|---|---|---|---|\n| Commercial | 5,649 | 21,530 | **26.2%** | 23.6% | 28.8% | \u25b2 +5.2 pts: steady climb, with a jump in the week of 14 Aug; about 29% for the last 3 weeks |\n| Cash / Discount | 585 | 2,414 | **24.2%** | 22.1% | 25.3% | \u25b2 +3.2 pts, but erratic: peaked at 31.7% on 4 Sep, back to 21.4% in the latest week |\n| Medicaid FFS | 436 | 1,885 | **23.1%** | 20.4% | 24.4% | \u25b2 +4.0 pts, but only about 35 Lacrivia TRx a week, so treat with caution |\n| Managed Medicaid | 999 | 4,412 | **22.6%** | 22.4% | 21.6% | \u25bc \u22120.9 pts: peaked at about 25% in early Aug and has drifted down since |\n| Health Exchange | 589 | 2,679 | **22.0%** | 21.7% | 22.5% | \u25ba Flat; weekly share swings between 15% and 26% |\n| Medicare Part D | 2,184 | 11,055 | **19.8%** | 22.2% | 18.3% | \u25bc \u22124.0 pts: the only real decline |\n| **All channels** | 10,442 | 43,975 | **23.8%** | 22.8% | 24.6% | \u25b2 +1.8 pts |\n\n**What stands out**\n- **Commercial is driving the growth.** The market there is flat at about 1,650 TRx a week, while Lacrivia went from about 390 to about 490 TRx a week. That is real share gain, not a bigger market.\n- **Medicare Part D is the concern.** Lacrivia's weekly TRx fell by about 10%, while the Part D dry-eye market grew by about 10% (about 800 to about 920 TRx a week). It is losing share in a growing market. The drop starts the same week as the Commercial jump (14 Aug).\n- I didn't check formulary or claims data. A Part D coverage change, for example a tier change or new prior-authorization rules, is a guess worth checking with the paid-rate metric on the claims table.\n\n**Sources and definitions**\n- **Metric:** the approved `trx_share_by_market` definition, which Commercial Analytics signed off and the Payer Report uses. Share = Lacrivia TRx \u00f7 TRx of all products in the dry-eye market (both Lacrivia pack sizes; Cyclomist, Tearsol, Hydrova, Cyclosporine OS and generic cyclosporine). It is not divided by all products.\n- **Tables:** `PHARMA_DEMO.RAW_3P.RXT_WKLY` joined to `BIZ.MKT_DEF_DRIVER` (using the dates each product is in the market) and `CORE.PRODUCT`. I checked the results against the approved share table `MART.PYR_SHR_WK`, and they match exactly in every channel. Channel names come from `REF.CHNL`.\n- **Access check:** the policy check allowed the MARKET_ACCESS role to use these tables, with no masking. I avoided retired and sandbox tables, such as `PYR_SHR_WK_OLD` and `SANDBOX.LACRIVIA_SHR_SCRATCH`.\n\n**Assumptions**\n- \"Last 13 weeks\" means the 13 most recent weeks in the data.\n- The trend compares the first 4 weeks with the last 4, rather than single weeks, to smooth out weekly swings.\n- The results are saved in the knowledge layer's decision log (trace 55af677d).",
+  "stop_reason": "end_turn",
+  "model_turns": 6,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_metric",
+    "get_reference",
+    "get_reference",
+    "get_concept",
+    "get_data_product",
+    "list_deprecated_tables",
+    "get_business_rules",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY QUALIFY DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) <= 13),\nbase AS (\n SELECT r.WK_END_DT, r.CHNL_CD, p.BRAND_NM, r.TRX_QTY\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n JOIN wks w ON w.WK_END_DT = r.WK_END_DT\n JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11 = r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\n JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11 = r.PROD_NDC11)\nSELECT CHNL_CD,\n SUM(CASE WHEN BRAND_NM='LACRIVIA' THEN TRX_QTY ELSE 0 END) lac_trx, SUM(TRX_QTY) mkt_trx,\n ROUND(100*SUM(CASE WHEN BRAND_NM='LACRIVIA' THEN TRX_QTY ELSE 0 END)/SUM(TRX_QTY),2) shr_13w,\n ROUND(100*SUM(CASE WHEN BRAND_NM='LACRIVIA' AND WK_END_DT <= (SELECT MIN(WK_END_DT)+28 FROM wks) THEN TRX_QTY ELSE 0 END)/NULLIF(SUM(CASE WHEN WK_END_DT <= (SELECT MIN(WK_END_DT)+28 FROM wks) THEN TRX_QTY END),0),2) shr_first5w,\n ROUND(100*SUM(CASE WHEN BRAND_NM='LACRIVIA' AND WK_END_DT > (SELECT MAX(WK_END_DT)-28 FROM wks) THEN TRX_QTY ELSE 0 END)/NULLIF(SUM(CASE WHEN WK_END_DT > (SELECT MAX(WK_END_DT)-28 FROM wks) THEN TRX_QTY END),0),2) shr_last4w,\n (SELECT MIN(WK_END_DT) FROM wks) first_wk, (SELECT MAX(WK_END_DT) FROM wks) last_wk\nFROM base GROUP BY CHNL_CD\nUNION ALL\nSELECT 'ALL', SUM(CASE WHEN BRAND_NM='LACRIVIA' THEN TRX_QTY ELSE 0 END), SUM(TRX_QTY),\n ROUND(100*SUM(CASE WHEN BRAND_NM='LACRIVIA' THEN TRX_QTY ELSE 0 END)/SUM(TRX_QTY),2), NULL, NULL, NULL, NULL FROM base\nORDER BY 1",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 2.98
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY QUALIFY DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) <= 13)\nSELECT r.WK_END_DT, r.CHNL_CD,\n SUM(CASE WHEN p.BRAND_NM='LACRIVIA' THEN r.TRX_QTY ELSE 0 END) lac_trx, SUM(r.TRX_QTY) mkt_trx,\n ROUND(100*SUM(CASE WHEN p.BRAND_NM='LACRIVIA' THEN r.TRX_QTY ELSE 0 END)/SUM(r.TRX_QTY),1) shr\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\nJOIN wks w ON w.WK_END_DT = r.WK_END_DT\nJOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11 = r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\nJOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11 = r.PROD_NDC11\nGROUP BY 1,2 ORDER BY 2,1",
+      "ok": true,
+      "rows": 78,
+      "error": null,
+      "elapsed_s": 2.74
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CHNL_CD, MIN(WK_END_DT) mn, MAX(WK_END_DT) mx, COUNT(DISTINCT WK_END_DT) n, SUM(BRAND_TRX) lac, SUM(MKT_TRX) mkt, ROUND(100*SUM(BRAND_TRX)/SUM(MKT_TRX),2) shr\nFROM PHARMA_DEMO.MART.PYR_SHR_WK\nWHERE BRAND_NM='LACRIVIA' AND WK_END_DT >= (SELECT DATEADD(week,-12,MAX(WK_END_DT)) FROM PHARMA_DEMO.MART.PYR_SHR_WK)\nGROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.45
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.REF.CHNL",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.53
+    }
+  ],
+  "usage": {
+    "input": 14,
+    "output": 6768,
+    "cache_read": 68564,
+    "cache_write": 24033
+  },
+  "cost_usd": 0.2693,
+  "latency_s": 92.8,
+  "cypher_queries": 52
+}

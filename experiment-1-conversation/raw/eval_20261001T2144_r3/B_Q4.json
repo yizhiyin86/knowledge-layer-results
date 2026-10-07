@@ -1,0 +1,44 @@
+{
+  "run_id": "eval_20261001T2144_r3",
+  "agent": "B",
+  "qid": "Q4",
+  "question": "Which high-decile dry-eye prescribers have had no call from any team in the last 90 days?",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "**20 of the 61 high-decile dry-eye prescribers have had no call from any team in the last 90 days** (no TEAL, CORAL or INDIGO call on or after 2026-07-02). All 20 were last called between 9 June and 1 July 2026, so the gap is roughly 3 to 3.5 months. Fourteen of them are decile 10.\n\n| # | Prescriber (ME#) | Specialty | Decile | Territory | Dry-eye TRx (52 wk) | Last call (any team) |\n|---|---|---|---|---|---|---|\n| 1 | Jordan Stroud (ME7001005713) | Optometry | 10 | T011 (D-01) | 1,155 | 2026-07-01 |\n| 2 | Sage Kendall (ME7002724136) | Optometry | 10 | T033 (D-03) | 1,142 | 2026-06-29 |\n| 3 | Jordan Mercer (ME7000451383) | Optometry | 10 | T024 (D-02) | 1,139 | 2026-06-18 |\n| 4 | Parker Whitlock (ME7001963912) | Optometry | 10 | T052 (D-05) | 1,136 | 2026-06-19 |\n| 5 | Indy Pruitt (ME7000293003) | Optometry | 10 | T044 (D-04) | 1,124 | 2026-06-26 |\n| 6 | Tatum Brandt (ME7002708298) | Ophthalmology | 10 | T044 (D-04) | 1,118 | 2026-06-28 |\n| 7 | Dana Iverson (ME7003151762) | Optometry | 10 | T021 (D-02) | 1,115 | 2026-06-24 |\n| 8 | Yael Brandt (ME7000071271) | Optometry | 10 | T033 (D-03) | 1,114 | 2026-06-15 |\n| 9 | Casey Lowry (ME7001029470) | Ophthalmology | 10 | T053 (D-05) | 1,114 | 2026-06-19 |\n| 10 | Avery Dunmore (ME7001924317) | Optometry | 10 | T011 (D-01) | 1,111 | 2026-06-21 |\n| 11 | Avery Abbott (ME7000514735) | Optometry | 10 | T043 (D-04) | 1,107 | 2026-06-23 |\n| 12 | Taylor Mercer (ME7002359862) | Optometry | 10 | T031 (D-03) | 1,105 | 2026-07-01 |\n| 13 | Quinn Lowry (ME7002177725) | Ophthalmology | 10 | T032 (D-03) | 1,085 | 2026-06-19 |\n| 14 | Kai Iverson (ME7001607557) | Ophthalmology | 10 | T023 (D-02) | 1,068 | 2026-06-16 |\n| 15 | Zion Fairley (ME7000142542) | Optometry | 9 | T063 (D-06) | 1,057 | 2026-06-29 |\n| 16 | Tatum Bishop (ME7000118785) | Optometry | 8 | T014 (D-01) | 922 | 2026-06-15 |\n| 17 | Taylor Calder (ME7001742180) | Optometry | 8 | T013 (D-01) | 905 | 2026-06-09 |\n| 18 | Avery Vance (ME7001560043) | Optometry | 8 | T054 (D-05) | 903 | 2026-06-25 |\n| 19 | Wren Rourke (ME7000617682) | Optometry | 8 | T012 (D-01) | 890 | 2026-06-28 |\n| 20 | Harper Iverson (ME7001314554) | Optometry | 8 | T064 (D-06) | 874 | 2026-06-26 |\n\n**What stands out**\n- **Districts:** D-01 has the most (6). D-03 has 4, D-02, D-04 and D-05 have 3 each, and D-06 has 2. Two territories have two gaps each: T011 and T044, which includes a decile-10 ophthalmologist.\n- **Easy to recover:** Stroud and T. Mercer were called on 2026-07-01, one day outside the window. Taylor Calder has gone the longest without a call (since 2026-06-09).\n- **Priority:** together these 20 wrote about 21,300 dry-eye TRx over 52 weeks. The 14 decile-10 optometrists and ophthalmologists should come first in TEAL (dry-eye) and CORAL call planning.\n\n**Sources and definitions (knowledge layer)**\n- **Prescriber definitions:** \"high-decile\" means decile 8\u201310 in `CORE.PRESCRIBER`. A \"dry-eye prescriber\" is anyone with any DRY_EYE market TRx across all 52 weeks of data, not just recent weeks.\n- **Dry-eye market:** `RAW_3P.RXT_WKLY` joined to `BIZ.MKT_DEF_DRIVER` (MKT_DEF = 'DRY_EYE', within the EFF_FROM/EFF_TO dates), using the approved Prescription-to-TherapeuticMarket join path.\n- **Calls:** `CORE.CALL_ACT` covers CRM calls from all teams (TEAL, CORAL, INDIGO) and all call types: detail, virtual, lunch and sample drop.\n- **Territory and district:** taken from `CORE.TERRITORY`.\n- **Access:** the FIELD_SALES role had access to all of these tables; no columns were masked or restricted.\n\n**Assumptions**\n- Data is as of 2026-09-30, so \"last 90 days\" means call dates from 2026-07-02 to 2026-09-30. The latest call in the data is 2026-09-29.\n- Prescribers with no calls at all would also count, but every one of the 20 had at least one call before the window.\n- Sample drops count as calls. If you only want detail calls, the list could get longer.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "describe_table",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT MIN(CALL_DT), MAX(CALL_DT), COUNT(*) FROM PHARMA_DEMO.CORE.CALL_ACT",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.36
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH de AS (\n  SELECT r.PRSCRBR_ME, SUM(r.TRX_QTY) AS de_trx_52w\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n  JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m\n    ON m.PROD_NDC11 = r.PROD_NDC11 AND m.MKT_DEF = 'DRY_EYE'\n   AND r.WK_END_DT >= m.EFF_FROM AND (m.EFF_TO IS NULL OR r.WK_END_DT <= m.EFF_TO)\n  GROUP BY r.PRSCRBR_ME HAVING SUM(r.TRX_QTY) > 0\n), hd AS (\n  SELECT p.*, de.de_trx_52w FROM PHARMA_DEMO.CORE.PRESCRIBER p JOIN de ON de.PRSCRBR_ME = p.PRSCRBR_ME\n  WHERE p.DECILE BETWEEN 8 AND 10\n), lastcall AS (\n  SELECT PRSCRBR_ME, MAX(CALL_DT) AS last_call_dt,\n         SUM(IFF(CALL_DT >= DATEADD(day,-90,'2026-09-30'::date),1,0)) AS calls_90d\n  FROM PHARMA_DEMO.CORE.CALL_ACT GROUP BY PRSCRBR_ME\n)\nSELECT hd.PRSCRBR_ME, hd.PRSCRBR_NM, hd.SPCLTY, hd.DECILE, hd.TERR_ID, t.TERR_NM, t.DISTRICT_ID, hd.de_trx_52w,\n       lc.last_call_dt, (SELECT COUNT(*) FROM hd) AS total_hd_dryeye\nFROM hd LEFT JOIN lastcall lc ON lc.PRSCRBR_ME = hd.PRSCRBR_ME\nLEFT JOIN PHARMA_DEMO.CORE.TERRITORY t ON t.TERR_ID = hd.TERR_ID\nWHERE COALESCE(lc.calls_90d,0) = 0\nORDER BY hd.DECILE DESC, hd.de_trx_52w DESC",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 2.59
+    }
+  ],
+  "cypher_queries": 6,
+  "usage": {
+    "input": 10,
+    "output": 3462,
+    "cache_read": 20864,
+    "cache_write": 12122
+  },
+  "cost_usd": 0.1341,
+  "latency_s": 43.3
+}

@@ -1,0 +1,148 @@
+# OSI 0.1.1 semantic models: the ratified metric definitions (the "BI semantic layer" part of the KL).
+# Dataset sources are the real 3-part tables, so OSI datasets merge onto the harvested Table/Column nodes.
+# kl/load_ontology.py adds what OSI can't express: metric -> column / concept / report / team links.
+version: "0.1.1"
+
+semantic_model:
+  - name: commercial
+    description: "Pharma commercial semantic model: demand, share, payer access, claims and field force (Snowflake PHARMA_DEMO)."
+    ai_context:
+      instructions: "Market share always divides by the brand's market definition (BIZ.MKT_DEF_DRIVER), never by all products. Paid and rejection rates exclude reversals (ADJ_STAT = 'V'). Time windows are week-ending Fridays in RXT_WKLY. Data is current as of 2026-09-30."
+    datasets:
+      - name: rx_weekly
+        source: PHARMA_DEMO.RAW_3P.RXT_WKLY
+        description: "Weekly TRx/NRx by prescriber, pack, plan and channel."
+        fields:
+          - {name: WK_END_DT, expression: {dialects: [{dialect: ANSI_SQL, expression: WK_END_DT}]}, dimension: {is_time: true}}
+          - {name: PROD_NDC11, expression: {dialects: [{dialect: ANSI_SQL, expression: PROD_NDC11}]}}
+          - {name: CHNL_CD, expression: {dialects: [{dialect: ANSI_SQL, expression: CHNL_CD}]}}
+          - {name: PLAN_ID, expression: {dialects: [{dialect: ANSI_SQL, expression: PLAN_ID}]}}
+          - {name: PRSCRBR_ME, expression: {dialects: [{dialect: ANSI_SQL, expression: PRSCRBR_ME}]}}
+          - {name: TRX_QTY, expression: {dialects: [{dialect: ANSI_SQL, expression: TRX_QTY}]}}
+      - name: product
+        source: PHARMA_DEMO.CORE.PRODUCT
+        primary_key: [PROD_NDC11]
+        fields:
+          - {name: PROD_NDC11, expression: {dialects: [{dialect: ANSI_SQL, expression: PROD_NDC11}]}}
+          - {name: BRAND_NM, expression: {dialects: [{dialect: ANSI_SQL, expression: BRAND_NM}]}}
+      - name: market_definition
+        source: PHARMA_DEMO.BIZ.MKT_DEF_DRIVER
+        fields:
+          - {name: PROD_NDC11, expression: {dialects: [{dialect: ANSI_SQL, expression: PROD_NDC11}]}}
+          - {name: MKT_DEF, expression: {dialects: [{dialect: ANSI_SQL, expression: MKT_DEF}]}}
+      - name: claims
+        source: PHARMA_DEMO.RAW_3P.CLMLNS_ADJ
+        fields:
+          - {name: CLM_DT, expression: {dialects: [{dialect: ANSI_SQL, expression: CLM_DT}]}, dimension: {is_time: true}}
+          - {name: PROD_NDC11, expression: {dialects: [{dialect: ANSI_SQL, expression: PROD_NDC11}]}}
+          - {name: PLAN_ID, expression: {dialects: [{dialect: ANSI_SQL, expression: PLAN_ID}]}}
+          - {name: ADJ_STAT, expression: {dialects: [{dialect: ANSI_SQL, expression: ADJ_STAT}]}}
+          - {name: REJ_RSN_CD, expression: {dialects: [{dialect: ANSI_SQL, expression: REJ_RSN_CD}]}}
+          - {name: ABNDN_FLG, expression: {dialects: [{dialect: ANSI_SQL, expression: ABNDN_FLG}]}}
+      - name: reject_codes
+        source: PHARMA_DEMO.REF.REJ_CODE
+        primary_key: [REJ_RSN_CD]
+        fields:
+          - {name: REJ_RSN_CD, expression: {dialects: [{dialect: ANSI_SQL, expression: REJ_RSN_CD}]}}
+          - {name: REJ_GRP, expression: {dialects: [{dialect: ANSI_SQL, expression: REJ_GRP}]}}
+      - name: payer_spine
+        source: PHARMA_DEMO.CORE.PAYER_SPINE
+        primary_key: [PLAN_ID]
+        fields:
+          - {name: PLAN_ID, expression: {dialects: [{dialect: ANSI_SQL, expression: PLAN_ID}]}}
+          - {name: PLAN_NM, expression: {dialects: [{dialect: ANSI_SQL, expression: PLAN_NM}]}}
+          - {name: PAYER_NM, expression: {dialects: [{dialect: ANSI_SQL, expression: PAYER_NM}]}}
+      - name: prescriber
+        source: PHARMA_DEMO.CORE.PRESCRIBER
+        primary_key: [PRSCRBR_ME]
+        fields:
+          - {name: PRSCRBR_ME, expression: {dialects: [{dialect: ANSI_SQL, expression: PRSCRBR_ME}]}}
+          - {name: TERR_ID, expression: {dialects: [{dialect: ANSI_SQL, expression: TERR_ID}]}}
+      - name: ic_goal
+        source: PHARMA_DEMO.CORE.IC_GOAL
+        fields:
+          - {name: REP_ID, expression: {dialects: [{dialect: ANSI_SQL, expression: REP_ID}]}}
+          - {name: TRX_GOAL, expression: {dialects: [{dialect: ANSI_SQL, expression: TRX_GOAL}]}}
+      - name: calls
+        source: PHARMA_DEMO.CORE.CALL_ACT
+        fields:
+          - {name: CALL_ID, expression: {dialects: [{dialect: ANSI_SQL, expression: CALL_ID}]}}
+          - {name: CALL_DT, expression: {dialects: [{dialect: ANSI_SQL, expression: CALL_DT}]}, dimension: {is_time: true}}
+      - name: call_plan
+        source: PHARMA_DEMO.CORE.CALL_PLAN
+        fields:
+          - {name: PLAN_CALLS, expression: {dialects: [{dialect: ANSI_SQL, expression: PLAN_CALLS}]}}
+    relationships:
+      - {name: rx_to_product, from: rx_weekly, to: product, from_columns: [PROD_NDC11], to_columns: [PROD_NDC11]}
+      - {name: rx_to_market_definition, from: rx_weekly, to: market_definition, from_columns: [PROD_NDC11], to_columns: [PROD_NDC11]}
+      - {name: rx_to_payer_spine, from: rx_weekly, to: payer_spine, from_columns: [PLAN_ID], to_columns: [PLAN_ID]}
+      - {name: rx_to_prescriber, from: rx_weekly, to: prescriber, from_columns: [PRSCRBR_ME], to_columns: [PRSCRBR_ME]}
+      - {name: claims_to_product, from: claims, to: product, from_columns: [PROD_NDC11], to_columns: [PROD_NDC11]}
+      - {name: claims_to_reject_codes, from: claims, to: reject_codes, from_columns: [REJ_RSN_CD], to_columns: [REJ_RSN_CD]}
+      - {name: claims_to_payer_spine, from: claims, to: payer_spine, from_columns: [PLAN_ID], to_columns: [PLAN_ID]}
+    metrics:
+      - name: trx_share_by_market
+        description: "Brand TRx share within its therapeutic market: brand TRx / TRx of all packs in the brand's market definition (BIZ.MKT_DEF_DRIVER). Ratified by Commercial Analytics. Never divide by all products."
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(CASE WHEN product.BRAND_NM = :brand THEN rx_weekly.TRX_QTY ELSE 0 END) / SUM(rx_weekly.TRX_QTY)  -- rx_weekly JOIN market_definition WHERE market_definition.MKT_DEF = <brand's market>"}]}
+      - name: paid_rate
+        description: "Share of adjudicated claims that were paid: paid / (paid + rejected). Reversals (ADJ_STAT = 'V') are excluded. Ratified by Market Access; used in the Payer Report."
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(CASE WHEN claims.ADJ_STAT = 'P' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN claims.ADJ_STAT IN ('P', 'R') THEN 1 ELSE 0 END), 0)"}]}
+      - name: paid_rate_rep_v1
+        description: "Legacy Rep Report variant of paid rate: paid / all claim lines, so reversals count as not paid. NOT ratified; differs from paid_rate by ~1-2 points."
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(CASE WHEN claims.ADJ_STAT = 'P' THEN 1 ELSE 0 END) / COUNT(*)"}]}
+      - name: rejection_rate
+        description: "Rejected / (paid + rejected); reversals excluded."
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(CASE WHEN claims.ADJ_STAT = 'R' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN claims.ADJ_STAT IN ('P', 'R') THEN 1 ELSE 0 END), 0)"}]}
+      - name: rejection_rate_by_group
+        description: "Rejections in a reject group (REF.REJ_CODE.REJ_GRP, e.g. PRIOR_AUTH) / (paid + rejected)."
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(CASE WHEN claims.ADJ_STAT = 'R' AND reject_codes.REJ_GRP = :group THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN claims.ADJ_STAT IN ('P', 'R') THEN 1 ELSE 0 END), 0)"}]}
+      - name: abandonment_after_rejection
+        description: "Rejected claims the patient abandoned / rejected claims."
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(CASE WHEN claims.ADJ_STAT = 'R' AND claims.ABNDN_FLG = 'Y' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN claims.ADJ_STAT = 'R' THEN 1 ELSE 0 END), 0)"}]}
+      - name: ic_attainment
+        description: "Paced IC attainment QTD: rep territory TRx for the goal brand since quarter start / (quarterly TRX_GOAL x elapsed weeks / 13). Ratified by Finance."
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(rx_weekly.TRX_QTY) / (MAX(ic_goal.TRX_GOAL) * COUNT(DISTINCT rx_weekly.WK_END_DT) / 13)"}]}
+      - name: call_plan_adherence
+        description: "Actual calls / planned calls in the quarter, per rep."
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "COUNT(calls.CALL_ID) / NULLIF(SUM(call_plan.PLAN_CALLS), 0)"}]}
+
+  - name: supply
+    description: "Supply-chain semantic model: suppliers, BOM, POs, inventory and shipments (Fabric SUPPLY_DEMO)."
+    ai_context:
+      instructions: "The BOM is up to 9 levels deep and Fabric Warehouse has no recursive CTEs; use the KL supply graph (trace_supply_exposure) or explicit self-joins. Only QUALIFIED_FLG = 'Y' suppliers count as sources. NDCs here are dashed; strip dashes to join Snowflake."
+    datasets:
+      - name: purchase_orders
+        source: SUPPLY_DEMO.dbo.PURCH_ORD
+        primary_key: [PO_ID]
+        fields:
+          - {name: PO_ID, expression: {dialects: [{dialect: ANSI_SQL, expression: PO_ID}]}}
+          - {name: SUPPLIER_ID, expression: {dialects: [{dialect: ANSI_SQL, expression: SUPPLIER_ID}]}}
+          - {name: PROMISED_SHIP_DT, expression: {dialects: [{dialect: ANSI_SQL, expression: PROMISED_SHIP_DT}]}, dimension: {is_time: true}}
+          - {name: ACTUAL_SHIP_DT, expression: {dialects: [{dialect: ANSI_SQL, expression: ACTUAL_SHIP_DT}]}, dimension: {is_time: true}}
+          - {name: STATUS, expression: {dialects: [{dialect: ANSI_SQL, expression: STATUS}]}}
+      - name: inventory
+        source: SUPPLY_DEMO.dbo.DC_INV
+        fields:
+          - {name: ON_HAND_UNITS, expression: {dialects: [{dialect: ANSI_SQL, expression: ON_HAND_UNITS}]}}
+          - {name: SAFETY_STOCK_UNITS, expression: {dialects: [{dialect: ANSI_SQL, expression: SAFETY_STOCK_UNITS}]}}
+          - {name: SNAPSHOT_DT, expression: {dialects: [{dialect: ANSI_SQL, expression: SNAPSHOT_DT}]}, dimension: {is_time: true}}
+      - name: shipments
+        source: SUPPLY_DEMO.dbo.WHSLR_SHIP
+        fields:
+          - {name: UNITS, expression: {dialects: [{dialect: ANSI_SQL, expression: UNITS}]}}
+          - {name: SHIP_DT, expression: {dialects: [{dialect: ANSI_SQL, expression: SHIP_DT}]}, dimension: {is_time: true}}
+      - name: supplier_material
+        source: SUPPLY_DEMO.dbo.SUPPLIER_MATERIAL
+        fields:
+          - {name: MATERIAL_ID, expression: {dialects: [{dialect: ANSI_SQL, expression: MATERIAL_ID}]}}
+          - {name: QUALIFIED_FLG, expression: {dialects: [{dialect: ANSI_SQL, expression: QUALIFIED_FLG}]}}
+    metrics:
+      - name: late_ship_rate
+        description: "Closed POs shipped after the promised date / closed POs. Ratified by Supply Planning."
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "AVG(CASE WHEN purchase_orders.ACTUAL_SHIP_DT > purchase_orders.PROMISED_SHIP_DT THEN 1.0 ELSE 0 END)  -- WHERE purchase_orders.STATUS = 'CLOSED'"}]}
+      - name: days_of_supply
+        description: "Latest on-hand units / average daily units shipped from that DC over the last 28 days."
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "MAX(inventory.ON_HAND_UNITS) / (SUM(shipments.UNITS) / 28.0)"}]}
+      - name: qualified_supplier_count
+        description: "Number of qualified suppliers for a material; 1 = single-source risk."
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(CASE WHEN supplier_material.QUALIFIED_FLG = 'Y' THEN 1 ELSE 0 END)"}]}

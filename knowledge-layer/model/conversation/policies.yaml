@@ -1,0 +1,50 @@
+# Policy ontology: data-use rules the warehouse can't enforce (SELECT is granted; the restriction lives in
+# a contract). check_policy(tables, role, purpose) evaluates these before any SQL runs.
+# effect: deny (for the listed purposes) | allow_only (only the listed roles) | mask (never return values)
+policies:
+  - id: POL-DUA-01
+    name: Patient-level data use restriction
+    source_agreement: DUA-3P-07 (third-party patient-level data license)
+    effect: deny
+    text: "Patient-level data (RAW_3P.PATHPT_LVL) may not be used for incentive compensation, rep ranking, or evaluating or coaching individual reps or territories (sales-force performance management)."
+    restricts: {tables: [PHARMA_DEMO.RAW_3P.PATHPT_LVL], purposes: [compensation, rep_ranking, rep_performance]}
+    applies_to_roles: [COMP_ANALYST, FIELD_SALES, COMMERCIAL_ANALYST, MARKET_ACCESS, SUPPLY_PLANNER]
+    owner: Compliance
+    alternative: "Use de-identified claims (RAW_3P.CLMLNS_ADJ) aggregated by plan or channel (e.g. abandonment_after_rejection) for access strategy; claims carry no prescriber, so they cannot be cut by rep or territory. For field coaching use territory TRx/NRx trends from Commercial Demand."
+  - id: POL-PHI-02
+    name: Patient identifiers are never returned
+    source_agreement: DUA-3P-07 / internal privacy standard
+    effect: mask
+    text: "Patient keys (PAT_KEY) must never appear in query results or answers, for any role or purpose."
+    restricts: {columns: [PHARMA_DEMO.RAW_3P.PATHPT_LVL.PAT_KEY], purposes: [any]}
+    applies_to_roles: [COMP_ANALYST, FIELD_SALES, COMMERCIAL_ANALYST, MARKET_ACCESS, SUPPLY_PLANNER]
+    owner: Compliance
+    alternative: "Aggregate to plan, channel or territory level."
+  - id: POL-IC-03
+    name: IC goals visibility
+    source_agreement: Incentive Compensation Plan FY2026
+    effect: allow_only
+    text: "Incentive-compensation goals (CORE.IC_GOAL) may be viewed only by FIELD_SALES and COMP_ANALYST roles."
+    restricts: {tables: [PHARMA_DEMO.CORE.IC_GOAL], purposes: [any]}
+    permits_roles: [FIELD_SALES, COMP_ANALYST]
+    applies_to_roles: [COMMERCIAL_ANALYST, MARKET_ACCESS, SUPPLY_PLANNER]
+    owner: Finance
+    alternative: "Use TRx volume by territory from Commercial Demand without goals."
+  - id: POL-GOV-04
+    name: Reported numbers use ratified sources only
+    source_agreement: Data Governance Standard DG-01
+    effect: deny
+    text: "Deprecated and sandbox tables must not be used to produce reported numbers; use the ratified table of the owning data product."
+    restricts: {table_status: [deprecated, sandbox], purposes: [any]}
+    applies_to_roles: [COMP_ANALYST, FIELD_SALES, COMMERCIAL_ANALYST, MARKET_ACCESS, SUPPLY_PLANNER]
+    owner: Commercial Analytics
+    alternative: "The knowledge layer lists each deprecated table with its ratified replacement (get_context, list_deprecated_tables)."
+  - id: POL-AGT-05
+    name: Agent operating limits
+    source_agreement: AI Agent Usage Policy AI-02
+    effect: deny
+    text: "Agents are read-only, return at most 200 rows per query, and may not export raw row-level data."
+    restricts: {purposes: [write, export]}
+    applies_to_roles: [COMP_ANALYST, FIELD_SALES, COMMERCIAL_ANALYST, MARKET_ACCESS, SUPPLY_PLANNER]
+    owner: Compliance
+    alternative: "Summarize or aggregate results."

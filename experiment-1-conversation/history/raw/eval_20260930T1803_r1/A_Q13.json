@@ -1,0 +1,141 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "A",
+  "qid": "Q13",
+  "question": "Show Lacrivia abandonment by territory over the last 13 weeks so district managers can plan rep coaching.",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "I've built the Lacrivia abandonment rates by territory for the last 13 weeks. Across all territories the rate is **6.4%** (334 of 5,201 Lacrivia claims), and it's the same 6.4% as the 13 weeks before. Most territories fall between 5.5% and 8.2%. With only 100\u2013400 claims per territory, a gap of about \u00b13 points from 6.4% can happen by chance. So most of these differences aren't solid enough to single out a rep for coaching, and district managers should treat the list below as a place to start looking.\n\n**By territory (weeks ending 3 Jul to 25 Sep 2026)**\n\n| District | Territory | Lacrivia claims | Abandoned | Abandonment % | Prior 13 wks % |\n|---|---|---|---|---|---|\n| D-01 | T011 | 351 | 22 | 6.3% | 6.3% |\n| D-01 | **T012** | 255 | 21 | **8.2%** | **8.4%** |\n| D-01 | T013 | 232 | 17 | 7.3% | 7.9% |\n| D-01 | T014 | 146 | 10 | 6.8% | 2.3% |\n| D-02 | T021 | 193 | 14 | 7.3% | 4.3% |\n| D-02 | T022 | 133 | 9 | 6.8% | 6.7% |\n| D-02 | T023 | 297 | 18 | 6.1% | 7.3% |\n| D-02 | T024 | 130 | 8 | 6.2% | 8.1% |\n| D-03 | T031 | 325 | 22 | 6.8% | 8.1% |\n| D-03 | T032 | 174 | 10 | 5.7% | 5.9% |\n| D-03 | T033 | 436 | 25 | 5.7% | 4.9% |\n| D-03 | T034 | 188 | 13 | 6.9% | 6.7% |\n| D-04 | T041 | 272 | 11 | 4.0% | 6.7% |\n| D-04 | T042 | 15 | \u2013 | Not shown (too few claims) | \u2013 |\n| D-04 | T043 | 293 | 16 | 5.5% | 7.0% |\n| D-04 | T044 | 196 | 14 | 7.1% | 5.0% |\n| D-05 | T051 | 145 | 10 | 6.9% | 6.0% |\n| D-05 | **T052** | 361 | 28 | **7.8%** | 6.2% |\n| D-05 | T053 | 168 | 11 | 6.5% | 8.1% |\n| D-05 | T054 | 147 | 10 | 6.8% | 4.0% |\n| D-06 | T061 | 235 | 14 | 6.0% | 6.1% |\n| D-06 | T062 | 216 | 10 | 4.6% | 7.3% |\n| D-06 | T063 | 180 | 12 | 6.7% | 6.3% |\n| D-06 | **T064** | 113 | 9 | **8.0%** | 5.4% |\n\n**By district:** D-05 7.2%, D-01 7.1%, D-02 6.5%, D-03 6.2%, D-06 6.0%, D-04 5.3%.\n\n**What to take to the district managers**\n- **High in both periods:** T012 (8.2% / 8.4%) and T013 (7.3% / 7.9%), both in D-01. These are the most defensible places to focus coaching.\n- **High this quarter only:** T052 and T064. Watch these rather than act, since T064 has only 113 claims.\n- **Low:** T041 (4.0%) and T062 (4.6%) may be worth asking what those reps do differently.\n- **Changes between periods:** several territories moved 3\u20134 points in either direction (e.g., T014 2.3%\u21926.8%, T054 4.0%\u21926.8%). That's mostly noise at these volumes, so don't treat a single-quarter move as a rep performance signal.\n- **What drives abandonment:** it mostly depends on patients' insurance and out-of-pocket cost. In the claim-level data, every abandoned claim was either rejected by the plan or reversed, none were paid ones. Coaching is likely to work best on access topics: helping offices with prior authorisation and making sure patients know about copay support.\n\n**Data-use handling (FIELD_SALES):** I've only shown territory and district totals. The source is licensed patient-level data, so I've left out any prescriber-level or patient-level detail, and I didn't show a rate for T042 because it has only 15 claims. Please use these figures for coaching and access planning only, not for incentive pay or to target individual prescribers. I didn't find a written usage policy in the data platform, so this is standard practice for this kind of data rather than a documented rule. Please check your data licence terms before sharing further.\n\n**Sources, definitions and assumptions**\n- **Abandonment:** from `PHARMA_DEMO.RAW_3P.PATHPT_LVL` (patient-level data with the prescriber on each claim). The rate is claims flagged as abandoned divided by all Lacrivia claims.\n- **Lacrivia:** both pack sizes (5 mL and 10 mL) from `CORE.PRODUCT`.\n- **Territory:** each claim's prescriber is matched to a territory in `CORE.PRESCRIBER`, with districts from `CORE.TERRITORY`. Every claim matched a territory.\n- **Last 13 weeks:** the data's weeks run Saturday to Friday, so this is the 13 full weeks ending 3 Jul to 25 Sep 2026 (claims dated 27 Jun to 25 Sep). The partial week of 26\u201330 Sep is left out. \"Prior 13 wks\" covers claims dated 28 Mar to 26 Jun 2026.\n- **Cross-check:** the separate claims file (`RAW_3P.CLMLNS_ADJ`) gives about 6.5% abandonment overall for the same period, which matches.\n- I didn't need the supply-chain warehouse (Fabric) for this question.",
+  "stop_reason": "end_turn",
+  "model_turns": 12,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select table_schema, table_name, comment from PHARMA_DEMO.INFORMATION_SCHEMA.TABLES where table_schema in ('RAW_3P','BIZ','CORE','REF') order by 1,2",
+      "ok": true,
+      "rows": 18,
+      "error": null,
+      "elapsed_s": 1.98
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select table_schema, table_name, column_name, comment from PHARMA_DEMO.INFORMATION_SCHEMA.COLUMNS where comment is not null order by 1,2",
+      "ok": true,
+      "rows": 200,
+      "error": null,
+      "elapsed_s": 2.43
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select table_schema, table_name, column_name, comment from PHARMA_DEMO.INFORMATION_SCHEMA.COLUMNS where comment is not null and table_schema <> 'INFORMATION_SCHEMA' order by 1,2",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 3.03
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.CORE.PRODUCT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.26
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select 'pathpt' src, min(clm_dt), max(clm_dt), count(*), count(distinct abndn_flg), listagg(distinct abndn_flg, ',') from PHARMA_DEMO.RAW_3P.PATHPT_LVL\nunion all select 'rxt', min(wk_end_dt), max(wk_end_dt), count(distinct wk_end_dt), count(distinct dayname(wk_end_dt)), listagg(distinct dayname(wk_end_dt), ',') from PHARMA_DEMO.RAW_3P.RXT_WKLY\nunion all select 'clm', min(clm_dt), max(clm_dt), count(*), count(distinct abndn_flg), listagg(distinct abndn_flg, ',') from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.98
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select prod_ndc11, length(prod_ndc11) l, count(*) n, sum(iff(abndn_flg='Y',1,0)) ab, count(distinct pat_key) pats from PHARMA_DEMO.RAW_3P.PATHPT_LVL group by 1,2 order by 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 19.61
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*) n, count(distinct pat_key||clm_dt||prod_ndc11||prscrbr_me||plan_id) dist, sum(iff(p.prscrbr_me is null,1,0)) no_presc_match, sum(iff(p.terr_id is null,1,0)) no_terr, sum(iff(t.terr_id is null,1,0)) no_terr_match\nfrom PHARMA_DEMO.RAW_3P.PATHPT_LVL x left join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=x.prscrbr_me left join PHARMA_DEMO.CORE.TERRITORY t on t.terr_id=p.terr_id\nwhere x.prod_ndc11 like '%9910101%' or x.prod_ndc11 in ('99101010105','99101010110')",
+      "ok": false,
+      "rows": null,
+      "error": "002028 (42601): SQL compilation error:\nambiguous column name 'PRSCRBR_ME'",
+      "elapsed_s": 1.12
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*) n, count(distinct x.pat_key||x.clm_dt||x.prod_ndc11||x.prscrbr_me||x.plan_id) dist, sum(iff(p.prscrbr_me is null,1,0)) no_presc_match, sum(iff(p.terr_id is null,1,0)) no_terr, sum(iff(t.terr_id is null,1,0)) no_terr_match\nfrom PHARMA_DEMO.RAW_3P.PATHPT_LVL x left join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=x.prscrbr_me left join PHARMA_DEMO.CORE.TERRITORY t on t.terr_id=p.terr_id\nwhere x.prod_ndc11 in ('99101010105','99101010110') and x.clm_dt between '2026-06-27' and '2026-09-25'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 3.67
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select t.*, (select count(*) from PHARMA_DEMO.CORE.PRESCRIBER p where p.terr_id=t.terr_id) n_presc from PHARMA_DEMO.CORE.TERRITORY t order by 1",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 3.26
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with x as (\n select p.terr_id, x.pat_key, x.abndn_flg, x.clm_dt\n from PHARMA_DEMO.RAW_3P.PATHPT_LVL x join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=x.prscrbr_me\n where x.prod_ndc11 in ('99101010105','99101010110') and x.clm_dt between '2026-06-27' and '2026-09-25')\nselect t.district_id, t.terr_id, t.terr_nm, count(*) rx_claims, sum(iff(abndn_flg='Y',1,0)) abandoned, count(distinct pat_key) pats,\n round(100*sum(iff(abndn_flg='Y',1,0))/count(*),1) abn_pct,\n round(100*sum(iff(abndn_flg='Y' and clm_dt>='2026-08-08',1,0))/nullif(sum(iff(clm_dt>='2026-08-08',1,0)),0),1) abn_pct_last7wk_approx\nfrom PHARMA_DEMO.CORE.TERRITORY t left join x on x.terr_id=t.terr_id\ngroup by 1,2,3 order by 1,2",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 1.44
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select 'claims' src, adj_stat, count(*) n, sum(iff(abndn_flg='Y',1,0)) ab, round(100*ab/n,1) pct\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ where prod_ndc11 in ('99101010105','99101010110') and clm_dt between '2026-06-27' and '2026-09-25' group by 1,2\nunion all\nselect 'pathpt_district_'||t.district_id, null, count(*), sum(iff(abndn_flg='Y',1,0)), round(100*sum(iff(abndn_flg='Y',1,0))/count(*),1)\nfrom PHARMA_DEMO.RAW_3P.PATHPT_LVL x join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=x.prscrbr_me join PHARMA_DEMO.CORE.TERRITORY t on t.terr_id=p.terr_id\nwhere x.prod_ndc11 in ('99101010105','99101010110') and x.clm_dt between '2026-06-27' and '2026-09-25' group by rollup(t.district_id)\norder by 1,2",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select p.terr_id,\n sum(iff(x.clm_dt>='2026-06-27',1,0)) n_cur, round(100*sum(iff(x.clm_dt>='2026-06-27' and abndn_flg='Y',1,0))/nullif(n_cur,0),1) pct_cur,\n sum(iff(x.clm_dt<'2026-06-27',1,0)) n_prior, round(100*sum(iff(x.clm_dt<'2026-06-27' and abndn_flg='Y',1,0))/nullif(n_prior,0),1) pct_prior\nfrom PHARMA_DEMO.RAW_3P.PATHPT_LVL x join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=x.prscrbr_me\nwhere x.prod_ndc11 in ('99101010105','99101010110') and x.clm_dt between '2026-03-28' and '2026-09-25'\ngroup by rollup(p.terr_id) order by 1",
+      "ok": true,
+      "rows": 25,
+      "error": null,
+      "elapsed_s": 3.78
+    }
+  ],
+  "usage": {
+    "input": 26,
+    "output": 8088,
+    "cache_read": 172906,
+    "cache_write": 26860
+  },
+  "cost_usd": 0.3307,
+  "latency_s": 191.2
+}

@@ -1,0 +1,128 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "A",
+  "qid": "Q5",
+  "question": "When Lacrivia claims are rejected, which products are patients switched to?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "**Answer:** When a Lacrivia claim is rejected, only about 1 in 3 ends in a switch to another product. When a switch does happen, Tearsol (lifitegrast) is the main destination at about half of switches. Generic cyclosporine is second at about a quarter.\n\n**Where rejected Lacrivia claims go (27 Sep 2025 \u2013 25 Sep 2026)**\nLacrivia had 51,092 claims, and 9,199 were rejected (18.0%).\n\n| Outcome after rejection | Claims | % of rejects | % of switches |\n|---|---|---|---|\n| **Tearsol** (lifitegrast, competitor) | 1,630 | 17.7% | **49.6%** |\n| **Cyclosporine generic** 0.05% | 820 | 8.9% | **24.9%** |\n| **Cyclomist** (cyclosporine 0.09%, competitor) | 497 | 5.4% | **15.1%** |\n| **Hydrova** (perfluorohexyloctane, competitor) | 340 | 3.7% | **10.3%** |\n| No switch recorded | 5,912 | 64.3% | \u2014 |\n| *of which the patient abandoned the fill* | *2,231* | *24.3%* | \u2014 |\n\n**Key points**\n- **All switches leave our portfolio.** No rejected Lacrivia claim moved to Cyclosporine OS, our own 0.05% product. Three-quarters of switches go to branded competitors; the rest go to generic cyclosporine.\n- **The pattern holds across reject reasons and channels.** Tearsol is always first, at about 17\u201318% of rejects. Generic cyclosporine is always second, at about 9\u201310%, except in the \"Other\" reject group, where Cyclomist ties it. This is true for Commercial, Part D, Managed Medicaid, Medicaid FFS and Exchange plans alike.\n- **Prior authorization causes most of it.** PA rejects are 5,376 of the 9,199 rejects (58%) and 1,892 of the switches. Not-covered rejects are next, with 1,925 rejects and 701 switches. No step-therapy (code 608) rejects were recorded for Lacrivia.\n- **The last 13 weeks (Jul\u2013Sep 2026) look much the same:** Tearsol 18.0%, generic 8.6%, Cyclomist 6.5% and Hydrova 4.1% of rejects, with no switch in 62.8%. Cyclomist is up slightly from 5.0% earlier in the year, and Hydrova from 3.6%.\n- **Implication for market access:** the biggest loss is to Tearsol after PA rejections. Getting PAs approved, and keeping patients on our portfolio when coverage fails, would protect the most volume.\n\n**Sources and definitions**\n- Claims: `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ`. One row per claim, with no duplicate claim IDs.\n  - \"Rejected\" means status `ADJ_STAT = 'R'`. Reversed claims (`'V'`) are left out.\n  - \"Switched to\" means the substitute NDC recorded on the rejected claim (`SUBST_NDC11`).\n  - Abandonment comes from `ABNDN_FLG`.\n- Lacrivia means both of its NDCs: 99101010105 (5 mL) and 99101010110 (10 mL). Brands come from `CORE.PRODUCT`, reject groups from `REF.REJ_CODE` and channels from `CORE.PAYER_SPINE` plus `REF.CHNL`. Every code matched its reference table.\n\n**Assumptions**\n- These are claim counts, not unique patients, so a patient rejected more than once is counted more than once. I used only claim-level fields and did not link individual patient histories (`PATHPT_LVL`), which fits aggregate reporting for Market Access.\n- \"No switch recorded\" may include later approvals, appeals or fills outside this data. The switch rate is therefore a floor.\n- \"Last 13 weeks\" is approximated as claims dated 1 Jul 2026 or later. The newest rejected claim is dated 25 Sep 2026.\n- No supply-chain (Fabric) data was needed.",
+  "stop_reason": "end_turn",
+  "model_turns": 9,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.CORE.PRODUCT order by 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.REF.REJ_CODE order by 3,1",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.14
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select adj_stat, subst_ndc11 is not null has_subst, count(*), min(clm_dt), max(clm_dt) from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ group by 1,2 order by 1,2",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.06
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*) n, count(distinct clm_id) d, count(distinct clm_id||adj_stat) d2 from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.25
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select c.prod_ndc11, c.subst_ndc11, s.brand_nm subst_brand, count(*) n from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c left join PHARMA_DEMO.CORE.PRODUCT s on s.prod_ndc11=c.subst_ndc11 where c.adj_stat='R' and c.prod_ndc11 like '991010101%' group by 1,2,3 order by 1,4 desc",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.46
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select c.prod_ndc11, p.brand_nm, count(*) n, sum(iff(adj_stat='R',1,0)) rej from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c left join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.prod_ndc11 group by 1,2 order by 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.21
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select c.subst_ndc11, p.brand_nm, count(*) n from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c left join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.subst_ndc11 where subst_ndc11 is not null group by 1,2 order by 1",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 1.28
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.REF.CHNL",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.21
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select coalesce(r.rej_grp,'UNMAPPED:'||coalesce(c.rej_rsn_cd,'NULL')) grp, coalesce(s.brand_nm,'NO SUBSTITUTE') subst, count(*) n, sum(iff(c.abndn_flg='Y',1,0)) abnd\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.prod_ndc11 and p.brand_nm='LACRIVIA'\nleft join PHARMA_DEMO.REF.REJ_CODE r on r.rej_rsn_cd=c.rej_rsn_cd\nleft join PHARMA_DEMO.CORE.PRODUCT s on s.prod_ndc11=c.subst_ndc11\nwhere c.adj_stat='R' group by 1,2 order by 1,3 desc",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 1.6
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select coalesce(ch.chnl_nm,'UNMAPPED') chnl, coalesce(s.brand_nm,'NO SUBSTITUTE') subst, count(*) n\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.prod_ndc11 and p.brand_nm='LACRIVIA'\nleft join PHARMA_DEMO.CORE.PAYER_SPINE ps on ps.plan_id=c.plan_id left join PHARMA_DEMO.REF.CHNL ch on ch.chnl_cd=ps.chnl_cd\nleft join PHARMA_DEMO.CORE.PRODUCT s on s.prod_ndc11=c.subst_ndc11\nwhere c.adj_stat='R' group by 1,2 order by 1,3 desc",
+      "ok": true,
+      "rows": 25,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select iff(c.clm_dt >= '2026-07-01','Last ~13 wks (Jul-Sep 2026)','Prior (Sep 2025-Jun 2026)') per, coalesce(s.brand_nm,'NO SUBSTITUTE') subst, count(*) n, ratio_to_report(count(*)) over (partition by per) shr\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.prod_ndc11 and p.brand_nm='LACRIVIA'\nleft join PHARMA_DEMO.CORE.PRODUCT s on s.prod_ndc11=c.subst_ndc11\nwhere c.adj_stat='R' group by 1,2 order by 1,3 desc",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.55
+    }
+  ],
+  "usage": {
+    "input": 20,
+    "output": 5794,
+    "cache_read": 67591,
+    "cache_write": 16098
+  },
+  "cost_usd": 0.21,
+  "latency_s": 97.0
+}

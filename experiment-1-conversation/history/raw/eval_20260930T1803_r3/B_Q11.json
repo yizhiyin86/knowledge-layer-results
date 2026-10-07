@@ -1,0 +1,73 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "B",
+  "qid": "Q11",
+  "question": "If S-104 became unavailable, is there a qualified alternate supplier for each material it provides, and which products would remain exposed?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**No. Only one of the two materials S-104 supplies has a qualified alternate supplier.** If S-104 went offline, 14 finished goods would still have no qualified supply, including all Lacrivia and Cyclosporine packs.\n\nS-104 is Delmar Specialty Chemicals (India), a tier-2 supplier with two materials:\n\n| Material | Used in | Other suppliers on file | Qualified suppliers | Covered? |\n|---|---|---|---|---|\n| RM-222 Benzalkonium chloride 50% | CMP-320 \u2192 Oculon | **S-130 Oakridge Chemicals (US), qualified**, not the primary supplier | 2 | Yes |\n| RM-221 Polysorbate 80 NF, low-peroxide | CMP-310 emulsifier premix \u2192 Lacrivia / Cyclosporine; lens care intermediates | S-131 Pinecrest Chemical Trading (China), **not qualified** | **1 (single source)** | **No** |\n\n**Covered by the alternate (RM-222):** Oculon 0.005% 2.5 mL (FG-2001, NDC 99101-0303-25) and 5 mL (FG-2002, NDC 99101-0303-50). Supply can move to S-130. S-130 is qualified but not set up as the primary supplier, so the volume would need to be moved over.\n\n**Still exposed (RM-221 has no qualified alternate), 14 finished goods:**\n- Lacrivia 0.1% emulsion 5 mL: FG-1001, NDC 99101-0101-05 (BOM depth 5)\n- Lacrivia 0.1% emulsion 10 mL: FG-1002, NDC 99101-0101-10 (depth 5)\n- Cyclosporine 0.05% emulsion 5 mL: FG-1003, NDC 99101-0202-05 (depth 5)\n- Lens care solutions 1\u201311: FG-3001 to FG-3011 (depth 7; not in the commercial database)\n\n**Things that make this worse:**\n- **The emulsifier premix is also single-sourced.** RM-221 reaches Lacrivia and Cyclosporine through CMP-310 (the PS80/castor oil emulsifier premix). Its only qualified supplier is S-201, Larchmont Contract Manufacturing, a tier-1 supplier in the US. So those products depend on single sources at two levels in a row.\n- **No company substitute for Lacrivia.** Business rule BR-SUB-01 names Cyclosporine OS 0.05% as Lacrivia's approved substitute unless it has the same supply problem. It does (it also uses RM-221), so there would be no approved company substitute and Medical Affairs would advise on therapeutic alternatives.\n\n**Recommended actions:**\n- Start qualifying S-131, or source another alternate for RM-221.\n- Check how much RM-221 and CMP-310 stock is on hand.\n- Run the recovery lead-time check (BR-LEAD-01; for ophthalmics it includes a 14-day sterility test) to size the gap.\n\n**Sources and definitions:**\n- **Supply chain data (Fabric):** the ratified Supply Network data product (owner: Supply Planning), using the SUPPLIER, SUPPLIER_MATERIAL, MATERIAL and BOM tables. The policy check allowed this for the SUPPLY_PLANNER role with no masking.\n- **Qualified supplier count:** the ratified metric counts suppliers with `QUALIFIED_FLG = 'Y'`. A count of 1 means single-source risk.\n- **Product tracing:** I followed the approved path \"Supplier to finished goods (multi-level BOM)\" with the supply-exposure trace tool.\n- **Current recipes only:** I ignored superseded bill-of-materials links (end date before today). One old link, RM-221 \u2192 CMP-320, ended 2025-06-30, so RM-221 no longer feeds Oculon.\n- **Rules used:** BR-SUB-01 (approved substitutes) and BR-LEAD-01 (recovery lead time).\n- **Assumptions:**\n  - Only qualified suppliers count as usable alternates.\n  - I did not check inventory, open orders or S-130's capacity, so \"covered\" means a qualified source exists, not that it can supply the full volume.\n- The decision trace is logged (id 5aba5095\u2026).",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_business_rules",
+    "get_concept",
+    "get_metric",
+    "get_data_product",
+    "list_deprecated_tables",
+    "get_join_path",
+    "check_policy",
+    "trace_supply_exposure",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.MATERIAL_ID, m.MATERIAL_NAME, sm.SUPPLIER_ID, s.SUPPLIER_NAME, s.TIER, sm.QUALIFIED_FLG, sm.PRIMARY_FLG\nFROM dbo.SUPPLIER_MATERIAL sm\nJOIN dbo.SUPPLIER s ON s.SUPPLIER_ID = sm.SUPPLIER_ID\nJOIN dbo.MATERIAL m ON m.MATERIAL_ID = sm.MATERIAL_ID\nWHERE sm.MATERIAL_ID IN (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL WHERE SUPPLIER_ID='S-104') OR sm.MATERIAL_ID='CMP-310'\nORDER BY sm.MATERIAL_ID, sm.SUPPLIER_ID",
+      "ok": false,
+      "rows": null,
+      "error": "('42S22', \"[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'MATERIAL_NAME'. (207) (SQLExecDirectW)\")",
+      "elapsed_s": 1.68
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.MATERIAL_ID, m.MATERIAL_DESC, sm.SUPPLIER_ID, s.SUPPLIER_NM, s.COUNTRY, s.TIER, sm.QUALIFIED_FLG, sm.PRIMARY_FLG\nFROM dbo.SUPPLIER_MATERIAL sm\nJOIN dbo.SUPPLIER s ON s.SUPPLIER_ID = sm.SUPPLIER_ID\nJOIN dbo.MATERIAL m ON m.MATERIAL_ID = sm.MATERIAL_ID\nWHERE sm.MATERIAL_ID IN (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL WHERE SUPPLIER_ID='S-104') OR sm.MATERIAL_ID='CMP-310'\nORDER BY sm.MATERIAL_ID, sm.SUPPLIER_ID",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 2.14
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.BOM WHERE CHILD_MATERIAL_ID IN ('RM-221','RM-222') ORDER BY CHILD_MATERIAL_ID",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.56
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PARENT_MATERIAL_ID, EFF_TO FROM dbo.BOM WHERE CHILD_MATERIAL_ID = 'INT-LC1035'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.56
+    }
+  ],
+  "usage": {
+    "input": 22,
+    "output": 5318,
+    "cache_read": 131325,
+    "cache_write": 20574
+  },
+  "cost_usd": 0.2356,
+  "latency_s": 79.0,
+  "cypher_queries": 53
+}

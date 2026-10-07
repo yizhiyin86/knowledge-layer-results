@@ -1,0 +1,43 @@
+{
+  "run_id": "eval_20261001T2144_r2",
+  "agent": "B",
+  "qid": "Q9",
+  "question": "Which sources feed \"paid rate\", and is it defined the same way in the Payer Report and the Rep Report?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "**Answer:** Both reports use the same source, but they define paid rate differently, so their numbers don't match.\n\n- **Source:** Paid rate comes from a single field, `ADJ_STAT` in `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ` (pharmacy claim lines; P = paid, R = rejected, V = reversed). Channel and payer cuts are added by joining `CORE.PAYER_SPINE` and `REF.CHNL`. Neither report should use the deprecated `RAW_3P.CLMLNS_ADJ_BKP_2025`.\n- **Payer Report:** Uses the ratified `paid_rate`, which is paid \u00f7 (paid + rejected). Reversed claims are left out of both the top and bottom of the ratio. Market Access ratified this definition.\n- **Rep Report:** Uses `paid_rate_rep_v1`, an older version that is not ratified. It is paid \u00f7 all claim lines, so reversed claims count as \"not paid\" and pull the rate down.\n\n**How big the gap is** (all claims, 2025\u201109\u201127 to 2026\u201109\u201130, 287,395 lines: 244,448 paid, 36,258 rejected, 6,689 reversed):\n\n| Scope | Payer Report (ratified) | Rep Report (v1) | Gap |\n|---|---|---|---|\n| **Total** | **87.1%** | **85.1%** | **\u22122.0 pts** |\n| Commercial | 86.4% | 84.4% | \u22122.0 |\n| Medicare Part D | 86.0% | 84.0% | \u22122.0 |\n| Managed Medicaid | 88.3% | 86.2% | \u22122.1 |\n| Health Exchange | 84.0% | 82.1% | \u22121.9 |\n| Medicaid FFS | 89.5% | 87.3% | \u22122.2 |\n| Cash / Discount | 100.0% | 97.0% | \u22123.0 |\n\nThe Rep Report always comes out lower, by about the share of claims that were reversed (2.3\u20133.1% depending on channel). The gap is widest for Cash / Discount. That channel has no rejections, so the ratified rate is 100% by definition, and reversals account for the whole gap.\n\n**Recommendation:** Use the ratified `paid_rate` (paid \u00f7 (paid + rejected)) for any Market Access work. The Rep Report should either switch to it or be footnoted as a non-ratified variant. If you need to report reversals, track them as a separate rate instead of folding them into paid rate.\n\n**Sources and definitions used:**\n- Metric definitions `paid_rate` (ratified) and `paid_rate_rep_v1` (not ratified), both computed from `RAW_3P.CLMLNS_ADJ.ADJ_STAT`.\n- Ratified tables: `RAW_3P.CLMLNS_ADJ`, `CORE.PAYER_SPINE`, `REF.CHNL`.\n- Deprecated-table notice: `CLMLNS_ADJ_BKP_2025` is replaced by `CLMLNS_ADJ`.\n- Policy: none of these tables is restricted for the MARKET_ACCESS role. The only restricted table, `CORE.IC_GOAL`, wasn't used.\n\n**Assumptions:** Figures cover every claim in the data (the full year up to 2026\u201109\u201130), not just the last 13 weeks. No `ADJ_STAT` values other than P, R or V were found.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) AS total_lines,\n SUM(IFF(ADJ_STAT='P',1,0)) AS paid,\n SUM(IFF(ADJ_STAT='R',1,0)) AS rejected,\n SUM(IFF(ADJ_STAT='V',1,0)) AS reversed,\n SUM(IFF(ADJ_STAT NOT IN ('P','R','V') OR ADJ_STAT IS NULL,1,0)) AS other,\n ROUND(SUM(IFF(ADJ_STAT='P',1,0))/NULLIF(SUM(IFF(ADJ_STAT IN ('P','R'),1,0)),0),4) AS paid_rate_ratified,\n ROUND(SUM(IFF(ADJ_STAT='P',1,0))/COUNT(*),4) AS paid_rate_rep_v1,\n MIN(CLM_DT), MAX(CLM_DT)\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 3.42
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT ch.CHNL_NM,\n COUNT(*) AS lines,\n ROUND(SUM(IFF(c.ADJ_STAT='V',1,0))/COUNT(*),4) AS reversal_share,\n ROUND(SUM(IFF(c.ADJ_STAT='P',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),0),4) AS paid_rate_ratified,\n ROUND(SUM(IFF(c.ADJ_STAT='P',1,0))/COUNT(*),4) AS paid_rate_rep_v1\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\nJOIN PHARMA_DEMO.CORE.PAYER_SPINE p ON c.PLAN_ID=p.PLAN_ID\nJOIN PHARMA_DEMO.REF.CHNL ch ON p.CHNL_CD=ch.CHNL_CD\nGROUP BY 1 ORDER BY lines DESC",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 2.14
+    }
+  ],
+  "cypher_queries": 5,
+  "usage": {
+    "input": 10,
+    "output": 2276,
+    "cache_read": 21074,
+    "cache_write": 10249
+  },
+  "cost_usd": 0.101,
+  "latency_s": 32.4
+}

@@ -1,0 +1,38 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "B",
+  "qid": "Q14",
+  "question": "What did we conclude last time about exposure to supplier S-104, and has its next ship date changed since?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "S-104's next ship date hasn't changed. It's still PO005791, promised for **2026-10-07**, and the exposure picture is the same as last time.\n\n**What we concluded last time (two earlier analyses, both dated 2026-09-30)**\n- **The shipment at risk:** PO005791 is 4,200 units of RM-221 (Polysorbate 80 NF, low-peroxide), still open.\n- **No backup supplier for RM-221:** the only alternate, S-131 (Pinecrest, China), isn't qualified. The next material down the chain, CMP-310, also comes from only one supplier (S-201).\n- **Products affected:** 14 finished goods.\n  - **Prescription products (3):** Lacrivia 0.1% 5 mL (7,017 prescriptions in the last 13 weeks), Cyclosporine 0.05% 5 mL (3,544) and Lacrivia 0.1% 10 mL (3,425). That's 13,986 prescriptions in total.\n  - **Lens care solutions (11):** FG-3001 to FG-3011. These have no prescription data.\n- **Customers affected:** 35 top-level accounts and 16 payers. The top 10 accounts make up 80.5% of those prescriptions and the top 10 payers 80.0%. The biggest are Oak Hollow, Riverbend and Northfield health systems, and the payers Northstar, Bluecrest and Silverline.\n- **Company substitute:** there isn't an approved one for Lacrivia, because Cyclosporine 0.05% depends on the same material.\n- **S-104's other material:** RM-222 (Benzalkonium chloride) isn't on the next order and has a qualified backup supplier, S-130, so Oculon is covered.\n- **Recovery time:** about 50 days from RM-221 arriving to Lacrivia 5 mL (FG-1001) reaching the distribution centre.\n\n**Current status (data as of 2026-09-30)**\n\n| PO | Material | Qty | Promised ship | Status |\n|---|---|---|---|---|\n| PO005791 | RM-221 | 4,200 | **2026-10-07 (unchanged)** | Open, not shipped |\n| PO000430 | RM-222 | 2,600 | 2026-10-26 | Open |\n| PO000369 | RM-221 | 3,300 | 2026-10-29 | Open |\n\n- I re-ran the trace through the current bill of materials and it matches last time: the same 14 finished goods and the same 3 prescription products. An old link to CMP-320, which ended 2025-06-30, is still correctly excluded.\n- **Caveats:**\n  - The purchase order table only holds the current promised date, not a history of changes. \"Unchanged\" means it matches the date in the earlier analysis.\n  - The earlier analysis was also dated 2026-09-30, so little time has passed.\n- **Worth watching:** S-104 has shipped late recently. PO000363 (RM-221) shipped 8 days late and PO000423 (RM-222) 17 days late. PO005791 also allows about 35 days from order to promised ship, compared with about 27 for earlier RM-221 orders.\n- **Data oddity:** PO000430 and PO000369 have order dates of 2026-10-02, which is after the data's as-of date.\n\n**Sources**\n- The two earlier analyses on S-104 exposure and alternate suppliers.\n- Purchase orders table in the supply warehouse (SUPPLY_DEMO.dbo.PURCH_ORD). The policy check allowed access for the SUPPLY_PLANNER role.\n- The supply-exposure trace for S-104 / RM-221, which uses current bill-of-materials links only.\n- This check is logged as trace 93c62844.",
+  "stop_reason": "end_turn",
+  "model_turns": 6,
+  "tool_calls": [
+    "similar_past_decisions",
+    "check_policy",
+    "describe_table",
+    "run_sql",
+    "trace_supply_exposure",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND (ACTUAL_SHIP_DT IS NULL OR STATUS <> 'CLOSED' OR PROMISED_SHIP_DT >= '2026-09-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 2.0
+    }
+  ],
+  "usage": {
+    "input": 14,
+    "output": 3115,
+    "cache_read": 54038,
+    "cache_write": 15539
+  },
+  "cost_usd": 0.1509,
+  "latency_s": 47.3,
+  "cypher_queries": 13
+}

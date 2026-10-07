@@ -1,0 +1,4 @@
+approval: {decision: approved, by: "Supply Planning lead (oracle)"}
+review:   # only used if T7 itself runs in discovery mode (no trusted playbook found)
+  decision: approve
+  by: "Supply Planning lead (oracle)"

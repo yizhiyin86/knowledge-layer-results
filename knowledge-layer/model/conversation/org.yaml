@@ -1,0 +1,16 @@
+# Organization ontology (light): teams own data products and ratify definitions; roles are what
+# policies and agent requests refer to.
+teams:
+  - {name: Commercial Analytics, description: "Owns demand, share and market-definition data and the Payer Report."}
+  - {name: Market Access, description: "Owns claims, formulary and payer data."}
+  - {name: Field Operations, description: "Owns customer masters, territories, reps and CRM activity; publishes the Rep Report."}
+  - {name: Supply Planning, description: "Owns the supply network, POs, inventory and shipments."}
+  - {name: Finance, description: "Owns incentive-compensation goals and payouts."}
+  - {name: Compliance, description: "Owns data-use agreements and restricted data."}
+
+roles:
+  - {name: COMMERCIAL_ANALYST, team: Commercial Analytics, description: "Analyzes demand and share."}
+  - {name: MARKET_ACCESS, team: Market Access, description: "Analyzes payer access and claims."}
+  - {name: FIELD_SALES, team: Field Operations, description: "Field sales leadership and reps."}
+  - {name: COMP_ANALYST, team: Finance, description: "Computes incentive compensation and rep rankings."}
+  - {name: SUPPLY_PLANNER, team: Supply Planning, description: "Plans supply and manages supplier risk."}

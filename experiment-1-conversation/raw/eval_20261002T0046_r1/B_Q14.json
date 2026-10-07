@@ -1,0 +1,45 @@
+{
+  "run_id": "eval_20261002T0046_r1",
+  "agent": "B",
+  "qid": "Q14",
+  "question": "What did we conclude last time about exposure to supplier S-104, and has its next ship date changed since?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**S-104's next ship date has not changed. It is still 7 Oct 2026, on PO005791 (4,200 units of RM-221), and that PO is still open.** The supply chain behind last time's conclusion is also unchanged. Two more open POs have appeared since then, and one of them is for a material that leads to a different product, Oculon.\n\n**What we concluded last time** (saved answer on S-104 customer exposure)\n- **Supplier:** S-104 is Delmar Specialty Chemicals, a tier-2 supplier in India. It shipped 32.3% of its 96 closed POs late.\n- **Exposed products:** the cyclosporine dry-eye products made with RM-221 (Polysorbate 80 NF). These are Lacrivia 5 mL and 10 mL and Cyclosporine 0.05% 5 mL, with 13,986 prescriptions in the last 13 weeks. Lens care solutions FG-3001 to FG-3011 are also exposed, but they have no prescription data, so their customers would be wholesalers.\n- **No backup source:**\n  - S-104 is the only qualified supplier of RM-221. The alternate, S-131, is not qualified.\n  - The next step in the chain, the emulsifier premix CMP-310, also has only one supplier (S-201).\n- **No substitute:** Cyclosporine OS is the approved substitute for Lacrivia, but it depends on the same RM-221 supply (rule BR-SUB-01).\n- **Slow recovery:** it takes about 50 days from RM-221 shipping to Lacrivia 5 mL reaching the distribution center, including a 14-day sterility test. An on-time 7 Oct shipment arrives around 26 Nov at the earliest, and every day of delay pushes that back a day.\n- **Customers:** the top customers were health systems, led by Oak Hollow, Riverbend and Northfield (all contract tier A).\n\n**What I re-checked today**\n\n| Check | Last time | Now |\n|---|---|---|\n| Next ship date (PO005791, RM-221, 4,200 units) | 7 Oct 2026, open | **7 Oct 2026, open \u2013 no change** |\n| Late-ship rate | 32.3% of 96 closed POs | 32.3% of 96 closed POs; last actual shipment 24 Sep 2026 |\n| RM-221 sources | Only S-104 qualified | Unchanged; S-131 still not qualified |\n| Products made with RM-221 | 3 prescription packs + 11 lens care products | Unchanged (14 products) |\n\n**New since last time: two more open POs**\n- **PO000430:** 2,600 units of RM-222 (benzalkonium chloride 50%), promised for 26 Oct 2026. RM-222 is used in **Oculon 0.005% 2.5 mL and 5 mL** (NDCs 99101-0303-25 and -50). That product wasn't in last time's exposure list. The risk is lower because S-130 is a second qualified supplier for RM-222 and nothing further down the chain has a single supplier. Oculon has no approved company substitute, so switching to S-130 is the fallback.\n- **PO000369:** 3,300 units of RM-221, promised for 29 Oct 2026. This is the follow-on RM-221 order and adds to the same Lacrivia and Cyclosporine exposure.\n- **Date problem:** both new POs show an order date of 2 Oct 2026, which is after the data's as-of date of 30 Sep 2026. It's worth confirming these POs with Procurement before planning around them.\n\n**Bottom line:** the risk is the same as before. The 7 Oct RM-221 shipment is still the one to watch, given S-104's roughly one-in-three late rate and no qualified backup. The only new item is the RM-222 order for Oculon, which has a qualified backup supplier.\n\n**Sources and definitions**\n- Saved past answer from the knowledge layer: \"Which customers are exposed if supplier S-104 misses its next ship date\u2026\"\n- Purchase orders and supplier master: `SUPPLY_DEMO.dbo.PURCH_ORD` and `dbo.SUPPLIER` (both ratified).\n- Late-ship rate: the ratified `late_ship_rate` metric (closed POs where actual ship date > promised ship date).\n- Product exposure: `trace_supply_exposure` for S-104, run separately for RM-221 and RM-222, using the current bill of materials only. It ignored one ended link (RM-221 \u2192 CMP-320, ended 30 Jun 2025).\n- Rules: BR-SUB-01 (substitutes), BR-LEAD-01 (recovery lead time).\n- I did not re-pull lead times or the top accounts and payers. The products affected by RM-221 haven't changed, so last time's numbers still apply.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "trace_supply_exposure",
+    "trace_supply_exposure"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.SUPPLIER_NM, s.COUNTRY, s.TIER, p.PO_ID, p.MATERIAL_ID, p.ORDER_DT, p.PROMISED_SHIP_DT, p.ACTUAL_SHIP_DT, p.QTY, p.STATUS\nFROM dbo.PURCH_ORD p JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=p.SUPPLIER_ID\nWHERE p.SUPPLIER_ID='S-104' AND (p.STATUS='OPEN' OR p.PO_ID='PO005791') ORDER BY p.PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 2.31
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT COUNT(*) closed_pos, AVG(CASE WHEN ACTUAL_SHIP_DT > PROMISED_SHIP_DT THEN 1.0 ELSE 0 END) late_ship_rate, MAX(ACTUAL_SHIP_DT) last_actual_ship FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND STATUS='CLOSED'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.51
+    }
+  ],
+  "cypher_queries": 7,
+  "usage": {
+    "input": 10,
+    "output": 2746,
+    "cache_read": 30234,
+    "cache_write": 13328
+  },
+  "cost_usd": 0.1276,
+  "latency_s": 35.4
+}

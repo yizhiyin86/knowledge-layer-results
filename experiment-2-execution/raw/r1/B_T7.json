@@ -1,0 +1,143 @@
+{
+  "run_id": "execution_20261007T1700_r1",
+  "agent": "B",
+  "task": "T7",
+  "qid": "T7",
+  "question": "Supplier S-108 will miss its next CMP-510 shipment by four weeks. Handle it.",
+  "role": "SUPPLY_PLANNER",
+  "badge": "Supply Response Agent",
+  "effort": "high",
+  "answer": "I followed the approved playbook KA-169FCA5D-R (\"Alternate supplier approved at only some plants\") within the Supply Disruption Response process. I raised a requisition with the backup supplier for plant PL-01 and opened a quality case to get it approved for plant PL-02. No allocation was needed.\n\n**What I found**\n- **The late order:** S-108 (Halvorsen Closures) still has 4 open orders for CMP-510 (tamper-evident cap). The next one is PO001006: 4,100 units promised for 2026-10-07, which now slips to about 2026-11-04.\n- **Affected products:** I traced the current bill of materials. CMP-510 is used in five finished products at two plants:\n  - **PL-01:** Lacrivia 5 mL (FG-1001) and 10 mL (FG-1002), and Cyclosporine OS 5 mL (FG-1003).\n  - **PL-02:** Oculon 2.5 mL (FG-2001) and 5 mL (FG-2002).\n- **Backup supplier:** S-112 (Lambert Plastics) is the only other qualified supplier for CMP-510. It is active with no hold, but the supplier portal approves it to ship to PL-01 only. S-108 is approved for both plants.\n- **Stock at the distribution centres (2026-09-25 snapshot):**\n  - **Oculon (PL-02, no backup):** both packs are above safety stock at all three distribution centres, so no allocation is needed under the allocation rules (BR-ALLOC-02).\n  - **Lacrivia at DC-EAST:** both packs are already well below safety stock (FG-1001: 46 on hand vs 471 safety stock; FG-1002: 34 vs 233). They are made at PL-01, which the backup supplier covers, so they don't qualify for allocation under this disruption.\n- **Recovery time:** about 25 days from cap arrival to the distribution centre, including the 14-day sterility test. If S-108 ships around 2026-11-04, Oculon is back in stock around 2026-11-29.\n- **Oculon risk:** current Oculon stock lasts about 31\u201351 days at recent shipment rates. That runs out before the ~60 days to recovery, so stock may drop below safety stock before then. Oculon has no approved company substitute.\n\n**What I did**\n1. **Purchase requisition PR-B7827E59:** 4,100 units of CMP-510 from S-112, shipping to PL-01 only, needed by 2026-10-07.\n2. **Case CASE-EF2D75C9 for Quality Assurance:** to approve S-112 for CMP-510 at PL-02. The case includes the Oculon risk and recovery timing.\n\n**What I did not do, and why**\n- **No allocation or approval request:** the only products without a backup supplier (Oculon) are above safety stock at every distribution centre.\n- **No account-team or wholesaler notices:** the playbook calls for these only when an allocation is made, and no customer shortfall is committed yet. If the next weekly snapshot shows Oculon below safety stock, this should be rerun to allocate and notify.\n- **Lacrivia shortage at DC-EAST:** I didn't act on it because it's outside this disruption's allocation scope. It needs separate review by Supply Planning.\n\n**Assumptions**\n- \"Next shipment\" means PO001006 (promised 2026-10-07). The other open S-108 orders are assumed to stay on schedule.\n- I used the original promised date as the need-by date. S-112 normally takes about 30 days from order to shipment, so delivery by then is not guaranteed.\n- I treated the 2026-09-25 inventory snapshot as the latest data.\n\n**Knowledge-layer sources:** process SDR-1.1 to 2.4 with rules BR-ALLOC-01/02, BR-APPR-01, BR-SUB-01/02 and BR-LEAD-01; playbook KA-169FCA5D-R; the supply-exposure trace and lead times; and the Fabric tables PURCH_ORD, SUPPLIER_MATERIAL, PLANT_MATERIAL, DC_INV and WHSLR_SHIP.",
+  "stop_reason": "end_turn",
+  "model_turns": 7,
+  "tool_calls": [
+    "get_process",
+    "find_playbooks",
+    "get_context",
+    "trace_supply_exposure",
+    "run_sql",
+    "get_supplier_status",
+    "get_supplier_status",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_lead_times",
+    "get_lead_times",
+    "create_purchase_requisition",
+    "create_escalation_case"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE MATERIAL_ID='CMP-510' AND (STATUS='OPEN' OR ORDER_DT >= '2026-06-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 23,
+      "error": null,
+      "elapsed_s": 2.7
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PLANT_ID, MATERIAL_ID FROM dbo.PLANT_MATERIAL WHERE MATERIAL_ID IN ('CMP-510','FILL-1001','FILL-1002','FILL-1003','FILL-2001','FILL-2002','FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') ORDER BY MATERIAL_ID, PLANT_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 2.61
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS FROM dbo.DC_INV i WHERE i.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') AND i.SNAPSHOT_DT = (SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) ORDER BY i.MATERIAL_ID, i.DC_ID",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.43
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SUPPLIER_ID, MATERIAL_ID, QUALIFIED_FLG, PRIMARY_FLG FROM dbo.SUPPLIER_MATERIAL WHERE MATERIAL_ID='CMP-510'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 2.01
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.DC_ID, s.MATERIAL_ID, SUM(s.UNITS) AS units_28d, SUM(s.UNITS)/28.0 AS avg_daily FROM dbo.WHSLR_SHIP s WHERE s.MATERIAL_ID IN ('FG-2001','FG-2002','FG-1001','FG-1002','FG-1003') AND s.SHIP_DT > DATEADD(day,-28,'2026-09-30') GROUP BY s.DC_ID, s.MATERIAL_ID ORDER BY s.MATERIAL_ID, s.DC_ID",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.82
+    }
+  ],
+  "cypher_queries": 30,
+  "usage": {
+    "input": 16,
+    "output": 6618,
+    "cache_read": 108690,
+    "cache_write": 28411
+  },
+  "cost_usd": 0.2962,
+  "latency_s": 91.2,
+  "final_state": {
+    "allocation_plans": [],
+    "purchase_requisitions": [
+      {
+        "pr_id": "PR-B7827E59",
+        "material_id": "CMP-510",
+        "supplier_id": "S-112",
+        "quantity": 4100,
+        "ship_to_plant": "PL-01",
+        "need_by": "2026-10-07",
+        "reason": "Cover S-108 (Halvorsen Closures) 4-week slip of PO001006 (CMP-510 tamper-evident cap, 4,100 units, promised ship 2026-10-07, now ~2026-11-04). S-112 is qualified for CMP-510 and approved in the supplier portal for PL-01 only (Lacrivia FG-1001/FG-1002, Cyclosporine OS FG-1003). Per playbook KA-169FCA5D-R / SDR-2.2.",
+        "created_at": "2026-10-07T17:14:56+00:00"
+      }
+    ],
+    "approvals": [],
+    "crm_tasks": [],
+    "edi_messages": [],
+    "escalation_cases": [
+      {
+        "case_id": "CASE-EF2D75C9",
+        "owner": "QUALITY_ASSURANCE",
+        "subject": "Qualify alternate supplier S-112 (Lambert Plastics) for CMP-510 at plant PL-02",
+        "details": "S-108 (Halvorsen Closures) will ship PO001006 (CMP-510 tamper-evident cap, 4,100 units, promised 2026-10-07) about four weeks late (~2026-11-04). The only other qualified supplier for CMP-510, S-112 (active, no hold), is approved in the supplier portal for PL-01 only. PL-02 uses CMP-510 for Oculon 0.005% 2.5 mL (FG-2001, NDC 99101-0303-25) and 5 mL (FG-2002, NDC 99101-0303-50) and has no approved alternate source. A requisition has been raised with S-112 for PL-01 only. Please assess/expedite qualifying S-112 for CMP-510 at PL-02. Context on urgency: recovery for Oculon is ~25 days after cap arrival (incl. 14-day sterility test), so roughly 2026-11-29 at DCs if S-108 ships ~2026-11-04. Current Oculon DC cover (2026-09-25 snapshot vs 28-day shipments): FG-2001 ~35 days CENTRAL / ~44 EAST / ~51 WEST; FG-2002 ~37 CENTRAL / ~46 EAST / ~31 WEST. All are above safety stock today, but stock could fall below safety stock before supply recovers. Oculon has no approved company substitute (BR-SUB-01).",
+        "related_ids": "[\"PO001006\", \"S-108\", \"S-112\", \"CMP-510\", \"PL-02\", \"FG-2001\", \"FG-2002\"]",
+        "created_at": "2026-10-07T17:14:56+00:00"
+      }
+    ],
+    "tool_calls": [
+      {
+        "seq": 1,
+        "tool": "create_purchase_requisition",
+        "args": "{\"material_id\": \"CMP-510\", \"supplier_id\": \"S-112\", \"quantity\": 4100, \"ship_to_plant\": \"PL-01\", \"need_by\": \"2026-10-07\", \"reason\": \"Cover S-108 (Halvorsen Closures) 4-week slip of PO001006 (CMP-510 tamper-evident cap, 4,100 units, promised ship 2026-10-07, now ~2026-11-04). S-112 is qualified for CMP-510 and approved in the supplier portal for PL-01 only (Lacrivia FG-1001/FG-1002, Cyclosporine OS FG-1003). Per playbook KA-169FCA5D-R / SDR-2.2.\"}",
+        "accepted": 1,
+        "result": "{\"pr_id\": \"PR-B7827E59\", \"status\": \"created\"}",
+        "created_at": "2026-10-07T17:14:56+00:00"
+      },
+      {
+        "seq": 2,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"QUALITY_ASSURANCE\", \"subject\": \"Qualify alternate supplier S-112 (Lambert Plastics) for CMP-510 at plant PL-02\", \"details\": \"S-108 (Halvorsen Closures) will ship PO001006 (CMP-510 tamper-evident cap, 4,100 units, promised 2026-10-07) about four weeks late (~2026-11-04). The only other qualified supplier for CMP-510, S-112 (active, no hold), is approved in the supplier portal for PL-01 only. PL-02 uses CMP-510 for Oculon 0.005% 2.5 mL (FG-2001, NDC 99101-0303-25) and 5 mL (FG-2002, NDC 99101-0303-50) and has no approved alternate source. A requisition has been raised with S-112 for PL-01 only. Please assess/expedite qualifying S-112 for CMP-510 at PL-02. Context on urgency: recovery for Oculon is ~25 days after cap arrival (incl. 14-day sterility test), so roughly 2026-11-29 at DCs if S-108 ships ~2026-11-04. Current Oculon DC cover (2026-09-25 snapshot vs 28-day shipments): FG-2001 ~35 days CENTRAL / ~44 EAST / ~51 WEST; FG-2002 ~37 CENTRAL / ~46 EAST / ~31 WEST. All are above safety stock today, but stock could fall below safety stock before supply recovers. Oculon has no approved company substitute (BR-SUB-01).\", \"related_ids\": [\"PO001006\", \"S-108\", \"S-112\", \"CMP-510\", \"PL-02\", \"FG-2001\", \"FG-2002\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-EF2D75C9\", \"status\": \"open\", \"owner\": \"QUALITY_ASSURANCE\"}",
+        "created_at": "2026-10-07T17:14:56+00:00"
+      }
+    ]
+  },
+  "discovery": false,
+  "trusted_playbooks_offered": {
+    "KA-169FCA5D-R": 0.7
+  },
+  "execution_trace": {
+    "trace_id": "84e62885-6d87-49ba-99ca-46d80c95fd9d",
+    "followed": [
+      "SDR-1.2",
+      "SDR-2.1",
+      "SDR-2.4",
+      "SDR-2.2",
+      "SDR-4.2"
+    ],
+    "seeded_asset": null
+  }
+}

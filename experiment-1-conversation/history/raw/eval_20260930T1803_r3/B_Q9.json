@@ -1,0 +1,50 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "B",
+  "qid": "Q9",
+  "question": "Which sources feed \"paid rate\", and is it defined the same way in the Payer Report and the Rep Report?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Both reports get \"paid rate\" from the same data, but they calculate it differently. The Payer Report counts reversed claims as neither paid nor rejected. The Rep Report counts them as not paid. As a result, the Rep Report shows a paid rate about 2 points lower.\n\n**Source**\n- Both reports calculate paid rate from one column: `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ.ADJ_STAT`. Each claim line has a status of P (paid), R (rejected) or V (reversed).\n- This is the approved table for claims in the Market Access data product.\n- The Payer Report also reads `MART.PYR_SHR_WK`, and the Rep Report also reads `CORE.IC_GOAL` and `RAW_3P.RXT_WKLY`. Those tables feed other measures, not paid rate.\n- There is an old backup, `RAW_3P.CLMLNS_ADJ_BKP_2025`, which is retired and should not be used.\n\n**How each report defines it**\n\n| | Payer Report | Rep Report |\n|---|---|---|\n| Metric | `paid_rate` | `paid_rate_rep_v1` (older version) |\n| Status | Approved by Market Access | Not approved; owned by Field Operations |\n| Formula | paid \u00f7 (paid + rejected) | paid \u00f7 all claim lines |\n| Reversals (V) | Left out entirely | Included, so they lower the rate |\n\n**The numbers (all claim lines in CLMLNS_ADJ, all dates)**\n- Paid: 244,448. Rejected: 36,258. Reversed: 6,689. Total: 287,395.\n- Payer Report version: **87.08%**\n- Rep Report version: **85.06%**\n- **Gap: 2.03 points.** That matches the 1\u20132 point gap noted in the metric catalog. It will be bigger in weeks with more reversals.\n\n**What to do:** The two reports' paid rates shouldn't be compared or used interchangeably. For market-access reporting, use the approved `paid_rate`. It would be worth asking Field Operations to switch the Rep Report to that definition. I didn't break this down by week or payer; I can run it for the last 13 weeks if you need that.\n\n**Sources and assumptions**\n- Metric definitions: `paid_rate` and `paid_rate_rep_v1`. Related: `rejection_rate`, which also leaves reversals out.\n- Report details for the Payer Report and Rep Report, and the claims definition in Market Access.\n- Policy check: your role (MARKET_ACCESS) was allowed to query CLMLNS_ADJ, with no columns hidden.\n- I didn't filter by date or brand, so the figures cover every claim line in the table.\n- This has been logged as trace ebe4f1bd-972e-42f3-9aa9-648fa9a3ee87.",
+  "stop_reason": "end_turn",
+  "model_turns": 6,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_metric",
+    "get_report",
+    "get_report",
+    "check_policy",
+    "list_deprecated_tables",
+    "get_concept",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT ADJ_STAT, COUNT(*) AS n FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ GROUP BY ADJ_STAT ORDER BY ADJ_STAT",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.8
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT\n  SUM(CASE WHEN ADJ_STAT='P' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN ADJ_STAT IN ('P','R') THEN 1 ELSE 0 END),0) AS paid_rate_ratified,\n  SUM(CASE WHEN ADJ_STAT='P' THEN 1 ELSE 0 END) / COUNT(*) AS paid_rate_rep_v1,\n  COUNT(*) AS all_lines\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 12.68
+    }
+  ],
+  "usage": {
+    "input": 14,
+    "output": 3195,
+    "cache_read": 52753,
+    "cache_write": 13679
+  },
+  "cost_usd": 0.1429,
+  "latency_s": 60.9,
+  "cypher_queries": 16
+}

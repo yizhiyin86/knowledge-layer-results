@@ -1,0 +1,130 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "A",
+  "qid": "Q3",
+  "question": "In district D-03, what is each rep's Lacrivia TRx attainment versus their IC goal quarter-to-date?",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "In D-03, Lacrivia prescriptions (TRx) reached about 81% of the district's combined incentive (IC) goals quarter-to-date. Rep attainment ranges from 62% to 99%, and no rep has hit goal yet. The data runs through the week ending Sep 25, which covers 13 of the quarter's roughly 13 weeks. Quarter-end is Sep 30, so a few days of prescriptions still have to come in.\n\n| Rep | Territory | Team | QTD Lacrivia TRx | Q3 IC goal | Attainment | Gap to goal |\n|---|---|---|---|---|---|---|\n| Sawyer Upton (R019) | T032 | TEAL | 347 | 352 | **98.6%** | 5 |\n| Indy Calder (R020) | T032 | CORAL | 347 | 360 | **96.4%** | 13 |\n| Vale Rourke (R021) | T033 | TEAL | 844 | 900 | **93.8%** | 56 |\n| Quinn Abbott (R024) | T034 | CORAL | 376 | 412 | **91.3%** | 36 |\n| Finley Stroud (R018) | T031 | CORAL | 632 | 713 | **88.6%** | 81 |\n| Dana Calder (R023) | T034 | TEAL | 376 | 441 | **85.3%** | 65 |\n| Vale Dorsey (R022) | T033 | CORAL | 844 | 1,259 | **67.0%** | 415 |\n| Emerson Dorsey (R017) | T031 | TEAL | 632 | 1,013 | **62.4%** | 381 |\n| **District D-03 (8 reps)** | | | 4,398 credited (2,199 unique TRx) | 5,450 | **80.7%** | 1,052 |\n\n- **Close to goal:** both T032 reps are within 13 TRx of goal. Rourke and Abbott are within 56.\n- **Well behind:** Vale Dorsey and Emerson Dorsey are 415 and 381 TRx short. In both cases the goal is well above their territory's whole-quarter volume, so they can't close the gap in the days left.\n- **Marlow Lowry (R051)** is on D-03's roster but has no territory and only an Oculon goal, so I left him out.\n\n**How I credited TRx (please confirm):** each territory has two reps, one TEAL and one CORAL. I found no crediting-rules table, so I gave both reps the full TRx written by prescribers aligned to their territory. That's why the district's credited total (4,398) is twice the unique TRx (2,199).\n- An alternative is to credit each rep only for prescribers on their own Q3 call plan. That matches the table above for the CORAL reps, whose call plans cover every prescriber in their territory.\n- It would lower the TEAL reps a lot: Emerson Dorsey to 27% (271), Upton to 67% (235), Rourke to 46% (411) and Dana Calder to 47% (206).\n- TEAL goals are about the same size as CORAL goals, so shared territory crediting looks like the intended basis. Please check against your IC plan document.\n\n**Sources, definitions and assumptions**\n- **TRx:** weekly prescriber-level prescription data (`RAW_3P.RXT_WKLY`), counting the two Lacrivia NDCs from `CORE.PRODUCT` (0.1% 5 mL and 0.1% 10 mL) across all channels and plans. I found no duplicates or negative values, and every prescriber matched the prescriber master.\n- **Quarter-to-date:** 2026Q3, taken as calendar Jul\u2013Sep: the 13 weeks ending Friday Jul 3 through Sep 25. The Jul 3 week includes Jun 27\u201330, about 161 TRx across the district. Sep 26\u201330 isn't in the data yet.\n- **Goals:** `CORE.IC_GOAL` for brand LACRIVIA, FQTR 2026Q3. I assumed these are full-quarter goals, not goals pro-rated to date.\n- **Alignment:** `CORE.REP_ROSTER` (district D-03, territories T031\u2013T034) and prescriber territory from `CORE.PRESCRIBER`. `CORE.CALL_PLAN` was used only for the alternative crediting check.\n- **Data use:** I used only aggregated TRx; no patient-level or claims data.",
+  "stop_reason": "end_turn",
+  "model_turns": 8,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.CORE.PRODUCT order by 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 2.95
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select r.*, g.brand_nm, g.fqtr, g.trx_goal from PHARMA_DEMO.CORE.REP_ROSTER r left join PHARMA_DEMO.CORE.IC_GOAL g on g.rep_id=r.rep_id where r.district_id ilike '%03%' or r.terr_id like 'T03%' order by r.rep_id",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.7
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select fqtr, brand_nm, count(*), sum(trx_goal) from PHARMA_DEMO.CORE.IC_GOAL group by 1,2",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.22
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select min(wk_end_dt), max(wk_end_dt), count(distinct wk_end_dt), dayname(max(wk_end_dt)) from PHARMA_DEMO.RAW_3P.RXT_WKLY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.24
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select prod_ndc11, length(prod_ndc11) l, count(*), sum(trx_qty), min(trx_qty), max(trx_qty), sum(case when trx_qty<0 then 1 else 0 end) neg from PHARMA_DEMO.RAW_3P.RXT_WKLY where wk_end_dt>='2026-06-26' group by 1,2 order by 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.3
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*) total, count(distinct wk_end_dt, prscrbr_me, prod_ndc11, plan_id, chnl_cd) dist, sum(case when p.prscrbr_me is null then 1 else 0 end) unmatched_prscr from PHARMA_DEMO.RAW_3P.RXT_WKLY r left join PHARMA_DEMO.CORE.PRESCRIBER p using (prscrbr_me) where wk_end_dt>='2026-06-26'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 3.46
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select cp.rep_id, r.terr_id, r.team, cp.fqtr, count(*) n, count(distinct cp.prscrbr_me) d, sum(case when p.terr_id=r.terr_id then 1 else 0 end) in_terr\nfrom PHARMA_DEMO.CORE.CALL_PLAN cp join PHARMA_DEMO.CORE.REP_ROSTER r on r.rep_id=cp.rep_id left join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=cp.prscrbr_me\nwhere r.district_id='D-03' group by 1,2,3,4 order by 1",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.6
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select p.terr_id, count(*) prescribers from PHARMA_DEMO.CORE.PRESCRIBER p where p.terr_id like 'T03%' or p.terr_id is null group by 1 order by 1",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.14
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.BIZ.MKT_DEF_DRIVER",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.15
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with rx as (\n select p.terr_id, r.prscrbr_me, sum(r.trx_qty) trx\n from PHARMA_DEMO.RAW_3P.RXT_WKLY r join PHARMA_DEMO.CORE.PRODUCT pr on pr.prod_ndc11=r.prod_ndc11 and pr.brand_nm='LACRIVIA'\n join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=r.prscrbr_me\n where r.wk_end_dt between '2026-07-01' and '2026-09-30'\n group by 1,2)\nselect ro.rep_id, ro.rep_nm, ro.terr_id, ro.team, g.trx_goal,\n (select sum(trx) from rx where rx.terr_id=ro.terr_id) terr_trx,\n (select sum(trx) from rx join PHARMA_DEMO.CORE.CALL_PLAN cp on cp.prscrbr_me=rx.prscrbr_me and cp.rep_id=ro.rep_id and cp.fqtr='2026Q3') callplan_trx\nfrom PHARMA_DEMO.CORE.REP_ROSTER ro left join PHARMA_DEMO.CORE.IC_GOAL g on g.rep_id=ro.rep_id and g.fqtr='2026Q3' and g.brand_nm='LACRIVIA'\nwhere ro.district_id='D-03' order by 1",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.93
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select p.terr_id, count(distinct r.wk_end_dt) wks, min(r.wk_end_dt), max(r.wk_end_dt), sum(case when r.wk_end_dt='2026-07-03' then trx_qty end) wk_0703_trx, sum(trx_qty) trx\nfrom PHARMA_DEMO.RAW_3P.RXT_WKLY r join PHARMA_DEMO.CORE.PRODUCT pr on pr.prod_ndc11=r.prod_ndc11 and pr.brand_nm='LACRIVIA'\njoin PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=r.prscrbr_me\nwhere r.wk_end_dt between '2026-07-01' and '2026-09-30' and p.terr_id like 'T03%' group by 1 order by 1",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 3.39
+    }
+  ],
+  "usage": {
+    "input": 18,
+    "output": 6243,
+    "cache_read": 61020,
+    "cache_write": 15969
+  },
+  "cost_usd": 0.217,
+  "latency_s": 115.2
+}

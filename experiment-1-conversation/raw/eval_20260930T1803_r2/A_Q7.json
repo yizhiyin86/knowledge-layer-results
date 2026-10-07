@@ -1,0 +1,176 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "A",
+  "qid": "Q7",
+  "question": "Is DC-EAST at risk of a Lacrivia stockout given the recent TRx demand trend?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Yes, and it's urgent. DC-EAST is already below safety stock on both Lacrivia SKUs and has only about 1\u20134 days of cover left.** Rising demand is part of it, but the main cause is that replenishment into DC-EAST fell by about half from mid-August.\n\n**Position at DC-EAST (last snapshot, 2026-09-25)**\n\n| SKU | On hand | Safety stock | Avg weekly shipments to wholesalers (last 4 wks) | Days of cover with no inbound | Days to zero at current inbound |\n|---|---|---|---|---|---|\n| FG-1001 Lacrivia 5 mL | 46 | 471 | ~257 | ~1 | ~2\u20133 |\n| FG-1002 Lacrivia 10 mL | 34 | 233 | ~117 | ~2 | ~4 |\n\nStock was stable and slowly growing through 8/14 (about 1,230 units of 5 mL and 586 of 10 mL). Since then it has fallen for six straight weeks. DC-CENTRAL and DC-WEST have not seen this drop and are still well above safety stock.\n\n**Demand trend (national Lacrivia TRx)**\n- Last 13 weeks (7/3\u20139/25): 10,442 TRx, about 803 a week. That's up 7.7% on the prior 13 weeks (9,695).\n- Last 4 weeks averaged about 849 a week, 14% above the prior 13-week average. The trend line rises by about 11 TRx a week.\n- Shipments from DC-EAST to its two EAST wholesalers (W-01, W-02) rose by a similar amount, from about 230 to 257 a week for 5 mL.\n- Higher demand speeds up the stockout, but on its own it would not have caused one.\n\n**What drove the drop (inferred from the data)**\n1. **Inbound fell by about half starting the week of 8/21.** I estimated weekly inbound as the change in stock plus shipments to wholesalers. For 5 mL it fell from about 235 to about 120 a week, and for 10 mL from about 115 to about 60.\n2. **About 380 units left DC-EAST in the week to 9/11 without a matching wholesaler shipment** (259 of 5 mL, 123 of 10 mL). This could be a quarantine, write-off or transfer, but I can't tell from this data.\n3. **Upstream parts are not the problem.** I checked purchase orders since June for every component in the Lacrivia bill of materials (cyclosporine, glycerin, emulsifier, bottles, caps and packaging). None are past due, and closed orders arrived on average about 1 day early. The bottleneck is probably at fill/finish or in plant-to-DC transfers. There's no transfer table in the data to confirm this.\n\n**Suggested actions**\n- **Move stock between DCs now.** To get back to safety stock, DC-EAST needs about 425 units of 5 mL and about 200 of 10 mL, plus roughly one week of demand. DC-CENTRAL and DC-WEST together hold about 695 units of 5 mL and 391 of 10 mL above their own safety stock. That covers the gap, but uses up most of their buffer.\n- **Find out what happened to plant-to-DC-EAST replenishment after 8/14, and to the ~380 units in the week to 9/11.**\n- **Raise the DC-EAST forecast** to reflect TRx running about 14% higher.\n\n**Sources and definitions**\n- **Supply data (Fabric SUPPLY_DEMO):** `DC_INV` (weekly Friday snapshots of stock and safety stock), `WHSLR_SHIP` (DC-to-wholesaler shipments, used as the regional demand signal), `MATERIAL_NDC_XREF`/`MATERIAL` (FG-1001 = NDC 99101-0101-05, FG-1002 = 99101-0101-10), `BOM`, `PURCH_ORD`, `DC`, `WHSLR`.\n- **Commercial data (Snowflake PHARMA_DEMO):** `RAW_3P.RXT_WKLY` (TRx), `CORE.PRODUCT` (Lacrivia NDCs 99101010105 and 99101010110).\n- **Time periods:** \"Last 13 weeks\" is the weeks ending 7/3 to 9/25/2026; the prior 13 weeks end 4/3 to 6/26.\n\n**Assumptions**\n- **National TRx, not DC-EAST's region.** The commercial data has no reliable link from prescribers or territories to the EAST region, so I used the national TRx trend. DC-EAST's shipments to its wholesalers stand in for regional demand.\n- **Inbound is estimated.** The data has no receipts table, so I backed inbound out from stock changes and shipments, and it may include adjustments. The last snapshot is 9/25, and no shipments are recorded after that.\n- **Aggregated data only.** I used total TRx only and no prescriber-level data, which is enough for supply planning.",
+  "stop_reason": "end_turn",
+  "model_turns": 12,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PRODUCT ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.04
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT x.MATERIAL_ID, x.NDC, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ FROM dbo.MATERIAL_NDC_XREF x LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=x.MATERIAL_ID ORDER BY x.NDC",
+      "ok": true,
+      "rows": 60,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.REF.CHNL",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.31
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002') AND DC_ID='DC-EAST' ORDER BY MATERIAL_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 52,
+      "error": null,
+      "elapsed_s": 1.5
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.TERRITORY ORDER BY 1",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 1.35
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.MATERIAL_ID, DATEADD(day, 6 - ((DATEDIFF(day,'2026-01-02',s.SHIP_DT)%7+7)%7), s.SHIP_DT) AS wk_end, SUM(s.UNITS) units, COUNT(*) n FROM dbo.WHSLR_SHIP s WHERE s.DC_ID='DC-EAST' AND s.MATERIAL_ID IN ('FG-1001','FG-1002') AND s.SHIP_DT>='2026-04-01' GROUP BY s.MATERIAL_ID, DATEADD(day, 6 - ((DATEDIFF(day,'2026-01-02',s.SHIP_DT)%7+7)%7), s.SHIP_DT) ORDER BY 1,2",
+      "ok": true,
+      "rows": 53,
+      "error": null,
+      "elapsed_s": 0.92
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT WK_END_DT, SUM(IFF(PROD_NDC11='99101010105',TRX_QTY,0)) trx_5ml, SUM(IFF(PROD_NDC11='99101010110',TRX_QTY,0)) trx_10ml, SUM(TRX_QTY) trx_total, SUM(NRX_QTY) nrx_total\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY WHERE PROD_NDC11 IN ('99101010105','99101010110') AND WK_END_DT >= '2026-03-01' GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 1.15
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH b AS (\n SELECT PARENT_MATERIAL_ID top_id, PARENT_MATERIAL_ID, CHILD_MATERIAL_ID, QTY_PER, 1 lvl FROM dbo.BOM WHERE PARENT_MATERIAL_ID IN ('FG-1001','FG-1002') AND '2026-09-30' BETWEEN EFF_FROM AND EFF_TO\n UNION ALL\n SELECT b.top_id, c.PARENT_MATERIAL_ID, c.CHILD_MATERIAL_ID, c.QTY_PER, b.lvl+1 FROM dbo.BOM c JOIN b ON c.PARENT_MATERIAL_ID=b.CHILD_MATERIAL_ID WHERE '2026-09-30' BETWEEN c.EFF_FROM AND c.EFF_TO AND b.lvl<6)\nSELECT b.top_id, b.lvl, b.PARENT_MATERIAL_ID, b.CHILD_MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP, b.QTY_PER FROM b LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=b.CHILD_MATERIAL_ID ORDER BY 1,2,3,4",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 0.32
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT STATUS, COUNT(*) n, MIN(ORDER_DT) mn, MAX(ORDER_DT) mx FROM dbo.PURCH_ORD GROUP BY STATUS",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.8
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b1.PARENT_MATERIAL_ID p1, b1.CHILD_MATERIAL_ID c1, m1.MATERIAL_DESC d1, b2.CHILD_MATERIAL_ID c2, m2.MATERIAL_DESC d2, b3.CHILD_MATERIAL_ID c3, m3.MATERIAL_DESC d3, b4.CHILD_MATERIAL_ID c4, m4.MATERIAL_DESC d4\nFROM dbo.BOM b1 LEFT JOIN dbo.MATERIAL m1 ON m1.MATERIAL_ID=b1.CHILD_MATERIAL_ID\nLEFT JOIN dbo.BOM b2 ON b2.PARENT_MATERIAL_ID=b1.CHILD_MATERIAL_ID AND '2026-09-30' BETWEEN b2.EFF_FROM AND b2.EFF_TO\nLEFT JOIN dbo.MATERIAL m2 ON m2.MATERIAL_ID=b2.CHILD_MATERIAL_ID\nLEFT JOIN dbo.BOM b3 ON b3.PARENT_MATERIAL_ID=b2.CHILD_MATERIAL_ID AND '2026-09-30' BETWEEN b3.EFF_FROM AND b3.EFF_TO\nLEFT JOIN dbo.MATERIAL m3 ON m3.MATERIAL_ID=b3.CHILD_MATERIAL_ID\nLEFT JOIN dbo.BOM b4 ON b4.PARENT_MATERIAL_ID=b3.CHILD_MATERIAL_ID AND '2026-09-30' BETWEEN b4.EFF_FROM AND b4.EFF_TO\nLEFT JOIN dbo.MATERIAL m4 ON m4.MATERIAL_ID=b4.CHILD_MATERIAL_ID\nWHERE b1.PARENT_MATERIAL_ID IN ('FG-1001','FG-1002') AND '2026-09-30' BETWEEN b1.EFF_FROM AND b1.EFF_TO ORDER BY 1,2,4,6,8",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.48
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT p.MATERIAL_ID, p.SUPPLIER_ID, p.STATUS, COUNT(*) n, SUM(p.QTY) qty,\n SUM(CASE WHEN p.STATUS='CLOSED' AND p.ACTUAL_SHIP_DT>p.PROMISED_SHIP_DT THEN 1 ELSE 0 END) late_closed,\n AVG(CASE WHEN p.STATUS='CLOSED' THEN DATEDIFF(day,p.PROMISED_SHIP_DT,p.ACTUAL_SHIP_DT)*1.0 END) avg_slip_days,\n SUM(CASE WHEN p.STATUS='OPEN' AND p.PROMISED_SHIP_DT<'2026-09-30' THEN 1 ELSE 0 END) open_past_due,\n MIN(CASE WHEN p.STATUS='OPEN' THEN p.PROMISED_SHIP_DT END) min_open_promise\nFROM dbo.PURCH_ORD p WHERE p.MATERIAL_ID IN ('CMP-501','CMP-502','CMP-510','RM-103','CMP-310','RM-101','CMP-520','CMP-530','CMP-540') AND p.ORDER_DT>='2026-06-01'\nGROUP BY p.MATERIAL_ID, p.SUPPLIER_ID, p.STATUS ORDER BY 1,2,3",
+      "ok": true,
+      "rows": 34,
+      "error": null,
+      "elapsed_s": 1.09
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH inv AS (SELECT DC_ID, MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, LAG(ON_HAND_UNITS) OVER (PARTITION BY DC_ID, MATERIAL_ID ORDER BY SNAPSHOT_DT) prev_oh, LAG(SNAPSHOT_DT) OVER (PARTITION BY DC_ID, MATERIAL_ID ORDER BY SNAPSHOT_DT) prev_dt FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002'))\nSELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, ISNULL((SELECT SUM(UNITS) FROM dbo.WHSLR_SHIP s WHERE s.DC_ID=i.DC_ID AND s.MATERIAL_ID=i.MATERIAL_ID AND s.SHIP_DT>i.prev_dt AND s.SHIP_DT<=i.SNAPSHOT_DT),0) ship_units,\n i.ON_HAND_UNITS - i.prev_oh + ISNULL((SELECT SUM(UNITS) FROM dbo.WHSLR_SHIP s WHERE s.DC_ID=i.DC_ID AND s.MATERIAL_ID=i.MATERIAL_ID AND s.SHIP_DT>i.prev_dt AND s.SHIP_DT<=i.SNAPSHOT_DT),0) implied_receipts\nFROM inv i WHERE i.SNAPSHOT_DT>='2026-06-26' AND i.DC_ID='DC-EAST' ORDER BY 1,2,3",
+      "ok": true,
+      "rows": 28,
+      "error": null,
+      "elapsed_s": 1.48
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002') AND DC_ID<>'DC-EAST' AND SNAPSHOT_DT IN ('2026-07-03','2026-08-14','2026-08-28','2026-09-11','2026-09-25') ORDER BY 1,2,3",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 0.36
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, SHIP_DT, WHSLR_ID, UNITS FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT>'2026-09-25' ORDER BY 1,2",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.9
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH w AS (SELECT WK_END_DT, SUM(TRX_QTY) trx, SUM(IFF(PROD_NDC11='99101010105',TRX_QTY,0)) t5, SUM(IFF(PROD_NDC11='99101010110',TRX_QTY,0)) t10 FROM PHARMA_DEMO.RAW_3P.RXT_WKLY WHERE PROD_NDC11 IN ('99101010105','99101010110') GROUP BY 1),\nr AS (SELECT *, ROW_NUMBER() OVER (ORDER BY WK_END_DT DESC) rn FROM w)\nSELECT CASE WHEN rn<=13 THEN 'L13' WHEN rn<=26 THEN 'P13' END per, MIN(WK_END_DT), MAX(WK_END_DT), SUM(trx), AVG(trx), AVG(t5), AVG(t10),\n REGR_SLOPE(trx, DATEDIFF(day,'2026-01-02',WK_END_DT)/7) slope_per_wk\nFROM r WHERE rn<=26 GROUP BY 1\nUNION ALL SELECT 'L4', MIN(WK_END_DT), MAX(WK_END_DT), SUM(trx), AVG(trx), AVG(t5), AVG(t10), NULL FROM r WHERE rn<=4 ORDER BY 1",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.31
+    }
+  ],
+  "usage": {
+    "input": 26,
+    "output": 11201,
+    "cache_read": 199226,
+    "cache_write": 34757
+  },
+  "cost_usd": 0.4378,
+  "latency_s": 182.9
+}

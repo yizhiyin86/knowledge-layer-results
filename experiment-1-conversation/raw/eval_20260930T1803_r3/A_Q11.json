@@ -1,0 +1,159 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "A",
+  "qid": "Q11",
+  "question": "If S-104 became unavailable, is there a qualified alternate supplier for each material it provides, and which products would remain exposed?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Short answer:** Only half the risk is covered. S-104 (Delmar Specialty Chemicals, India, Tier 2) supplies two materials. RM-222 has a qualified alternate supplier and RM-221 does not. If S-104 became unavailable, 14 finished products would be left without a qualified source because they depend on RM-221.\n\n**1. Materials S-104 supplies (S-104 is the primary, qualified supplier for both)**\n\n| Material | Description | Alternate supplier | Qualified? | Status |\n|---|---|---|---|---|\n| RM-221 | Polysorbate 80 NF, low-peroxide | S-131 Pinecrest Chemical Trading (China) | **No** | **No qualified alternate: single-sourced** |\n| RM-222 | Benzalkonium chloride 50% | S-130 Oakridge Chemicals (US) | Yes | Covered |\n\n- **RM-222:** S-130 is already a working supplier. It placed 11 closed orders (45,700 units) since Oct-2025 and has 1 open order (3,700). That's about 22% of RM-222 volume, against S-104's 157,600 units. It's a real backup, but S-130 would need to take on roughly 4.5\u00d7 its current volume.\n- **RM-221:** S-104 supplied all of it: 48 closed orders (159,500 units) and 2 open (7,500). No other supplier has shipped it. S-131 is listed but not qualified.\n\n**2. Products left exposed (through RM-221, using bill-of-materials links in effect on 2026-09-30)**\n\n*Branded ophthalmic emulsions* (RM-221 goes into emulsifier premix CMP-310, then semi-finished stages, then filled bottles):\n| FG | Product | NDC | DC on-hand / safety stock (25-Sep-26) |\n|---|---|---|---|\n| FG-1001 | Lacrivia 0.1% emulsion 5 mL | 99101-0101-05 | 1,316 / 1,046 |\n| FG-1002 | Lacrivia 0.1% emulsion 10 mL | 99101-0101-10 | 709 / 517 |\n| FG-1003 | Cyclosporine 0.05% emulsion 5 mL | 99101-0202-05 | 1,423 / 560 |\n\n*Lens care solutions* (RM-221 goes in through a chain of INT-LC intermediates):\n- FG-3001 to FG-3011 (Lens care solutions 1\u201311), NDCs 99101-4001 to 4011. The distribution-centre inventory table has no stock records for these.\n\nLacrivia 5 mL and 10 mL have only about 270 and 190 units above safety stock, so they're the most urgent.\n\n**3. Products that would stay protected**\n- **FG-2001 and FG-2002 (Oculon 0.005% 2.5 mL and 5 mL)** use RM-222 through a buffer/preservative concentrate (CMP-320), so S-130 covers them.\n- CMP-320 used to contain RM-221 as well, but that link ended on 2025-06-30. Oculon therefore no longer depends on RM-221.\n\n**Recommended actions:** Start qualifying S-131, or find another Polysorbate 80 source, for RM-221. Check how much more RM-222 S-130 can supply. Consider building extra RM-221 and Lacrivia stock while S-104 is still supplying.\n\n**Sources and definitions (Fabric warehouse SUPPLY_DEMO)**\n- `SUPPLIER` and `SUPPLIER_MATERIAL`: \"qualified alternate\" means another supplier with QUALIFIED_FLG = 'Y' for the same material.\n- `BOM`: I traced it up level by level until I reached finished-goods (FG) items, keeping only links in effect on 2026-09-30. I used the multi-level `BOM` table, not `BOM_FLAT_LEGACY`, which was last synced in Nov-2024 and doesn't contain RM-221 or RM-222.\n- `MATERIAL` and `MATERIAL_NDC_XREF` for product descriptions and NDCs; `PURCH_ORD` for order history; `DC_INV` for the latest stock snapshot (2026-09-25).\n\n**Assumptions**\n- \"Exposed\" means a finished product depends on a material that has no qualified supplier left.\n- I assumed no approved substitute materials or alternate formulations exist, because the data doesn't model them.\n- About 30 lens-care intermediates also contain RM-221 but don't feed any current finished product, so I left them out.",
+  "stop_reason": "end_turn",
+  "model_turns": 15,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.*, (SELECT COUNT(*) FROM dbo.SUPPLIER x WHERE x.SUPPLIER_ID=s.SUPPLIER_ID) cnt FROM dbo.SUPPLIER s WHERE SUPPLIER_ID LIKE '%104%' OR SUPPLIER_NM IN (SELECT SUPPLIER_NM FROM dbo.SUPPLIER WHERE SUPPLIER_ID LIKE '%104%')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.03
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.SUPPLIER_ID, sm.MATERIAL_ID, sm.QUALIFIED_FLG, sm.PRIMARY_FLG, m.MATERIAL_DESC, m.MATERIAL_TYP FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=sm.MATERIAL_ID WHERE UPPER(LTRIM(RTRIM(sm.SUPPLIER_ID))) LIKE '%104%'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.93
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.SUPPLIER_ID, s.SUPPLIER_NM, s.COUNTRY, s.TIER, sm.MATERIAL_ID, '['+sm.QUALIFIED_FLG+']' q, '['+sm.PRIMARY_FLG+']' p FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID LIKE '%RM-22%' OR sm.MATERIAL_ID LIKE '%221%' OR sm.MATERIAL_ID LIKE '%222%' ORDER BY sm.MATERIAL_ID",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.03
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT QUALIFIED_FLG, PRIMARY_FLG, COUNT(*) n FROM dbo.SUPPLIER_MATERIAL GROUP BY QUALIFIED_FLG, PRIMARY_FLG",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH x AS (\n SELECT PARENT_MATERIAL_ID, CHILD_MATERIAL_ID, CHILD_MATERIAL_ID AS RM, 1 AS lvl, EFF_FROM, EFF_TO FROM dbo.BOM WHERE CHILD_MATERIAL_ID IN ('RM-221','RM-222')\n UNION ALL\n SELECT b.PARENT_MATERIAL_ID, b.CHILD_MATERIAL_ID, x.RM, x.lvl+1, b.EFF_FROM, b.EFF_TO FROM dbo.BOM b JOIN x ON b.CHILD_MATERIAL_ID=x.PARENT_MATERIAL_ID WHERE x.lvl<8)\nSELECT x.RM, x.lvl, x.PARENT_MATERIAL_ID, x.CHILD_MATERIAL_ID, x.EFF_FROM, x.EFF_TO, m.MATERIAL_DESC, m.MATERIAL_TYP FROM x LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=x.PARENT_MATERIAL_ID ORDER BY x.RM, x.lvl, x.PARENT_MATERIAL_ID",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 1.73
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b1.CHILD_MATERIAL_ID rm, b1.PARENT_MATERIAL_ID p1, m1.MATERIAL_TYP t1, m1.MATERIAL_DESC d1, b1.EFF_FROM f1, b1.EFF_TO e1, b2.PARENT_MATERIAL_ID p2, m2.MATERIAL_TYP t2, b2.EFF_FROM f2, b2.EFF_TO e2, b3.PARENT_MATERIAL_ID p3, b3.EFF_TO e3\nFROM dbo.BOM b1 LEFT JOIN dbo.MATERIAL m1 ON m1.MATERIAL_ID=b1.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b2 ON b2.CHILD_MATERIAL_ID=b1.PARENT_MATERIAL_ID\nLEFT JOIN dbo.MATERIAL m2 ON m2.MATERIAL_ID=b2.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b3 ON b3.CHILD_MATERIAL_ID=b2.PARENT_MATERIAL_ID\nWHERE b1.CHILD_MATERIAL_ID IN ('RM-221','RM-222') ORDER BY 1,2,7",
+      "ok": true,
+      "rows": 13,
+      "error": null,
+      "elapsed_s": 1.02
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_TYP, COUNT(*) n, MIN(MATERIAL_ID) mn, MAX(MATERIAL_ID) mx FROM dbo.MATERIAL GROUP BY MATERIAL_TYP",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT COUNT(*) n, SUM(CASE WHEN EFF_TO < '2026-09-30' THEN 1 ELSE 0 END) expired, SUM(CASE WHEN EFF_FROM > '2026-09-30' THEN 1 ELSE 0 END) future, COUNT(DISTINCT PARENT_MATERIAL_ID) parents FROM dbo.BOM",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH a AS (SELECT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\npaths AS (\nSELECT a1.c rm, a1.p l1, a2.p l2, a3.p l3, a4.p l4, a5.p l5, a6.p l6, a7.p l7, a8.p l8, a9.p l9, a10.p l10, a11.p l11, a12.p l12\nFROM a a1 LEFT JOIN a a2 ON a2.c=a1.p LEFT JOIN a a3 ON a3.c=a2.p LEFT JOIN a a4 ON a4.c=a3.p LEFT JOIN a a5 ON a5.c=a4.p\nLEFT JOIN a a6 ON a6.c=a5.p LEFT JOIN a a7 ON a7.c=a6.p LEFT JOIN a a8 ON a8.c=a7.p LEFT JOIN a a9 ON a9.c=a8.p LEFT JOIN a a10 ON a10.c=a9.p LEFT JOIN a a11 ON a11.c=a10.p LEFT JOIN a a12 ON a12.c=a11.p\nWHERE a1.c IN ('RM-221','RM-222')),\nu AS (SELECT rm, l1 m, 1 lv FROM paths UNION SELECT rm,l2,2 FROM paths UNION SELECT rm,l3,3 FROM paths UNION SELECT rm,l4,4 FROM paths UNION SELECT rm,l5,5 FROM paths UNION SELECT rm,l6,6 FROM paths UNION SELECT rm,l7,7 FROM paths UNION SELECT rm,l8,8 FROM paths UNION SELECT rm,l9,9 FROM paths UNION SELECT rm,l10,10 FROM paths UNION SELECT rm,l11,11 FROM paths UNION SELECT rm,l12,12 FROM paths)\nSELECT u.rm, m.MATERIAL_TYP, COUNT(DISTINCT u.m) n, MAX(u.lv) maxlv, (SELECT COUNT(*) FROM paths WHERE l12 IS NOT NULL) deep FROM u JOIN dbo.MATERIAL m ON m.MATERIAL_ID=u.m GROUP BY u.rm, m.MATERIAL_TYP",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 3.25
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH a AS (SELECT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\npaths AS (\nSELECT a1.c rm, a1.p l1, a2.p l2, a3.p l3, a4.p l4, a5.p l5, a6.p l6, a7.p l7, a8.p l8, a9.p l9\nFROM a a1 LEFT JOIN a a2 ON a2.c=a1.p LEFT JOIN a a3 ON a3.c=a2.p LEFT JOIN a a4 ON a4.c=a3.p LEFT JOIN a a5 ON a5.c=a4.p\nLEFT JOIN a a6 ON a6.c=a5.p LEFT JOIN a a7 ON a7.c=a6.p LEFT JOIN a a8 ON a8.c=a7.p LEFT JOIN a a9 ON a9.c=a8.p\nWHERE a1.c IN ('RM-221','RM-222')),\nu AS (SELECT rm, l1 m, 1 lv FROM paths UNION SELECT rm,l2,2 FROM paths UNION SELECT rm,l3,3 FROM paths UNION SELECT rm,l4,4 FROM paths UNION SELECT rm,l5,5 FROM paths UNION SELECT rm,l6,6 FROM paths UNION SELECT rm,l7,7 FROM paths UNION SELECT rm,l8,8 FROM paths UNION SELECT rm,l9,9 FROM paths)\nSELECT u.m, ISNULL(m.MATERIAL_TYP,'?') typ, m.MATERIAL_DESC, m.PACK_SZ, STRING_AGG(u.rm, ',') rms, MIN(x.NDC) ndc,\n CASE WHEN EXISTS (SELECT 1 FROM a WHERE a.c=u.m) THEN 'has parent' ELSE 'TOP' END pos\nFROM (SELECT DISTINCT rm, m FROM u WHERE m IS NOT NULL) u LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=u.m LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=u.m\nWHERE m.MATERIAL_TYP IN ('FG','KIT','FILL') OR m.MATERIAL_TYP IS NULL OR NOT EXISTS (SELECT 1 FROM a WHERE a.c=u.m)\nGROUP BY u.m, m.MATERIAL_TYP, m.MATERIAL_DESC, m.PACK_SZ ORDER BY 2,1",
+      "ok": true,
+      "rows": 53,
+      "error": null,
+      "elapsed_s": 1.98
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SUPPLIER_ID, MATERIAL_ID, STATUS, COUNT(*) n, SUM(QTY) qty, MIN(ORDER_DT) first_dt, MAX(ORDER_DT) last_dt FROM dbo.PURCH_ORD WHERE MATERIAL_ID IN ('RM-221','RM-222') OR SUPPLIER_ID IN ('S-104','S-130','S-131') GROUP BY SUPPLIER_ID, MATERIAL_ID, STATUS ORDER BY 2,1,3",
+      "ok": true,
+      "rows": 8,
+      "error": null,
+      "elapsed_s": 1.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.*, (SELECT COUNT(*) FROM dbo.SUPPLIER_MATERIAL sm WHERE sm.SUPPLIER_ID=s.SUPPLIER_ID) n_mat FROM dbo.SUPPLIER s WHERE SUPPLIER_ID IN ('S-130','S-131')",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.36
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SUPPLIER_ID, COMPONENT_MATERIAL_ID, COUNT(DISTINCT FG_MATERIAL_ID) n_fg, STRING_AGG(FG_MATERIAL_ID, ',') fgs, MAX(LAST_SYNC_DT) sync FROM dbo.BOM_FLAT_LEGACY WHERE SUPPLIER_ID='S-104' OR COMPONENT_MATERIAL_ID IN ('RM-221','RM-222') GROUP BY SUPPLIER_ID, COMPONENT_MATERIAL_ID",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 2.01
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.MATERIAL_ID, MAX(i.SNAPSHOT_DT) snap, SUM(i.ON_HAND_UNITS) on_hand, SUM(i.SAFETY_STOCK_UNITS) ss, COUNT(*) n_dc FROM dbo.DC_INV i WHERE i.SNAPSHOT_DT = (SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) AND i.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002','FG-3001','FG-3002','FG-3003','FG-3004','FG-3005','FG-3006','FG-3007','FG-3008','FG-3009','FG-3010','FG-3011') GROUP BY i.MATERIAL_ID ORDER BY 1",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.32
+    }
+  ],
+  "usage": {
+    "input": 32,
+    "output": 9172,
+    "cache_read": 158206,
+    "cache_write": 21216
+  },
+  "cost_usd": 0.3213,
+  "latency_s": 125.2
+}

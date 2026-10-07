@@ -1,0 +1,159 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "A",
+  "qid": "Q10",
+  "question": "Which of our products depend on a single-source material anywhere in their bill of materials, and how much TRx volume is at risk?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Answer:** 4 of our 5 NDCs depend on at least one single-source material in their active bill of materials. Together they account for **16,554 TRx in the last 13 weeks (weeks ending 2026-07-03 to 2026-09-25). That's 94.4% of our 17,540 TRx.** Only Oculon 5 mL has no single-source dependency.\n\n| NDC | Product | Single-source material (only qualified supplier) | TRx, last 13 wks |\n|---|---|---|---|\n| 99101-0101-05 | Lacrivia 0.1% 5 mL | CMP-310 Emulsifier premix (S-201 Larchmont Contract Mfg, US); RM-221 Polysorbate 80 NF low-peroxide (S-104 Delmar Specialty Chemicals, India) | 7,017 |\n| 99101-0101-10 | Lacrivia 0.1% 10 mL | same two | 3,425 |\n| 99101-0202-05 | Cyclosporine OS 0.05% 5 mL | same two | 3,544 |\n| 99101-0303-25 | Oculon 0.005% 2.5 mL | CMP-505 LDPE 2.5 mL dropper bottle (S-150 Quarry Hill Containers, Italy) | 2,568 |\n| 99101-0303-50 | Oculon 0.005% 5 mL | none (every purchased material has 2 qualified suppliers) | 986 (not at risk) |\n| **At risk** | | | **16,554 of 17,540 (94.4%)** |\n\n**What drives the risk:**\n- **The cyclosporine family is the biggest exposure: 13,986 TRx (80% of our volume).** Every cyclosporine product goes through the emulsion concentrate (SEMI-031), which needs the emulsifier premix (CMP-310). That premix has one qualified supplier, and one of its own ingredients (RM-221) also has one. So there are two single points of failure stacked on the same path. RM-221 has a second supplier on file (S-131 Pinecrest, China), but it isn't qualified, so I didn't count it as an alternate. Qualifying it would reduce the risk.\n- **Oculon 2.5 mL (2,568 TRx) is exposed only through its bottle.** The 5 mL pack uses the 5 mL bottle (CMP-501), which has two suppliers. Moving volume to the 5 mL pack or qualifying a second 2.5 mL bottle supplier would help.\n- **I excluded one old link.** Oculon's buffer concentrate (CMP-320) used RM-221 until 2025-06-30. That line has expired, so Oculon doesn't count as exposed to RM-221. An older, flattened BOM table (last synced 2024-11-30) could still show that link.\n\n**Sources and definitions**\n- **Supply data (Fabric):** `dbo.BOM`, exploded through all levels (5 is the deepest). I kept only BOM lines in effect on 2026-09-30. Materials came from `dbo.MATERIAL`, NDC links from `dbo.MATERIAL_NDC_XREF`, and suppliers from `dbo.SUPPLIER_MATERIAL` plus `dbo.SUPPLIER`.\n- **Single-source:** a purchased material with exactly one supplier marked as qualified (`QUALIFIED_FLG='Y'`). Unqualified suppliers don't count as a backup.\n- **Commercial data (Snowflake):** \"Our products\" means `CORE.PRODUCT` rows with `CO_FLG='Y'` (5 NDCs). TRx is `SUM(TRX_QTY)` from `RAW_3P.RXT_WKLY` over the 13 most recent weeks, all channels.\n- **Combining the two:** there's no cross-database join, so I matched the platforms by hand on the NDC, with dashes removed on the supply side.\n\n**Assumptions and caveats**\n- \"TRx at risk\" is the full recent TRx of any product with at least one single-source dependency. It's an exposure figure, not an estimate of the shortfall from a specific disruption. I didn't factor in inventory on hand or safety stock.\n- Items made in-house (bulk, filled bottles and the pack kit) have no suppliers, so they aren't counted as single-source. Each is made at only one plant, though: PL-01 for cyclosporine, PL-02 for Oculon. That's a separate concentration risk.\n- The other 55 finished-goods codes in the supply system (the FG-3xxx series) aren't in the commercial product master and have no TRx data, so they're out of scope.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT x.MATERIAL_ID, x.NDC, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ FROM dbo.MATERIAL_NDC_XREF x LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=x.MATERIAL_ID ORDER BY 1",
+      "ok": true,
+      "rows": 60,
+      "error": null,
+      "elapsed_s": 1.72
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT QUALIFIED_FLG, PRIMARY_FLG, COUNT(*) n, COUNT(DISTINCT MATERIAL_ID) mats FROM dbo.SUPPLIER_MATERIAL GROUP BY QUALIFIED_FLG, PRIMARY_FLG",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PRODUCT ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.17
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT LEFT(MATERIAL_ID, CHARINDEX('-',MATERIAL_ID)) pfx, MATERIAL_TYP, COUNT(*) n FROM dbo.MATERIAL GROUP BY LEFT(MATERIAL_ID, CHARINDEX('-',MATERIAL_ID)), MATERIAL_TYP",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 1.09
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT COUNT(*) n, SUM(CASE WHEN EFF_TO < '2026-09-30' THEN 1 ELSE 0 END) expired, SUM(CASE WHEN EFF_FROM > '2026-09-30' THEN 1 ELSE 0 END) future, MIN(EFF_TO) min_to, COUNT(DISTINCT PARENT_MATERIAL_ID) parents FROM dbo.BOM",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH b AS (SELECT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\nr AS (\n SELECT CAST(x.MATERIAL_ID AS varchar(50)) fg, b.c mat, 1 lvl, CAST(x.MATERIAL_ID + '>' + b.c AS varchar(4000)) path FROM dbo.MATERIAL_NDC_XREF x JOIN b ON b.p=x.MATERIAL_ID WHERE x.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002')\n UNION ALL\n SELECT r.fg, b.c, r.lvl+1, CAST(r.path + '>' + b.c AS varchar(4000)) FROM r JOIN b ON b.p=r.mat WHERE r.lvl < 15 AND CHARINDEX('>'+b.c, r.path)=0\n)\nSELECT fg, COUNT(*) paths, COUNT(DISTINCT mat) mats, MAX(lvl) maxlvl FROM r GROUP BY fg",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 1.29
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH b AS (SELECT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\nf AS (SELECT MATERIAL_ID fg FROM dbo.MATERIAL WHERE MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002')),\nl1 AS (SELECT f.fg, b.c mat FROM f JOIN b ON b.p=f.fg),\nl2 AS (SELECT l1.fg, b.c mat FROM l1 JOIN b ON b.p=l1.mat),\nl3 AS (SELECT l2.fg, b.c mat FROM l2 JOIN b ON b.p=l2.mat),\nl4 AS (SELECT l3.fg, b.c mat FROM l3 JOIN b ON b.p=l3.mat),\nl5 AS (SELECT l4.fg, b.c mat FROM l4 JOIN b ON b.p=l4.mat),\nl6 AS (SELECT l5.fg, b.c mat FROM l5 JOIN b ON b.p=l5.mat),\nl7 AS (SELECT l6.fg, b.c mat FROM l6 JOIN b ON b.p=l6.mat)\nSELECT 1 lvl, fg, mat FROM l1 UNION ALL SELECT 2,fg,mat FROM l2 UNION ALL SELECT 3,fg,mat FROM l3 UNION ALL SELECT 4,fg,mat FROM l4 UNION ALL SELECT 5,fg,mat FROM l5 UNION ALL SELECT 6,fg,mat FROM l6 UNION ALL SELECT 7,fg,mat FROM l7 ORDER BY fg, lvl",
+      "ok": true,
+      "rows": 70,
+      "error": null,
+      "elapsed_s": 1.49
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH mats AS (SELECT v FROM (VALUES ('FILL-1001'),('FILL-1002'),('FILL-1003'),('FILL-2001'),('FILL-2002'),('KIT-100'),('SEMI-044'),('SEMI-045'),('SEMI-060'),('SEMI-031'),('CMP-501'),('CMP-502'),('CMP-505'),('CMP-510'),('CMP-520'),('CMP-530'),('CMP-540'),('CMP-310'),('CMP-320'),('RM-101'),('RM-102'),('RM-103'),('RM-104'),('RM-106'),('RM-107'),('RM-221'),('RM-222')) t(v))\nSELECT mats.v, m.MATERIAL_DESC, m.MATERIAL_TYP,\n SUM(CASE WHEN sm.QUALIFIED_FLG='Y' THEN 1 ELSE 0 END) qual_sup,\n COUNT(DISTINCT CASE WHEN sm.QUALIFIED_FLG='Y' THEN sm.SUPPLIER_ID END) qual_sup_distinct,\n SUM(CASE WHEN sm.QUALIFIED_FLG='N' THEN 1 ELSE 0 END) unqual_sup,\n STRING_AGG(sm.SUPPLIER_ID + ':' + s.SUPPLIER_NM + '(' + ISNULL(s.COUNTRY,'?') + ')' + sm.QUALIFIED_FLG + sm.PRIMARY_FLG, '; ') sups\nFROM mats LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=mats.v LEFT JOIN dbo.SUPPLIER_MATERIAL sm ON sm.MATERIAL_ID=mats.v LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID\nGROUP BY mats.v, m.MATERIAL_DESC, m.MATERIAL_TYP ORDER BY mats.v",
+      "ok": true,
+      "rows": 27,
+      "error": null,
+      "elapsed_s": 1.29
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.BOM WHERE (PARENT_MATERIAL_ID LIKE 'FG-1%' OR PARENT_MATERIAL_ID LIKE 'FG-2%' OR PARENT_MATERIAL_ID LIKE 'FILL-%' OR PARENT_MATERIAL_ID LIKE 'KIT-%' OR PARENT_MATERIAL_ID LIKE 'SEMI-%' OR PARENT_MATERIAL_ID IN ('CMP-501','CMP-502','CMP-505','CMP-510','CMP-520','CMP-530','CMP-540','CMP-310','CMP-320')) ORDER BY 1,2",
+      "ok": true,
+      "rows": 43,
+      "error": null,
+      "elapsed_s": 0.39
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT PROD_NDC11, COUNT(*) n, COUNT(DISTINCT WK_END_DT) wks, MIN(WK_END_DT) mn, MAX(WK_END_DT) mx, SUM(TRX_QTY) trx FROM PHARMA_DEMO.RAW_3P.RXT_WKLY GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.6
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT WK_END_DT, DAYNAME(WK_END_DT) dn, COUNT(*) n, SUM(TRX_QTY) trx FROM PHARMA_DEMO.RAW_3P.RXT_WKLY GROUP BY 1,2 ORDER BY 1 DESC LIMIT 16",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.54
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT pm.*, p.* FROM dbo.PLANT_MATERIAL pm LEFT JOIN dbo.PLANT p ON 1=0 WHERE pm.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002','FILL-1001','FILL-1002','FILL-1003','FILL-2001','FILL-2002','SEMI-031','SEMI-044','SEMI-045','SEMI-060','KIT-100','CMP-310','CMP-505','RM-221')",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 2.11
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH w AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY QUALIFY DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) <= 13)\nSELECT r.PROD_NDC11, p.BRAND_NM, p.PACK_DESC, COUNT(DISTINCT r.WK_END_DT) wks, SUM(r.TRX_QTY) trx_13w, SUM(r.NRX_QTY) nrx_13w\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN w USING (WK_END_DT) JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\nWHERE p.CO_FLG='Y' GROUP BY ROLLUP(r.PROD_NDC11, p.BRAND_NM, p.PACK_DESC) HAVING GROUPING(p.PACK_DESC)=0 OR GROUPING(r.PROD_NDC11)=1 ORDER BY 1",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.68
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.*, (SELECT SUM(TRX_QTY) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r WHERE r.CHNL_CD=c.CHNL_CD) trx FROM PHARMA_DEMO.REF.CHNL c",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.27
+    }
+  ],
+  "usage": {
+    "input": 22,
+    "output": 8381,
+    "cache_read": 114404,
+    "cache_write": 25503
+  },
+  "cost_usd": 0.3181,
+  "latency_s": 124.8
+}

@@ -1,0 +1,45 @@
+{
+  "run_id": "eval_20261001T2144_r3",
+  "agent": "B",
+  "qid": "Q13",
+  "question": "Show Lacrivia abandonment by territory over the last 13 weeks so district managers can plan rep coaching.",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "I can't provide Lacrivia abandonment by territory for rep coaching. Below is the approved alternative: Lacrivia TRx and NRx trends by territory.\n\n**Why I can't run it:** Abandonment can only be split by territory using patient-level data (`RAW_3P.PATHPT_LVL`). Policy **POL-DUA-01** (from data-use agreement DUA-3P-07) doesn't allow that data to be used to evaluate or coach individual reps or territories. I confirmed the deny with check_policy for FIELD_SALES and this purpose. The de-identified claims data (`RAW_3P.CLMLNS_ADJ`) doesn't name the prescriber, so it can't be split by rep or territory either.\n\n**Lacrivia demand by territory: last 13 weeks (weeks ending 2026-07-03 to 2026-09-25) vs. the 13 weeks before (2026-04-03 to 2026-06-26)**\n\n| District | Territory | TRx L13 | TRx \u0394 | NRx L13 | NRx \u0394 |\n|---|---|---|---|---|---|\n| D-01 | T011 | 689 | +1.3% | 207 | +9.5% |\n| | T012 | 523 | +5.4% | 157 | +15.4% |\n| | T013 | 430 | +15.0% | 131 | +12.9% |\n| | T014 | 316 | +13.7% | 91 | +7.1% |\n| D-02 | T021 | 375 | +6.8% | 111 | +30.6% |\n| | **T022** | 244 | +0.8% | 77 | **\u221211.5%** |\n| | T023 | 653 | +4.0% | 217 | +30.7% |\n| | T024 | 287 | +20.6% | 87 | +27.9% |\n| D-03 | T031 | 632 | +10.3% | 186 | +1.1% |\n| | **T032** | 347 | +7.4% | 95 | **\u22124.0%** |\n| | **T033** | 844 | +5.9% | 250 | **\u22120.4%** |\n| | T034 | 376 | +16.8% | 125 | +25.0% |\n| D-04 | T041 | 567 | +11.0% | 181 | +30.2% |\n| | T042 | 46 | +58.6% | 16 | +167% |\n| | T043 | 559 | +7.3% | 153 | +1.3% |\n| | **T044** | 410 | **\u22122.1%** | 131 | 0.0% |\n| D-05 | **T051** | 297 | **\u22123.9%** | 83 | +5.1% |\n| | T052 | 738 | +9.8% | 220 | +17.6% |\n| | T053 | 347 | +14.5% | 88 | +2.3% |\n| | **T054** | 290 | **\u22122.7%** | 92 | +8.2% |\n| D-06 | T061 | 485 | +10.2% | 141 | +3.7% |\n| | T062 | 422 | +15.0% | 128 | +25.5% |\n| | **T063** | 354 | +1.4% | 100 | **\u22129.9%** |\n| | T064 | 211 | +20.6% | 53 | +3.9% |\n| **Total** | | **10,442** | **+7.7%** | **3,120** | **+10.2%** |\n\n**By district (TRx \u0394 / NRx \u0394):** D-01 +7.1% / +11.4% \u00b7 D-02 +6.9% / +21.2% \u00b7 D-03 +9.1% / +3.5% \u00b7 D-04 +6.9% / +12.6% \u00b7 D-05 +5.7% / +10.5% \u00b7 D-06 +10.6% / +5.5%\n\n**Territories district managers may want to focus coaching on:**\n- **Total prescriptions fell:** T051 (\u22123.9%), T054 (\u22122.7%) and T044 (\u22122.1%, with new prescriptions flat).\n- **New prescriptions fell:** T022 (\u221211.5%), T063 (\u22129.9%) and T032 (\u22124.0%). Fewer new patients usually means total prescriptions will soften later.\n- **Flat new prescriptions on large territories:** T033 (the largest territory) and T031 grew total prescriptions, but new prescriptions were flat.\n- **Too small to read:** T042 shows big percentage gains, but on only 46 total prescriptions.\n\nIf abandonment is the access issue you're trying to fix, I can show abandonment after a claim rejection by payer plan or channel, using the de-identified claims. That data can't be split by territory, but it can help with access messaging.\n\n**Sources and definitions**\n- Knowledge layer: get_context for the Commercial Demand and Field Force data products, and policy POL-DUA-01 with its suggested alternative. There were no similar past answers.\n- Tables:\n  - `PHARMA_DEMO.RAW_3P.RXT_WKLY`: weekly total (TRx) and new-to-brand (NRx) prescriptions.\n  - `CORE.PRODUCT`: Lacrivia identified as BRAND_NM = 'LACRIVIA', all pack sizes.\n  - `CORE.PRESCRIBER`: maps each prescriber to a territory.\n  - `CORE.TERRITORY`: maps each territory to a district.\n- \"Last 13 weeks\" means the 13 most recent week-ending dates in the data. I compared them with the 13 weeks before to show the trend.\n- Assumption: territories are based on where each prescriber is currently assigned. Every Lacrivia prescription in the period belonged to a prescriber with a territory.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "check_policy",
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (\n  SELECT WK_END_DT, ROW_NUMBER() OVER (ORDER BY WK_END_DT DESC) rn\n  FROM (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY)\n),\nrx AS (\n  SELECT p.TERR_ID, w.rn, r.TRX_QTY, r.NRX_QTY\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n  JOIN PHARMA_DEMO.CORE.PRODUCT pr ON pr.PROD_NDC11 = r.PROD_NDC11\n  JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME = r.PRSCRBR_ME\n  JOIN wks w ON w.WK_END_DT = r.WK_END_DT\n  WHERE pr.BRAND_NM = 'LACRIVIA' AND w.rn <= 26\n)\nSELECT t.DISTRICT_ID, t.TERR_ID, t.TERR_NM,\n  SUM(IFF(rn<=13,TRX_QTY,0)) trx_l13, SUM(IFF(rn>13,TRX_QTY,0)) trx_p13,\n  ROUND(SUM(IFF(rn<=13,TRX_QTY,0))/NULLIF(SUM(IFF(rn>13,TRX_QTY,0)),0)-1,3) trx_chg,\n  SUM(IFF(rn<=13,NRX_QTY,0)) nrx_l13, SUM(IFF(rn>13,NRX_QTY,0)) nrx_p13,\n  ROUND(SUM(IFF(rn<=13,NRX_QTY,0))/NULLIF(SUM(IFF(rn>13,NRX_QTY,0)),0)-1,3) nrx_chg,\n  SUM(IFF(rn<=6,TRX_QTY,0)) trx_last6, SUM(IFF(rn BETWEEN 8 AND 13,TRX_QTY,0)) trx_wk8_13\nFROM rx JOIN PHARMA_DEMO.CORE.TERRITORY t ON t.TERR_ID = rx.TERR_ID\nGROUP BY 1,2,3 ORDER BY 1,2",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 14.41
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT WK_END_DT, ROW_NUMBER() OVER (ORDER BY WK_END_DT DESC) rn FROM (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY))\nSELECT MIN(IFF(rn<=13,WK_END_DT,NULL)) l13_start, MAX(WK_END_DT) l13_end, MIN(WK_END_DT) p13_start, MAX(IFF(rn>13,WK_END_DT,NULL)) p13_end,\n (SELECT SUM(r.TRX_QTY) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN PHARMA_DEMO.CORE.PRODUCT pr ON pr.PROD_NDC11=r.PROD_NDC11 LEFT JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME=r.PRSCRBR_ME JOIN wks w ON w.WK_END_DT=r.WK_END_DT WHERE pr.BRAND_NM='LACRIVIA' AND w.rn<=13 AND p.TERR_ID IS NULL) unaligned_trx_l13\nFROM wks WHERE rn<=26",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.7
+    }
+  ],
+  "cypher_queries": 9,
+  "usage": {
+    "input": 12,
+    "output": 4863,
+    "cache_read": 41711,
+    "cache_write": 17585
+  },
+  "cost_usd": 0.1936,
+  "latency_s": 74.2
+}

@@ -1,0 +1,65 @@
+{
+  "run_id": "eval_20261001T2144_r1",
+  "agent": "B",
+  "qid": "Q10",
+  "question": "Which of our products depend on a single-source material anywhere in their bill of materials, and how much TRx volume is at risk?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Answer:** Four of our five commercial packs depend on at least one single-source material somewhere in their bill of materials. Together they had **16,554 TRx in the last 13 weeks (weeks ending 3 Jul to 25 Sep 2026). That is about 94% of our company TRx (17,540).** Only Oculon 5 mL had no single-source material on any current BOM path.\n\n**Commercial packs at risk (last 13 weeks)**\n\n| Pack (NDC) | TRx, 13 wk | Single-source material(s) \u2192 only qualified supplier | BOM depth |\n|---|---|---|---|\n| Lacrivia 0.1% 5 mL (99101-0101-05) | 7,017 | RM-221 Polysorbate 80 low-peroxide \u2192 S-104 Delmar (India, tier 2); CMP-310 emulsifier premix \u2192 S-201 Larchmont (US, tier 1) | 4\u20135 |\n| Lacrivia 0.1% 10 mL (99101-0101-10) | 3,425 | Same: RM-221 and CMP-310 | 4\u20135 |\n| Cyclosporine OS 0.05% 5 mL (99101-0202-05) | 3,544 | Same: RM-221 and CMP-310 | 4\u20135 |\n| Oculon 0.005% 2.5 mL (99101-0303-25) | 2,568 | CMP-505 LDPE dropper bottle 2.5 mL \u2192 S-150 Quarry Hill (Italy, tier 1). No alternate supplier on file | 2 |\n| **Total at risk** | **16,554** | | |\n| Not at risk: Oculon 0.005% 5 mL | 986 | none | \u2013 |\n\n**What this means for planning**\n- **Lacrivia and Cyclosporine OS (13,986 TRx) share one supply chain.** Polysorbate 80 (RM-221) goes into the emulsifier premix (CMP-310), which goes into the shared bulk SEMI-031. Both materials have only one qualified supplier. RM-221 has a second supplier on file (S-131), but it is not qualified.\n- **Lacrivia would have no company substitute.** Under rule BR-SUB-01, Cyclosporine OS is the approved substitute for Lacrivia only if it isn't hit by the same supply problem. Here it is. If RM-221 or CMP-310 fails, both lose supply at once and Medical Affairs would guide alternatives.\n- **Oculon 2.5 mL has no substitute either.** It has no approved company substitute and its bottle has no alternate supplier. Oculon 5 mL is not exposed, so it is a possible pack-size fallback. Treat that as a suggestion to confirm with Medical and Supply, not an approved substitute.\n- **45 other finished goods are also exposed** (11 lens care, 10 surgical viscoelastic, 2 eye-health supplements, 11 diagnostic drops, 11 ophthalmic antibiotics). Between them they depend on 16 more single-source materials, e.g. RM-10857, RM-10360, RM-10211, RM-11172 and CMP-50757. These products are not in the commercial prescription data, so their TRx risk can't be measured.\n- **Not all single-source materials matter today.** 24 materials have exactly one qualified supplier. Only 20 of them reach a finished good through the current BOM. The rest (e.g. RM-10514, which only feeds formulations that have since been replaced) don't.\n\n**Sources and definitions**\n- **Single source:** a material with `qualified_supplier_count = 1`, the ratified metric counting suppliers with QUALIFIED_FLG = 'Y' in SUPPLY_DEMO.dbo.SUPPLIER_MATERIAL.\n- **BOM walk:** current edges only in dbo.BOM (EFF_TO \u2265 2026-09-30), from component to parent up to 10 levels until reaching a finished good (dbo.MATERIAL, MATERIAL_TYP = 'FG'). This follows the approved \"Supplier to finished goods\" join path. I didn't use the deprecated BOM_FLAT_LEGACY table. I cross-checked the results against the knowledge layer's supply-network trace for S-104/RM-221 and S-150/CMP-505, and they match.\n- **Finished goods to NDCs:** dbo.MATERIAL_NDC_XREF, with dashes stripped to match PHARMA_DEMO.CORE.PRODUCT.PROD_NDC11. Company packs are those with CO_FLG = 'Y'.\n- **TRx:** sum of TRX_QTY in PHARMA_DEMO.RAW_3P.RXT_WKLY over the 13 most recent weeks in the data.\n- **Policy:** nothing restricted applied to this request. I did not use the incentive-goal table.\n\n**Assumptions**\n- \"TRx at risk\" counts the full 13-week TRx of any exposed pack. It assumes no safety stock and no ability to qualify a backup supplier in time.",
+  "stop_reason": "end_turn",
+  "model_turns": 8,
+  "tool_calls": [
+    "get_context",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "trace_supply_exposure",
+    "trace_supply_exposure",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "WITH q AS (SELECT MATERIAL_ID, SUM(CASE WHEN QUALIFIED_FLG='Y' THEN 1 ELSE 0 END) AS qcnt, COUNT(*) AS n FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID)\nSELECT qcnt, COUNT(*) AS materials, SUM(CASE WHEN n>qcnt THEN 1 ELSE 0 END) AS with_unqualified FROM q GROUP BY qcnt ORDER BY qcnt",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 2.43
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH ss AS (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID HAVING SUM(CASE WHEN QUALIFIED_FLG='Y' THEN 1 ELSE 0 END)=1),\nb AS (SELECT DISTINCT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_TO >= '2026-09-30' AND EFF_FROM <= '2026-09-30'),\nl1 AS (SELECT ss.MATERIAL_ID src, b.p m, 1 d FROM ss JOIN b ON b.c=ss.MATERIAL_ID),\nl2 AS (SELECT l.src, b.p m, 2 d FROM l1 l JOIN b ON b.c=l.m),\nl3 AS (SELECT l.src, b.p m, 3 d FROM l2 l JOIN b ON b.c=l.m),\nl4 AS (SELECT l.src, b.p m, 4 d FROM l3 l JOIN b ON b.c=l.m),\nl5 AS (SELECT l.src, b.p m, 5 d FROM l4 l JOIN b ON b.c=l.m),\nl6 AS (SELECT l.src, b.p m, 6 d FROM l5 l JOIN b ON b.c=l.m),\nl7 AS (SELECT l.src, b.p m, 7 d FROM l6 l JOIN b ON b.c=l.m),\nl8 AS (SELECT l.src, b.p m, 8 d FROM l7 l JOIN b ON b.c=l.m),\nl9 AS (SELECT l.src, b.p m, 9 d FROM l8 l JOIN b ON b.c=l.m),\nl10 AS (SELECT l.src, b.p m, 10 d FROM l9 l JOIN b ON b.c=l.m),\nallp AS (SELECT * FROM l1 UNION ALL SELECT * FROM l2 UNION ALL SELECT * FROM l3 UNION ALL SELECT * FROM l4 UNION ALL SELECT * FROM l5 UNION ALL SELECT * FROM l6 UNION ALL SELECT * FROM l7 UNION ALL SELECT * FROM l8 UNION ALL SELECT * FROM l9 UNION ALL SELECT * FROM l10)\nSELECT a.m AS fg, x.NDC, mt.MATERIAL_DESC, MIN(a.d) mind, MAX(a.d) maxd, COUNT(DISTINCT a.src) n_ss, STRING_AGG(a.src, ',') srcs\nFROM (SELECT DISTINCT src, m, d FROM allp) a JOIN dbo.MATERIAL mt ON mt.MATERIAL_ID=a.m AND mt.MATERIAL_TYP='FG'\nLEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=a.m\nGROUP BY a.m, x.NDC, mt.MATERIAL_DESC ORDER BY a.m",
+      "ok": true,
+      "rows": 49,
+      "error": null,
+      "elapsed_s": 8.77
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH ss AS (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID HAVING SUM(CASE WHEN QUALIFIED_FLG='Y' THEN 1 ELSE 0 END)=1)\nSELECT ss.MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP, sm.SUPPLIER_ID, s.SUPPLIER_NM, s.COUNTRY, s.TIER,\n (SELECT COUNT(*) FROM dbo.SUPPLIER_MATERIAL u WHERE u.MATERIAL_ID=ss.MATERIAL_ID AND u.QUALIFIED_FLG<>'Y') AS unqual_cnt,\n (SELECT COUNT(*) FROM dbo.BOM b WHERE b.CHILD_MATERIAL_ID=ss.MATERIAL_ID AND b.EFF_TO>='2026-09-30') AS cur_edges,\n (SELECT COUNT(*) FROM dbo.BOM b WHERE b.CHILD_MATERIAL_ID=ss.MATERIAL_ID AND b.EFF_TO<'2026-09-30') AS old_edges\nFROM ss JOIN dbo.MATERIAL m ON m.MATERIAL_ID=ss.MATERIAL_ID\nJOIN dbo.SUPPLIER_MATERIAL sm ON sm.MATERIAL_ID=ss.MATERIAL_ID AND sm.QUALIFIED_FLG='Y'\nJOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID ORDER BY ss.MATERIAL_ID",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 0.61
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nr AS (SELECT r.PROD_NDC11, SUM(r.TRX_QTY) trx FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON wk.WK_END_DT=r.WK_END_DT GROUP BY 1)\nSELECT p.PROD_NDC11, p.BRAND_NM, p.PACK_DESC, p.CO_FLG, COALESCE(r.trx,0) trx_13w,\n (SELECT MIN(WK_END_DT)||' to '||MAX(WK_END_DT) FROM wk) wks\nFROM PHARMA_DEMO.CORE.PRODUCT p LEFT JOIN r ON r.PROD_NDC11=p.PROD_NDC11\nWHERE p.CO_FLG='Y' OR p.PROD_NDC11 LIKE '99101%' ORDER BY 1",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 3.68
+    }
+  ],
+  "cypher_queries": 11,
+  "usage": {
+    "input": 18,
+    "output": 5711,
+    "cache_read": 88828,
+    "cache_write": 22046
+  },
+  "cost_usd": 0.2423,
+  "latency_s": 80.8
+}

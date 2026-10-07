@@ -1,0 +1,128 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "B",
+  "qid": "Q6",
+  "question": "Which customers are exposed if supplier S-104 misses its next ship date? Show the affected products and the top 10 accounts and payers by volume on them.",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "If S-104 misses its next ship date, the cyclosporine eye-drop products are at risk: **Lacrivia 5 mL and 10 mL, and Cyclosporine OS 5 mL**. That affects **35 customers and 16 payers**, about **13,986 prescriptions (TRx) over the last 13 weeks**. The top 10 customers and the top 10 payers each account for about 80% of that volume. Three of the top four customers have Tier A supply contracts.\n\n**What the next ship date is**\n- The next order is PO005791: 4,200 units of RM-221 (Polysorbate 80), promised for **2026\u201110\u201107**. It is still open.\n- RM-221 has only one usable supplier. The backup, S-131, isn't qualified. Further down the chain, the premix it goes into (CMP-310) is also made by only one supplier (S-201).\n- Oculon (made with RM-222) is **not** affected by this order. S-104's next RM-222 order isn't due until 2026-10-26, and there's a qualified backup supplier, S-130.\n- If supply is interrupted, it takes about **50 days** from RM-221 arriving until Lacrivia 5 mL reaches the distribution center. That includes a 14-day sterility test.\n\n**Affected products (last 13 weeks, weeks ending 2026-07-03 to 2026-09-25)**\n| Product | NDC | TRx |\n|---|---|---|\n| Lacrivia 0.1% 5 mL | 99101-0101-05 | 7,017 |\n| Cyclosporine OS 0.05% 5 mL | 99101-0202-05 | 3,544 |\n| Lacrivia 0.1% 10 mL | 99101-0101-10 | 3,425 |\n\nEleven lens-care products (FG-3001 to FG-3011) also use RM-221. They aren't in the prescription data, so they aren't included in the rankings below.\n\n**Top 10 customers** (clinics counted under their health system)\n| # | Customer | TRx | Share | Contract tier |\n|---|---|---|---|---|\n| 1 | Oak Hollow Health System (NY) | 1,731 | 12.4% | A |\n| 2 | Riverbend Health System (CA) | 1,609 | 11.5% | A |\n| 3 | Northfield Health System (NJ) | 1,532 | 11.0% | A |\n| 4 | Sunridge Health System (OH) | 1,511 | 10.8% | B |\n| 5 | Brightwater Health System (FL) | 1,418 | 10.1% | \u2013 |\n| 6 | Stonegate Health System (MN) | 1,200 | 8.6% | \u2013 |\n| 7 | Clearview Health System (OH) | 1,068 | 7.6% | B (expires 2026-12-31) |\n| 8 | Willow Creek Health System (MN) | 701 | 5.0% | \u2013 |\n| 9 | Sunridge Vision Associates 20 (PA) | 248 | 1.8% | \u2013 |\n| 10 | Glenmoor Vision Associates 12 (CA) | 246 | 1.8% | \u2013 |\n\n**Top 10 payers**\n| # | Payer (pharmacy benefit manager) | TRx | Share |\n|---|---|---|---|\n| 1 | Northstar Health (OptiScript) | 1,635 | 11.7% |\n| 2 | Bluecrest Mutual (CoreRx PBM) | 1,630 | 11.7% |\n| 3 | Silverline Health (ClearPath Rx) | 1,427 | 10.2% |\n| 4 | Harborview Health (Vantage PBM) | 1,274 | 9.1% |\n| 5 | Redwood Benefit Trust (Vantage PBM) | 1,030 | 7.4% |\n| 6 | Pinnacle Benefit Group (CoreRx PBM) | 926 | 6.6% |\n| 7 | Lakeshore Health (ClearPath Rx) | 915 | 6.5% |\n| 8 | Keystone Medical Plan (OptiScript) | 802 | 5.7% |\n| 9 | Meadowbrook Care (CoreRx PBM) | 775 | 5.5% |\n| 10 | Cash / Discount Card | 771 | 5.5% |\n\nCash / Discount Card isn't a real payer. If you leave it out, #10 is Granite Plains Health with 735 TRx.\n\nIf stock runs short, the allocation rule gives Tier A health systems first priority: Oak Hollow, Riverbend and Northfield. Tier B comes next (Sunridge, Clearview). Everyone else shares the rest in proportion to their last-13-week TRx.\n\n**Sources and definitions**\n- **Which products are affected:** the supply-exposure trace from S-104 through the current bill of materials (retired formulations excluded), filtered to RM-221. Order and supplier data come from Fabric `dbo.PURCH_ORD` and `dbo.SUPPLIER_MATERIAL`.\n- **Customer and payer volumes:** the approved \"PackagedProduct to customers and payers\" join path. Prescriptions (`RAW_3P.RXT_WKLY`) are linked by NDC to prescribers, then to accounts (`CORE.ACCOUNT`) and payers (`CORE.PAYER_SPINE`).\n- **Volume:** TRx summed over the 13 most recent weeks in the data.\n- **Customer:** the top-level contracted account, per the business rule on what \"customer\" means. Clinics are counted under their health system, up to two levels (clinic \u2192 hospital \u2192 health system). Independent clinics count on their own.\n- **Contract tiers, allocation and lead time:** the supply contracts reference list, the shortage allocation rule and the recovery lead-time rule, using standard manufacturing times.\n- **Access:** the policy check allowed the SUPPLY_PLANNER role, with no masking.\n\n**Assumptions**\n- \"Next ship date\" means the open S-104 order with the earliest promised date.\n- Exposure is measured by prescription volume, not by inventory on hand. I didn't check distribution-center stock, which could cover part of the gap.",
+  "stop_reason": "end_turn",
+  "model_turns": 15,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_business_rules",
+    "get_reference",
+    "trace_supply_exposure",
+    "get_concept",
+    "get_metric",
+    "list_deprecated_tables",
+    "get_join_path",
+    "get_join_path",
+    "get_join_path",
+    "get_concept",
+    "check_policy",
+    "describe_table",
+    "list_tables",
+    "run_sql",
+    "run_sql",
+    "trace_supply_exposure",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_reference",
+    "get_lead_times",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND (ACTUAL_SHIP_DT IS NULL OR STATUS <> 'CLOSED') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.0
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.SUPPLIER_MATERIAL WHERE MATERIAL_ID IN ('RM-221','RM-222')",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.62
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY QUALIFY DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) <= 13)\nSELECT r.PROD_NDC11, p.*, SUM(r.TRX_QTY) trx_13w, MIN(r.WK_END_DT) min_wk, MAX(r.WK_END_DT) max_wk\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT = wk.WK_END_DT\nLEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.NDC11 = r.PROD_NDC11\nWHERE r.PROD_NDC11 IN ('99101010105','99101010110','99101020205')\nGROUP BY ALL ORDER BY trx_13w DESC",
+      "ok": false,
+      "rows": null,
+      "error": "000904 (42000): SQL compilation error: error line 4 at position 40\ninvalid identifier 'P.NDC11'",
+      "elapsed_s": 1.88
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY QUALIFY DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) <= 13)\nSELECT r.PROD_NDC11, p.BRAND_NM, p.PACK_DESC, SUM(r.TRX_QTY) trx_13w, MIN(r.WK_END_DT) min_wk, MAX(r.WK_END_DT) max_wk, COUNT(DISTINCT r.WK_END_DT) n_wk\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT = wk.WK_END_DT\nLEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11 = r.PROD_NDC11\nWHERE r.PROD_NDC11 IN ('99101010105','99101010110','99101020205')\nGROUP BY ALL ORDER BY trx_13w DESC",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 11.16
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT a.ACCT_TYP, (a.PARENT_ACCOUNT_ID IS NULL) is_top, p.ACCT_TYP parent_typ, (p.PARENT_ACCOUNT_ID IS NULL) parent_is_top, COUNT(*) n\nFROM PHARMA_DEMO.CORE.ACCOUNT a LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT p ON a.PARENT_ACCOUNT_ID = p.ACCOUNT_ID GROUP BY ALL ORDER BY 1",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 3.55
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY QUALIFY DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) <= 13),\nrx AS (SELECT r.* FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT = wk.WK_END_DT\n       WHERE r.PROD_NDC11 IN ('99101010105','99101010110','99101020205')),\nacct AS (SELECT a.ACCOUNT_ID, COALESCE(gp.ACCOUNT_ID, p.ACCOUNT_ID, a.ACCOUNT_ID) top_id\n         FROM PHARMA_DEMO.CORE.ACCOUNT a LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT p ON a.PARENT_ACCOUNT_ID = p.ACCOUNT_ID\n         LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT gp ON p.PARENT_ACCOUNT_ID = gp.ACCOUNT_ID)\nSELECT acct.top_id, t.ACCOUNT_NM, t.ACCT_TYP, t.STATE,\n  SUM(rx.TRX_QTY) trx_13w,\n  SUM(IFF(rx.PROD_NDC11='99101010105',rx.TRX_QTY,0)) lac_5ml,\n  SUM(IFF(rx.PROD_NDC11='99101010110',rx.TRX_QTY,0)) lac_10ml,\n  SUM(IFF(rx.PROD_NDC11='99101020205',rx.TRX_QTY,0)) cyc_5ml,\n  ROUND(100*SUM(rx.TRX_QTY)/SUM(SUM(rx.TRX_QTY)) OVER (),1) pct,\n  COUNT(*) OVER () n_customers\nFROM rx LEFT JOIN PHARMA_DEMO.CORE.PRESCRIBER pr ON pr.PRSCRBR_ME = rx.PRSCRBR_ME\nLEFT JOIN acct ON acct.ACCOUNT_ID = pr.ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT t ON t.ACCOUNT_ID = acct.top_id\nGROUP BY ALL ORDER BY trx_13w DESC LIMIT 12",
+      "ok": false,
+      "rows": null,
+      "error": "000979 (42601): SQL compilation error:\n[N_CUSTOMERS] is not a valid group by expression",
+      "elapsed_s": 2.46
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY QUALIFY DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) <= 13),\nrx AS (SELECT r.* FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT = wk.WK_END_DT\n       WHERE r.PROD_NDC11 IN ('99101010105','99101010110','99101020205'))\nSELECT ps.PAYER_ID, ps.PAYER_NM, LISTAGG(DISTINCT ps.PBM_NM, ', ') pbm,\n  SUM(rx.TRX_QTY) trx_13w,\n  SUM(IFF(rx.PROD_NDC11='99101010105',rx.TRX_QTY,0)) lac_5ml,\n  SUM(IFF(rx.PROD_NDC11='99101010110',rx.TRX_QTY,0)) lac_10ml,\n  SUM(IFF(rx.PROD_NDC11='99101020205',rx.TRX_QTY,0)) cyc_5ml,\n  ROUND(100*SUM(rx.TRX_QTY)/SUM(SUM(rx.TRX_QTY)) OVER (),1) pct,\n  COUNT(*) OVER () n_payers\nFROM rx LEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE ps ON ps.PLAN_ID = rx.PLAN_ID\nGROUP BY ALL ORDER BY trx_13w DESC LIMIT 12",
+      "ok": false,
+      "rows": null,
+      "error": "000979 (42601): SQL compilation error:\n[N_PAYERS] is not a valid group by expression",
+      "elapsed_s": 1.91
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY QUALIFY DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) <= 13),\nrx AS (SELECT r.* FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT = wk.WK_END_DT\n       WHERE r.PROD_NDC11 IN ('99101010105','99101010110','99101020205')),\nacct AS (SELECT a.ACCOUNT_ID, COALESCE(gp.ACCOUNT_ID, p.ACCOUNT_ID, a.ACCOUNT_ID) top_id\n         FROM PHARMA_DEMO.CORE.ACCOUNT a LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT p ON a.PARENT_ACCOUNT_ID = p.ACCOUNT_ID\n         LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT gp ON p.PARENT_ACCOUNT_ID = gp.ACCOUNT_ID),\nagg AS (\nSELECT acct.top_id, t.ACCOUNT_NM, t.ACCT_TYP, t.STATE,\n  SUM(rx.TRX_QTY) trx_13w,\n  SUM(IFF(rx.PROD_NDC11='99101010105',rx.TRX_QTY,0)) lac_5ml,\n  SUM(IFF(rx.PROD_NDC11='99101010110',rx.TRX_QTY,0)) lac_10ml,\n  SUM(IFF(rx.PROD_NDC11='99101020205',rx.TRX_QTY,0)) cyc_5ml\nFROM rx LEFT JOIN PHARMA_DEMO.CORE.PRESCRIBER pr ON pr.PRSCRBR_ME = rx.PRSCRBR_ME\nLEFT JOIN acct ON acct.ACCOUNT_ID = pr.ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT t ON t.ACCOUNT_ID = acct.top_id\nGROUP BY 1,2,3,4)\nSELECT agg.*, ROUND(100*trx_13w/SUM(trx_13w) OVER (),1) pct, COUNT(*) OVER () n_customers FROM agg ORDER BY trx_13w DESC LIMIT 12",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.11
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY QUALIFY DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) <= 13),\nrx AS (SELECT r.* FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT = wk.WK_END_DT\n       WHERE r.PROD_NDC11 IN ('99101010105','99101010110','99101020205')),\nagg AS (\nSELECT ps.PAYER_ID, ps.PAYER_NM, LISTAGG(DISTINCT ps.PBM_NM, ', ') pbm,\n  SUM(rx.TRX_QTY) trx_13w,\n  SUM(IFF(rx.PROD_NDC11='99101010105',rx.TRX_QTY,0)) lac_5ml,\n  SUM(IFF(rx.PROD_NDC11='99101010110',rx.TRX_QTY,0)) lac_10ml,\n  SUM(IFF(rx.PROD_NDC11='99101020205',rx.TRX_QTY,0)) cyc_5ml\nFROM rx LEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE ps ON ps.PLAN_ID = rx.PLAN_ID\nGROUP BY 1,2)\nSELECT agg.*, ROUND(100*trx_13w/SUM(trx_13w) OVER (),1) pct, COUNT(*) OVER () n_payers FROM agg ORDER BY trx_13w DESC LIMIT 12",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 2.13
+    }
+  ],
+  "usage": {
+    "input": 32,
+    "output": 11261,
+    "cache_read": 311288,
+    "cache_write": 37284
+  },
+  "cost_usd": 0.474,
+  "latency_s": 166.9,
+  "cypher_queries": 116
+}

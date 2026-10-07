@@ -1,0 +1,143 @@
+# Business-process ontology (light): one end-to-end process. Q7's reasoning walks it:
+# a Source-step failure (supplier) propagates through Make and Distribute to Dispense (customers, payers).
+processes:
+  - name: Source to Patient
+    description: "How supply turns into dispensed prescriptions: source materials, make product, distribute to the trade, dispense and reimburse."
+    steps:
+      - {name: Source, description: "Buy raw materials and components from qualified suppliers.", involves: [Supplier, PurchaseOrder, Material]}
+      - {name: Make, description: "Plants convert materials into bulk and finished goods through the bill of materials.", involves: [Plant, BillOfMaterials, Material]}
+      - {name: Distribute, description: "DCs stock finished goods and ship to wholesalers.", involves: [DistributionCenter, InventorySnapshot, Shipment, Wholesaler]}
+      - {name: Dispense, description: "Prescribers write, pharmacies dispense, plans adjudicate claims.", involves: [Prescription, Claim, Plan, Prescriber, Account]}
+
+# ---------------------------------------------------------------------------------------------------------------
+# Execution pattern: business processes that agents carry out (workshop six-layer schema, layer 1).
+# BusinessProcess -[:HAS_ACTIVITIES]-> BusinessActivity -[:HAS_TASKS]-> BusinessTask, NEXT {condition, outcome,
+# isDefault} between tasks, Role -[:PERFORMS]-> task, rules/policies GOVERN tasks, tasks READ/CREATE data and USE tools.
+# Source to Patient (above) also gets the BusinessProcess / BusinessActivity labels; its Source step links here.
+business_processes:
+  - name: Supply Disruption Response
+    description: "Respond when a supplier will miss a ship date: assess exposure, mitigate, allocate the shortage under contract tiers (with approval over threshold), notify customers and close with an execution trace."
+    owner_role: SUPPLY_PLANNER
+    performed_by: Supply Planning
+    criticality: high
+    sla: 48h
+    handles_disruption_of: Source          # Step of Source to Patient
+    activities:
+      - name: Assess exposure
+        tasks:
+          - id: SDR-1.1
+            name: Confirm late shipment
+            description: "Find the supplier's open purchase order(s) at risk and the promised ship date."
+            role: SUPPLY_PLANNER
+            reads: [Supply Execution]
+            tools: [run_sql]
+          - id: SDR-1.2
+            name: Trace affected products
+            description: "Walk the current bill of materials from the supplier's material to every finished good and NDC it feeds."
+            role: SUPPLY_PLANNER
+            reads: [Supply Network]
+            tools: [trace_supply_exposure]
+          - id: SDR-1.3
+            name: Identify affected customers
+            description: "Find the contracted accounts and wholesalers served by the DCs that stock the affected packs, with their 13-week TRx."
+            role: SUPPLY_PLANNER
+            reads: [Commercial Demand, Field Force, Supply Contracts]
+            tools: [run_sql, get_reference]
+            governed_by: [BR-CUST-01, BR-REGION-01]
+      - name: Check mitigation
+        tasks:
+          - id: SDR-2.1
+            name: Check qualified alternate suppliers
+            description: "For each material at risk, find other suppliers qualified for it, and check the supplier portal for holds and the plants each alternate is qualified to ship to."
+            role: SUPPLY_PLANNER
+            reads: [Supply Network]
+            tools: [trace_supply_exposure, get_supplier_status]
+          - id: SDR-2.2
+            name: Source from qualified alternate
+            description: "Raise a purchase requisition with a qualified alternate supplier for the material at risk."
+            role: SUPPLY_PLANNER
+            creates: [PurchaseRequisition]
+            tools: [create_purchase_requisition]
+          - id: SDR-2.3
+            name: Check approved product substitute
+            description: "Decide which product customers can be offered instead: another pack of the same brand if it is at or above safety stock, else the approved company substitute unless the same supply issue constrains it."
+            role: SUPPLY_PLANNER
+            reads: [Reference, Supply Execution]
+            tools: [get_reference, run_sql]
+            governed_by: [BR-SUB-01, BR-SUB-02]
+          - id: SDR-2.4
+            name: Check DC stock vs safety stock
+            description: "Compare on-hand units of each affected pack at each DC with its safety stock (latest snapshot) and estimate when supply recovers."
+            role: SUPPLY_PLANNER
+            reads: [Supply Execution]
+            tools: [run_sql, get_lead_times, get_wholesaler_inventory]
+            governed_by: [BR-LEAD-01]
+      - name: Allocate shortage
+        tasks:
+          - id: SDR-3.1
+            name: Compute allocation plan
+            description: "At each DC where a pack hit by the disruption (and not covered by a qualified alternate supplier) is below safety stock, allocate its on-hand units by contract tier and TRx share. Patient-level data may not be used to prioritize."
+            role: SUPPLY_PLANNER
+            decision_point: true
+            approval_threshold_usd: 25000
+            reads: [Commercial Demand, Supply Execution, Supply Contracts]
+            creates: [Allocation]
+            tools: [get_reference, run_sql]
+            governed_by: [BR-ALLOC-01, BR-ALLOC-02, BR-APPR-01, POL-DUA-01]
+          - id: SDR-3.2
+            name: Request approval
+            description: "Send the allocation plan to the Supply Planning lead and wait for the decision."
+            role: SUPPLY_PLANNER
+            handoff_to: SDR-3.2a
+            creates: [ApprovalRequest]
+            tools: [request_approval, get_approval_status]
+            governed_by: [BR-APPR-01]
+          - id: SDR-3.2a
+            name: Approve allocation plan
+            description: "The Supply Planning lead approves or rejects an allocation plan over threshold or with an inter-DC transfer."
+            role: SUPPLY_PLANNING_LEAD
+            automatable: false
+            governed_by: [BR-APPR-01]
+          - id: SDR-3.3
+            name: Create allocation
+            description: "Record the allocation lines in the ERP, referencing the approval if one was required."
+            role: SUPPLY_PLANNER
+            creates: [Allocation]
+            tools: [create_allocation]
+            governed_by: [BR-APPR-01, POL-AGT-05]
+      - name: Notify
+        tasks:
+          - id: SDR-4.1
+            name: Notify account teams
+            description: "Open a CRM task for the account team of each contracted account at an affected DC: its allocation (or none), expected recovery and any approved substitute."
+            role: ACCOUNT_MANAGER
+            creates: [CustomerNotification]
+            tools: [notify_account_team]
+          - id: SDR-4.2
+            name: Notify wholesalers
+            description: "Tell the wholesalers served by the affected DCs (trade customers) about the delay."
+            role: TRADE_RELATIONS
+            escalates_to: TRADE_RELATIONS
+            creates: [CustomerNotification]
+            tools: [send_wholesaler_edi, create_escalation_case]
+      - name: Close
+        tasks:
+          - id: SDR-5.1
+            name: Record execution trace
+            description: "The runtime records what was done, with which tools, data and rules, so the path can be reviewed and reused."
+            role: SUPPLY_PLANNER
+            creates: [ExecutionRecord]
+    flow:  # [from, to, condition, outcome, isDefault]; tasks within an activity also chain in listed order unless overridden here
+      - [SDR-1.3, SDR-2.1, null, null, true]
+      - [SDR-2.1, SDR-2.2, "an alternate is qualified, not on hold, and approved for every plant that uses the material", "requisition raised", false]
+      - [SDR-2.1, SDR-2.3, "no alternate is qualified and available for any plant", null, true]
+      - [SDR-2.2, SDR-2.3, null, null, true]
+      - [SDR-2.4, SDR-3.1, "an affected pack is below safety stock at a DC", null, true]
+      - [SDR-2.4, SDR-4.1, "no DC below safety stock", "no allocation needed", false]
+      - [SDR-3.1, SDR-3.2, "plan value at the DC (all packs) >= $25,000 at list price, or inter-DC transfer", "approval required", false]
+      - [SDR-3.1, SDR-3.3, "within threshold", "no approval needed", true]
+      - [SDR-3.2, SDR-3.2a, null, "handoff", true]
+      - [SDR-3.2a, SDR-3.3, "approved", null, true]
+      - [SDR-3.2a, SDR-4.1, "rejected", "no allocation; inform accounts", false]
+      - [SDR-3.3, SDR-4.1, null, null, true]
+      - [SDR-4.2, SDR-5.1, null, null, true]

@@ -1,0 +1,88 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "B",
+  "qid": "Q12",
+  "question": "If S-104's next RM-221 shipment ships two weeks late, when will DC-EAST run out of Lacrivia, when will supply recover there, and which customers get supply first under our allocation rules?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "DC-EAST has probably already run out of Lacrivia, around 26\u201327 Sep 2026. If S-104's next RM-221 shipment ships two weeks late, supply at DC-EAST comes back on about 10 Dec 2026, a gap of roughly 75 days. Under our allocation rule, three Tier A health systems get supply first, then two Tier B systems, then everyone else in proportion to their prescriptions.\n\n**1. When DC-EAST runs out.** The stockout is already happening; the late shipment only makes it last longer.\n\n| Pack | On hand (25 Sep) | Safety stock | Shipped per day (last 28 days) | Days of supply | Stock-out date |\n|---|---|---|---|---|---|\n| Lacrivia 5 mL | 46 | 471 | 36.7 | 1.3 | about 26 Sep |\n| Lacrivia 10 mL | 34 | 233 | 15.1 | 2.3 | about 27 Sep |\n\n**2. When supply recovers.**\n- **The shipment:** the next S-104 order for RM-221 is PO005791 (4,200 units), promised to ship 7 Oct. Two weeks late means it ships 21 Oct.\n- **Lead time:** it takes 50 days from S-104 shipping to finished Lacrivia reaching DC-EAST:\n  - 6 days transit to the premix supplier\n  - 10 days to make, test and ship the premix (CMP-310)\n  - 12 days for the two emulsion stages\n  - 3 days to fill the bottles\n  - 19 days for final release, including the 14-day sterility test and 4 days to the DC\n- **Recovery date:** 21 Oct + 50 days = **10 Dec 2026**. If the shipment were on time, recovery would be 26 Nov, so the delay adds 14 days.\n- **Size of the gap:** about 75 days. At current rates that is roughly 2,750 units of 5 mL and 1,120 units of 10 mL that DC-EAST can't supply.\n- **Partial cover from other DCs:** DC-CENTRAL and DC-WEST together hold 695 units of 5 mL and 391 of 10 mL above their safety stock. That covers about 19 and 26 days of DC-EAST demand, not the whole gap. Moving stock between DCs needs Supply Planning approval.\n\n**3. Who gets supply first (rule BR-ALLOC-01).** Prescription counts (TRx) are for Lacrivia, last 13 weeks, from clinics in DC-EAST states only.\n\n1. **Tier A contracts:**\n   - Riverbend Health System (AC00059): 836\n   - Oak Hollow Health System (AC00038): 708\n   - Northfield Health System (AC00117): 533\n2. **Tier B contracts:**\n   - Clearview Health System (AC00001): 530. Its contract runs to 31 Dec, which is after recovery.\n   - Sunridge Health System (AC00138): 428\n3. **Everyone else, in proportion to their 2,135 TRx.** The largest shares are:\n   - Brightwater Health System: 19.4%\n   - Stonegate Health System: 15.0%\n   - Sunridge Vision Associates 20: 9.3%\n   - Willow Creek Health System: 8.8%\n   - Harbor Point Vision Associates 2: 6.5%\n   - Highland Vision Associates 26: 6.2%\n   - 12 smaller accounts share the remaining 34.8%.\n\nThe two contract tiers account for 3,035 of the 5,170 DC-EAST prescriptions (59%). Sunridge Vision Associates 20 and the other \"Vision Associates\" clinics are independent top-level accounts. They don't take the contract tier of the similarly named health systems.\n\n**Sources and definitions:**\n- **Knowledge layer:** the supply trace for S-104 and RM-221 showed RM-221 is single-source (the backup supplier S-131 isn't qualified). It feeds both Lacrivia packs, cyclosporine 5 mL and 11 lens-care products.\n- **Business rules:**\n  - BR-LEAD-01 and the standard stage times give the 50-day lead time.\n  - BR-ALLOC-01 sets the allocation order.\n  - BR-CUST-01 means clinics are rolled up to their top-level account.\n  - BR-REGION-01 serves each account from its state's DC. DC-EAST covers NY, NJ, PA, MA, FL, GA, NC and OH.\n- **Reference data:** the supply contract tiers come from the contract system.\n- **Tables (all approved sources):**\n  - Supply warehouse: purchase orders, DC inventory and wholesaler shipments.\n  - Commercial warehouse: weekly prescriptions, prescribers and accounts, joined using the approved path.\n- **Access check:** the policy check allowed access for your role with no masking.\n\n**Assumptions:**\n- Demand is based on wholesaler shipments over the last 28 days. The last 13 weeks means the 13 most recent weeks of prescription data.\n- Standard lead times are used, with no expediting and no plant capacity limits.\n- I assumed the delayed order is the lot that restocks DC-EAST. Earlier RM-221 lots shipped 9\u201324 Sep are already in production and could arrive around late Oct to mid-Nov at standard times. RM-221 is shared with 13 other products, though, so I didn't count those lots toward Lacrivia at DC-EAST. Confirming how that material is assigned could bring partial recovery forward.\n\nI've logged this analysis as trace 3731d061.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "similar_past_decisions",
+    "trace_supply_exposure",
+    "get_business_rules",
+    "get_lead_times",
+    "get_lead_times",
+    "get_reference",
+    "get_reference",
+    "get_business_rules",
+    "list_tables",
+    "get_data_product",
+    "list_deprecated_tables",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "get_join_path",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND MATERIAL_ID='RM-221' AND (STATUS <> 'CLOSED' OR PROMISED_SHIP_DT >= '2026-08-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.35
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT >= '2026-08-01' ORDER BY DC_ID, MATERIAL_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 48,
+      "error": null,
+      "elapsed_s": 1.41
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, DATEADD(day, -((DATEDIFF(day,'2026-01-02',SHIP_DT)) % 7), SHIP_DT) AS WK, SUM(UNITS) AS UNITS, COUNT(*) AS N FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT >= '2026-07-01' GROUP BY MATERIAL_ID, DATEADD(day, -((DATEDIFF(day,'2026-01-02',SHIP_DT)) % 7), SHIP_DT) ORDER BY MATERIAL_ID, WK",
+      "ok": true,
+      "rows": 27,
+      "error": null,
+      "elapsed_s": 1.92
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, MAX(SHIP_DT) AS LAST_SHIP, SUM(CASE WHEN SHIP_DT > DATEADD(day,-28,'2026-09-30') THEN UNITS ELSE 0 END) AS U28_TO_0930, SUM(CASE WHEN SHIP_DT > '2026-08-28' AND SHIP_DT <= '2026-09-25' THEN UNITS ELSE 0 END) AS U28_TO_0925 FROM dbo.WHSLR_SHIP WHERE MATERIAL_ID IN ('FG-1001','FG-1002') GROUP BY DC_ID, MATERIAL_ID ORDER BY DC_ID, MATERIAL_ID",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.21
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH RECURSIVE anc AS (\n  SELECT ACCOUNT_ID, ACCOUNT_ID AS TOP_ID, PARENT_ACCOUNT_ID, 0 AS LVL FROM PHARMA_DEMO.CORE.ACCOUNT\n  UNION ALL\n  SELECT a.ACCOUNT_ID, p.ACCOUNT_ID, p.PARENT_ACCOUNT_ID, a.LVL+1 FROM anc a JOIN PHARMA_DEMO.CORE.ACCOUNT p ON a.PARENT_ACCOUNT_ID = p.ACCOUNT_ID WHERE a.LVL < 10\n), top AS (SELECT ACCOUNT_ID, TOP_ID FROM anc WHERE PARENT_ACCOUNT_ID IS NULL),\nwks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nrx AS (\n  SELECT t.TOP_ID, r.PROD_NDC11, SUM(r.TRX_QTY) TRX\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n  JOIN wks w ON r.WK_END_DT = w.WK_END_DT\n  JOIN PHARMA_DEMO.CORE.PRESCRIBER pr ON r.PRSCRBR_ME = pr.PRSCRBR_ME\n  JOIN PHARMA_DEMO.CORE.ACCOUNT a ON pr.ACCOUNT_ID = a.ACCOUNT_ID\n  JOIN top t ON t.ACCOUNT_ID = a.ACCOUNT_ID\n  WHERE r.PROD_NDC11 IN ('99101010105','99101010110') AND a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH')\n  GROUP BY 1,2)\nSELECT rx.TOP_ID, ta.ACCOUNT_NM, ta.ACCT_TYP, ta.STATE,\n  SUM(CASE WHEN PROD_NDC11='99101010105' THEN TRX ELSE 0 END) TRX_5ML,\n  SUM(CASE WHEN PROD_NDC11='99101010110' THEN TRX ELSE 0 END) TRX_10ML,\n  SUM(TRX) TRX_TOTAL,\n  ROUND(100*SUM(TRX)/SUM(SUM(TRX)) OVER (),2) PCT\nFROM rx JOIN PHARMA_DEMO.CORE.ACCOUNT ta ON ta.ACCOUNT_ID = rx.TOP_ID\nGROUP BY 1,2,3,4 ORDER BY TRX_TOTAL DESC",
+      "ok": true,
+      "rows": 23,
+      "error": null,
+      "elapsed_s": 2.91
+    }
+  ],
+  "usage": {
+    "input": 22,
+    "output": 10263,
+    "cache_read": 176823,
+    "cache_write": 34274
+  },
+  "cost_usd": 0.4121,
+  "latency_s": 135.0,
+  "cypher_queries": 67
+}

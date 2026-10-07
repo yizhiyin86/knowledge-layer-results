@@ -1,0 +1,43 @@
+{
+  "run_id": "eval_20261001T2144_r3",
+  "agent": "B",
+  "qid": "Q9",
+  "question": "Which sources feed \"paid rate\", and is it defined the same way in the Payer Report and the Rep Report?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Both reports draw \"paid rate\" from the same source, but they calculate it differently. The Payer Report uses the ratified definition. The Rep Report uses an older, unratified version that comes out about 2 points lower, because it counts reversed claims as not paid.\n\n**Source**\n- Both versions are built from **PHARMA_DEMO.RAW_3P.CLMLNS_ADJ**, using the `ADJ_STAT` column (P = paid, R = rejected, V = reversed). This is the ratified pharmacy claim-line table in the Market Access data product.\n- To break the rate down by payer or channel, join `PLAN_ID` to **CORE.PAYER_SPINE**, then join `CHNL_CD` to **REF.CHNL**.\n- **RAW_3P.CLMLNS_ADJ_BKP_2025** is deprecated and shouldn't be used. CLMLNS_ADJ replaces it.\n\n**The two definitions**\n\n| | Payer Report: `paid_rate` (ratified by Market Access) | Rep Report: `paid_rate_rep_v1` (older, not ratified) |\n|---|---|---|\n| Formula | Paid \u00f7 (Paid + Rejected) | Paid \u00f7 all claim lines |\n| Reversals (V) | Left out of the denominator | Kept in the denominator, so they count as not paid |\n| Rate on all claims, 2025-09-27 to 2026-09-30 | **87.08%** | **85.06%** |\n\n**Gap on current data**\n- **Overall:** 287,395 claim lines: 244,448 paid, 36,258 rejected and 6,689 reversed (2.3%). The two rates differ by **2.0 points**.\n\n| Channel | Payer Report rate | Rep Report rate | Gap (points) |\n|---|---|---|---|\n| Commercial | 86.38% | 84.42% | 1.96 |\n| Medicare Part D | 85.96% | 84.00% | 1.96 |\n| Managed Medicaid | 88.34% | 86.23% | 2.11 |\n| Health Exchange | 83.99% | 82.07% | 1.92 |\n| Medicaid FFS | 89.45% | 87.25% | 2.20 |\n| Cash / Discount | 100.00% | 96.95% | 3.05 |\n\n- Reversals run at about 2.3\u20133.1% of claim lines in every channel. The gap tracks the reversal share; it doesn't reflect a real difference in how often payers approve claims.\n- The Cash channel is the clearest case. No cash claim is rejected, so the ratified rate is 100%, but the Rep Report shows about 97% only because of reversals.\n\n**What I'd recommend:** Use the ratified Payer Report definition for anything about payer access. If the Rep Report's number is shown, label it as a different measure, or move the Rep Report to the ratified formula so the two reports reconcile.\n\n**Sources and assumptions**\n- Metric definitions: `paid_rate` (ratified, Payer Report) and `paid_rate_rep_v1` (not ratified, Rep Report).\n- Tables: RAW_3P.CLMLNS_ADJ, CORE.PAYER_SPINE and REF.CHNL. The deprecated-table note came from the knowledge layer.\n- The numbers cover the full claims history in the data (2025-09-27 to 2026-09-30), not a 13-week window.\n- Every claim line matched to a plan and channel. No line had a status other than P, R or V.\n- No access restrictions applied to these tables for the Market Access role.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) AS total_lines,\n SUM(IFF(ADJ_STAT='P',1,0)) AS paid,\n SUM(IFF(ADJ_STAT='R',1,0)) AS rejected,\n SUM(IFF(ADJ_STAT='V',1,0)) AS reversed,\n SUM(IFF(ADJ_STAT NOT IN ('P','R','V') OR ADJ_STAT IS NULL,1,0)) AS other,\n ROUND(SUM(IFF(ADJ_STAT='P',1,0)) / NULLIF(SUM(IFF(ADJ_STAT IN ('P','R'),1,0)),0)*100,2) AS paid_rate_payer_pct,\n ROUND(SUM(IFF(ADJ_STAT='P',1,0)) / COUNT(*)*100,2) AS paid_rate_rep_v1_pct,\n MIN(CLM_DT) AS min_dt, MAX(CLM_DT) AS max_dt\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.39
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.CHNL_NM,\n ROUND(SUM(IFF(a.ADJ_STAT='P',1,0)) / NULLIF(SUM(IFF(a.ADJ_STAT IN ('P','R'),1,0)),0)*100,2) AS paid_rate_payer_pct,\n ROUND(SUM(IFF(a.ADJ_STAT='P',1,0)) / COUNT(*)*100,2) AS paid_rate_rep_v1_pct,\n ROUND(SUM(IFF(a.ADJ_STAT='V',1,0)) / COUNT(*)*100,2) AS reversal_pct,\n COUNT(*) AS lines\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ a\nJOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON a.PLAN_ID = s.PLAN_ID\nJOIN PHARMA_DEMO.REF.CHNL c ON s.CHNL_CD = c.CHNL_CD\nGROUP BY 1 ORDER BY lines DESC",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.73
+    }
+  ],
+  "cypher_queries": 5,
+  "usage": {
+    "input": 8,
+    "output": 2308,
+    "cache_read": 11610,
+    "cache_write": 10273
+  },
+  "cost_usd": 0.0999,
+  "latency_s": 34.0
+}

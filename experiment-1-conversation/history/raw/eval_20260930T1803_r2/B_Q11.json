@@ -1,0 +1,52 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "B",
+  "qid": "Q11",
+  "question": "If S-104 became unavailable, is there a qualified alternate supplier for each material it provides, and which products would remain exposed?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**No. Only one of S-104's two materials has a qualified alternate supplier.** If S-104 (Delmar Specialty Chemicals, a tier-2 supplier in India) went down, the Oculon products would be covered. The Lacrivia and Cyclosporine eye emulsions and the lens-care products would have no qualified backup.\n\n**Materials S-104 supplies**\n\n| Material | S-104's role | Other suppliers | Qualified suppliers | Covered? |\n|---|---|---|---|---|\n| RM-221 Polysorbate 80 NF, low-peroxide | Qualified, primary | S-131 Pinecrest Chemical Trading (China), **not qualified** | 1 | **No, only one source** |\n| RM-222 Benzalkonium chloride 50% | Qualified, primary | S-130 Oakridge Chemicals (US), **qualified** | 2 | Yes |\n\n**Products still exposed (all through RM-221): 14 finished goods**\n- **Lacrivia 0.1% 5 mL:** FG-1001, NDC 99101-0101-05\n- **Lacrivia 0.1% 10 mL:** FG-1002, NDC 99101-0101-10\n- **Cyclosporine 0.05% 5 mL:** FG-1003, NDC 99101-0202-05\n- **Lens care solutions 1\u201311:** FG-3001 to FG-3011. These are 7 levels down the bill of materials and aren't in the commercial database.\n\n**Covered by S-130:** Oculon 0.005% 2.5 mL and 5 mL (FG-2001, FG-2002), through RM-222 \u2192 CMP-320. CMP-320 also has two qualified makers, S-202 and S-203.\n\n**Other risks to flag**\n- **No company substitute for Lacrivia.** The approved substitute is Cyclosporine 0.05%, but the rule says it doesn't count when the same supply issue hits it too, and here it does (rule BR-SUB-01). Medical Affairs would need to guide therapeutic alternatives.\n- **A second single source on the same path.** RM-221 goes into CMP-310 (emulsifier premix), which only S-201 (Larchmont Contract Manufacturing) makes. The Lacrivia and Cyclosporine products depend on two single sources in a row.\n- **Suggested fix:** get S-131 qualified for RM-221, or add another qualified RM-221 supplier. That would close most of this exposure.\n\n**Sources and definitions**\n- The Supplier and Material concepts, with the ratified tables `SUPPLY_DEMO.dbo.SUPPLIER`, `SUPPLIER_MATERIAL` and `MATERIAL`.\n- The ratified metric `qualified_supplier_count`: the number of suppliers with QUALIFIED_FLG = 'Y'. A count of 1 means single-source risk.\n- The knowledge layer's supply-exposure trace, which follows the approved path from supplier to finished goods through the multi-level bill of materials.\n- Business rule BR-SUB-01 on approved substitutes during a shortage.\n\n**Assumptions**\n- Only current bill-of-materials links count. An old RM-221 \u2192 CMP-320 link that ended on 2025-06-30 was left out, so Oculon doesn't depend on RM-221.\n- \"Qualified\" means QUALIFIED_FLG = 'Y'. I didn't check contract terms or capacity: no supply contracts are on file for S-104, and S-130's volume capacity isn't recorded.\n\nThe policy check allowed this for SUPPLY_PLANNER with no masking, and the decision trace is logged.",
+  "stop_reason": "end_turn",
+  "model_turns": 8,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_business_rules",
+    "get_reference",
+    "get_concept",
+    "trace_supply_exposure",
+    "list_deprecated_tables",
+    "get_metric",
+    "check_policy",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.MATERIAL_ID, m.*, sm2.SUPPLIER_ID, s.*, sm2.QUALIFIED_FLG, sm2.PRIMARY_FLG\nFROM dbo.SUPPLIER_MATERIAL sm\nJOIN dbo.SUPPLIER_MATERIAL sm2 ON sm2.MATERIAL_ID = sm.MATERIAL_ID\nLEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID = sm.MATERIAL_ID\nLEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID = sm2.SUPPLIER_ID\nWHERE sm.SUPPLIER_ID = 'S-104'\nORDER BY sm.MATERIAL_ID, sm2.SUPPLIER_ID",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.11
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.MATERIAL_ID, sm.SUPPLIER_ID, s.SUPPLIER_NM, s.TIER, sm.QUALIFIED_FLG, sm.PRIMARY_FLG\nFROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID = sm.SUPPLIER_ID\nWHERE sm.MATERIAL_ID IN ('CMP-310','CMP-320') ORDER BY 1,2",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 2.1
+    }
+  ],
+  "usage": {
+    "input": 18,
+    "output": 4008,
+    "cache_read": 86836,
+    "cache_write": 17070
+  },
+  "cost_usd": 0.1829,
+  "latency_s": 59.2,
+  "cypher_queries": 37
+}

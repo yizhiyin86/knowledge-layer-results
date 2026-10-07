@@ -1,0 +1,67 @@
+# Physical systems (workshop six-layer schema, layer 4). Generic names only.
+# accessibilityScenario (workshop): 1 API + fields match, 2 API + fields differ, 3 no API, 4 vendor feed pending.
+# "(simulated)" systems are the sandbox ops store (sandbox/, SQLite), reset for every run.
+applications:
+  - name: Commercial data warehouse
+    kind: warehouse
+    platform: Snowflake PHARMA_DEMO
+    accessibilityScenario: 1
+    defines_schema: [pharma_demo.raw_3p, pharma_demo.core, pharma_demo.biz, pharma_demo.mart, pharma_demo.ref, pharma_demo.sandbox]
+    owner: Commercial Analytics
+  - name: Supply data warehouse
+    kind: warehouse
+    platform: Fabric SUPPLY_DEMO
+    accessibilityScenario: 1
+    defines_schema: [supply_demo.dbo]
+    owner: Supply Planning
+  - name: ERP
+    kind: operational (simulated)
+    accessibilityScenario: 1
+    system_of_record: [Allocation, PurchaseRequisition]
+    supports_tasks: [SDR-2.2, SDR-3.3]
+    owner: Supply Planning
+  - name: Approval workflow
+    kind: operational (simulated)
+    accessibilityScenario: 1
+    system_of_record: [ApprovalRequest]
+    supports_tasks: [SDR-3.2, SDR-3.2a]
+    owner: Supply Planning
+  - name: CRM
+    kind: operational (simulated)
+    accessibilityScenario: 1
+    system_of_record: [CustomerNotification]
+    supports_tasks: [SDR-4.1]
+    owner: Field Operations
+  - name: Ops case management
+    kind: operational (simulated)
+    accessibilityScenario: 1
+    system_of_record: [EscalationCase]
+    supports_tasks: [SDR-4.2]
+    owner: Supply Planning
+  - name: Supplier portal
+    kind: operational (simulated)
+    accessibilityScenario: 2
+    note: "Plant-level qualification and supplier holds. Field names differ from SUPPLY_DEMO.dbo.SUPPLIER_MATERIAL (QUALIFIED_FLG is global; the portal qualifies per plant)."
+    supports_tasks: [SDR-2.1]
+    owner: Quality
+  - name: Wholesaler EDI gateway
+    kind: operational
+    accessibilityScenario: 3
+    note: "No API. Wholesaler notices go through Trade Relations until the EDI integration is built."
+    supports_tasks: [SDR-4.2]
+    owner: Supply Planning
+  - name: Knowledge layer
+    kind: knowledge layer (Neo4j)
+    accessibilityScenario: 1
+    system_of_record: [ExecutionRecord]
+    owner: Commercial Analytics
+
+external_feeds:
+  - feedName: Wholesaler inventory feed
+    type: "EDI 852 product activity"
+    direction: Incoming
+    frequency: daily
+    feedReadiness: pending-ingestion
+    eta: 2026-Q4
+    contents: [InventorySnapshot, Wholesaler]
+    owner: Supply Planning

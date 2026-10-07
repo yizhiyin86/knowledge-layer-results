@@ -1,0 +1,280 @@
+{
+  "run_id": "execution_dry3",
+  "agent": "A",
+  "task": "T6",
+  "qid": "T6",
+  "question": "Supplier S-103 will miss its next RM-103 shipment by four weeks. Handle it.",
+  "role": "SUPPLY_PLANNER",
+  "badge": "Supply Response Agent",
+  "effort": "high",
+  "answer": "I raised a replacement purchase requisition with the alternate supplier, and it should arrive about 8 days before S-103's delayed lot. I also opened two cases: one for Procurement to sort out the late order, and one for the Supply Planning lead on a separate Lacrivia shortage at DC-EAST.\n\n**What's affected**\n- **The late shipment:** S-103 (Castellan Excipients) has 4 open RM-103 orders. The next one is PO000210: 3,300 units of Glycerin USP, due 2026-10-03, now expected around 2026-10-31.\n- **Products that use RM-103:**\n  - At plant PL-01: Lacrivia FG-1001 and FG-1002, and Cyclosporine FG-1003.\n  - At plant PL-02: Oculon FG-2001 and FG-2002. This route goes through CMP-320, which we buy from contract manufacturers S-202 and S-203.\n- **Backup supplier:** S-111 (Kingsley Excipients) is qualified for RM-103 and active in the supplier portal. It is approved to ship to PL-01 only, and its lead time is about 23 days.\n\n**Actions taken**\n1. **PR-C915E075:** 3,300 RM-103 from S-111, shipped to PL-01, need-by 2026-10-23. That date is the earliest S-111 can manage given its lead time.\n2. **CASE-66F364A9 (Procurement), asking them to:**\n   - turn the requisition into a purchase order;\n   - update PO000210's due date in the ERP (none of my tools can edit orders);\n   - decide whether to keep PO000210 as buffer or cut it back, so we don't end up with twice the cover;\n   - confirm with S-103 that its other open orders (PO000211\u2013213) are on time, and get a root cause.\n3. **CASE-A00FD7A8 (Supply Planning lead):** DC-EAST is far below safety stock on Lacrivia (stock as of 2026-09-25).\n   - FG-1001: 46 units on hand against a safety stock of 471 and about 237 shipped a week.\n   - FG-1002: 34 on hand against a safety stock of 233 and about 110 a week.\n   - DC-EAST will likely run out within days. The decline started in mid-August, so this delay didn't cause it, but the delay adds risk to the same products.\n   - DC-CENTRAL and DC-WEST are above safety stock on both products and could supply a transfer.\n\n**What I did not do, and why**\n- **No allocation or stock transfer for DC-EAST:** that shortage isn't caused by this delay, and a transfer or allocation needs the Supply Planning lead's decision and approval. I gave them the figures in the case.\n- **No notices to wholesalers or account teams:** stock for the RM-103 products is above safety stock everywhere except Lacrivia at DC-EAST. Whether customers need a notice depends on the lead's decision on that shortage.\n- **No commercial (Snowflake) data used:** the supply data was enough.\n\n**Assumptions**\n- \"Next shipment\" means PO000210, and only that order slips. The later S-103 orders are assumed to be on time until Procurement confirms.\n- I shipped the replacement to PL-01 because it's the only site S-111 is approved for, and the only in-house plant that uses RM-103 directly. If PL-02 also receives RM-103 directly, S-111 can't cover it without a new site approval.\n- I matched the replacement quantity to the late order (3,300). There's no plant inventory data for RM-103, so I couldn't calculate how many weeks the plant's stock covers.",
+  "stop_reason": "end_turn",
+  "model_turns": 12,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_supplier_status",
+    "get_supplier_status",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "create_purchase_requisition",
+    "create_escalation_case",
+    "create_escalation_case"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.MATERIAL WHERE MATERIAL_ID='RM-103';\n",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.13
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, s.SUPPLIER_NM, s.COUNTRY, s.TIER FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID='RM-103'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.39
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD WHERE MATERIAL_ID='RM-103' AND (STATUS<>'CLOSED' OR ORDER_DT>='2026-08-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 0.88
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.BOM WHERE CHILD_MATERIAL_ID='RM-103' OR PARENT_MATERIAL_ID='RM-103'",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.36
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PLANT_MATERIAL WHERE MATERIAL_ID='RM-103'",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 0.92
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH x AS (\n SELECT PARENT_MATERIAL_ID, CHILD_MATERIAL_ID, CAST(QTY_PER AS decimal(18,6)) AS q, 1 AS lvl FROM dbo.BOM WHERE CHILD_MATERIAL_ID='RM-103' AND EFF_TO>='2026-09-30' AND EFF_FROM<='2026-09-30'\n UNION ALL\n SELECT b.PARENT_MATERIAL_ID, x.CHILD_MATERIAL_ID, CAST(x.q*b.QTY_PER AS decimal(18,6)), x.lvl+1 FROM dbo.BOM b JOIN x ON b.CHILD_MATERIAL_ID=x.PARENT_MATERIAL_ID WHERE b.EFF_TO>='2026-09-30' AND b.EFF_FROM<='2026-09-30'\n)\nSELECT x.PARENT_MATERIAL_ID, x.q, x.lvl, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ FROM x LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=x.PARENT_MATERIAL_ID ORDER BY lvl, PARENT_MATERIAL_ID",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 0.85
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b1.CHILD_MATERIAL_ID c0, b1.PARENT_MATERIAL_ID p1, b1.QTY_PER q1, b2.PARENT_MATERIAL_ID p2, b2.QTY_PER q2, b3.PARENT_MATERIAL_ID p3, b3.QTY_PER q3, b4.PARENT_MATERIAL_ID p4, b4.QTY_PER q4, b2.EFF_TO e2, b3.EFF_TO e3\nFROM dbo.BOM b1\nLEFT JOIN dbo.BOM b2 ON b2.CHILD_MATERIAL_ID=b1.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b3 ON b3.CHILD_MATERIAL_ID=b2.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b4 ON b4.CHILD_MATERIAL_ID=b3.PARENT_MATERIAL_ID\nWHERE b1.CHILD_MATERIAL_ID='RM-103'",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.09
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.*, x.NDC FROM dbo.MATERIAL m LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=m.MATERIAL_ID WHERE m.MATERIAL_ID IN ('CMP-320','SEMI-060','SEMI-044','SEMI-045','FILL-2001','FILL-2002','FILL-1001','FILL-1002','FILL-1003','FG-2001','FG-2002','FG-1001','FG-1002','FG-1003')",
+      "ok": true,
+      "rows": 14,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PLANT_MATERIAL WHERE MATERIAL_ID IN ('RM-103','CMP-320','SEMI-060','SEMI-044','SEMI-045','FILL-2001','FILL-2002','FILL-1001','FILL-1002','FILL-1003','FG-2001','FG-2002','FG-1001','FG-1002','FG-1003') ORDER BY MATERIAL_ID",
+      "ok": true,
+      "rows": 13,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.BOM_FLAT_LEGACY WHERE COMPONENT_MATERIAL_ID='RM-103'",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 0.34
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PLANT",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.84
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, ON_HAND_UNITS, SAFETY_STOCK_UNITS, SNAPSHOT_DT FROM dbo.DC_INV d WHERE SNAPSHOT_DT=(SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) AND MATERIAL_ID IN ('RM-103','CMP-320','SEMI-060','SEMI-044','SEMI-045','FG-2001','FG-2002','FG-1001','FG-1002','FG-1003') ORDER BY MATERIAL_ID, DC_ID",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 0.97
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, s.SUPPLIER_NM FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE MATERIAL_ID='CMP-320' OR sm.SUPPLIER_ID IN ('S-103','S-111')",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 0.92
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SUPPLIER_ID, COUNT(*) n, SUM(QTY) qty, AVG(DATEDIFF(day,ORDER_DT,PROMISED_SHIP_DT)) lead_days, SUM(CASE WHEN ACTUAL_SHIP_DT>PROMISED_SHIP_DT THEN 1 ELSE 0 END) late, MIN(ORDER_DT) first_dt, MAX(ORDER_DT) last_dt FROM dbo.PURCH_ORD WHERE MATERIAL_ID='RM-103' GROUP BY SUPPLIER_ID",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.93
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD WHERE MATERIAL_ID='CMP-320' AND ORDER_DT>='2026-08-15' ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 8,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-111' AND MATERIAL_ID='RM-103' ORDER BY ORDER_DT",
+      "ok": true,
+      "rows": 13,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.DC",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.33
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SUM(UNITS)/13.0 avg_wk_units, MIN(SHIP_DT) mn, MAX(SHIP_DT) mx FROM dbo.WHSLR_SHIP WHERE SHIP_DT> DATEADD(week,-13,'2026-09-30') AND MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') GROUP BY DC_ID, MATERIAL_ID ORDER BY MATERIAL_ID, DC_ID",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.18
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SNAPSHOT_DT, MATERIAL_ID, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT>='2026-07-01' ORDER BY MATERIAL_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 26,
+      "error": null,
+      "elapsed_s": 0.37
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 26,
+    "output": 11227,
+    "cache_read": 173242,
+    "cache_write": 29077
+  },
+  "cost_usd": 0.4047,
+  "latency_s": 142.3,
+  "final_state": {
+    "allocation_plans": [],
+    "purchase_requisitions": [
+      {
+        "pr_id": "PR-C915E075",
+        "material_id": "RM-103",
+        "supplier_id": "S-111",
+        "quantity": 3300,
+        "ship_to_plant": "PL-01",
+        "need_by": "2026-10-23",
+        "reason": "Cover for primary supplier S-103 (Castellan) slipping its next RM-103 Glycerin USP shipment, PO000210 (3,300, promised 2026-10-03), by 4 weeks to ~2026-10-31. S-111 Kingsley Excipients is qualified (SUPPLIER_MATERIAL) and portal-approved for RM-103 at PL-01 only; quoted lead time ~23 days, so need-by is 2026-10-23 (~8 days ahead of the delayed S-103 lot). PL-01 uses RM-103 in SEMI-044/SEMI-045 for Lacrivia FG-1001/1002 and Cyclosporine FG-1003.",
+        "created_at": "2026-10-07T15:59:22+00:00"
+      }
+    ],
+    "approvals": [],
+    "crm_tasks": [],
+    "edi_messages": [],
+    "escalation_cases": [
+      {
+        "case_id": "CASE-66F364A9",
+        "owner": "Procurement",
+        "subject": "S-103 RM-103 PO000210 slipped 4 weeks: update promise date and decide on the quantity now that S-111 cover is raised",
+        "details": "Supplier S-103 (Castellan Excipients) will ship its next RM-103 (Glycerin USP) lot, PO000210 (3,300, promised 2026-10-03), about 4 weeks late (~2026-10-31). Mitigation raised: PR-C915E075 for 3,300 RM-103 from alternate qualified supplier S-111 (Kingsley Excipients) to PL-01, need-by 2026-10-23 (S-111 lead time ~23 days). S-111 is portal-approved for PL-01 only, not PL-02. Please: (1) convert PR-C915E075 and confirm the S-111 ship date; (2) update the PO000210 promised ship date in ERP; (3) decide whether to keep PO000210 as buffer or reduce/cancel it to avoid double cover; (4) confirm with S-103 that the later open POs (PO000211 due 10-10, PO000212 due 10-18, PO000213 due 10-25) are not affected, and get a root cause. S-103's RM-103 record has otherwise been strong: 1 late out of 53 POs. Other open RM-103 POs: S-111 PO000228 (5,300, due 10-17).",
+        "related_ids": "[\"PO000210\", \"PR-C915E075\", \"S-103\", \"S-111\", \"RM-103\"]",
+        "created_at": "2026-10-07T15:59:33+00:00"
+      },
+      {
+        "case_id": "CASE-A00FD7A8",
+        "owner": "Supply Planning lead",
+        "subject": "DC-EAST Lacrivia (FG-1001/FG-1002) below safety stock, and RM-103 supplier delay hits the same supply chain",
+        "details": "While handling the S-103 RM-103 delay, I found that DC-EAST Lacrivia stock was already well below safety stock before this delay (snapshot 2026-09-25): FG-1001 (NDC 99101-0101-05) 46 on hand vs SS 471 and ~237/wk shipped; FG-1002 (NDC 99101-0101-10) 34 on hand vs SS 233 and ~110/wk. The drawdown began mid-August (FG-1001 1,227 on 8/14), so the RM-103 delay didn't cause it. But RM-103 feeds Lacrivia and Cyclosporine at PL-01 (RM-103 -> SEMI-044/045), so the delay adds risk. DC-CENTRAL (FG-1001 677/SS 314; FG-1002 351/SS 155) and DC-WEST (FG-1001 593/SS 261; FG-1002 324/SS 129) are above safety stock and could be transfer sources. Mitigation for the RM-103 slip: PR-C915E075 (3,300 from S-111 to PL-01, need-by 10/23). I have not created an allocation or stock transfer. Please decide whether a DC-to-DC transfer or allocation is warranted. Other RM-103-dependent finished goods (FG-1003 Cyclosporine, FG-2001/2002 Oculon via CMP-320 bought from CDMOs S-202/S-203) are above safety stock at all DCs.",
+        "related_ids": "[\"DC-EAST\", \"FG-1001\", \"FG-1002\", \"PR-C915E075\", \"PO000210\"]",
+        "created_at": "2026-10-07T15:59:33+00:00"
+      }
+    ],
+    "tool_calls": [
+      {
+        "seq": 1,
+        "tool": "create_purchase_requisition",
+        "args": "{\"material_id\": \"RM-103\", \"supplier_id\": \"S-111\", \"quantity\": 3300, \"ship_to_plant\": \"PL-01\", \"need_by\": \"2026-10-23\", \"reason\": \"Cover for primary supplier S-103 (Castellan) slipping its next RM-103 Glycerin USP shipment, PO000210 (3,300, promised 2026-10-03), by 4 weeks to ~2026-10-31. S-111 Kingsley Excipients is qualified (SUPPLIER_MATERIAL) and portal-approved for RM-103 at PL-01 only; quoted lead time ~23 days, so need-by is 2026-10-23 (~8 days ahead of the delayed S-103 lot). PL-01 uses RM-103 in SEMI-044/SEMI-045 for Lacrivia FG-1001/1002 and Cyclosporine FG-1003.\"}",
+        "accepted": 1,
+        "result": "{\"pr_id\": \"PR-C915E075\", \"status\": \"created\"}",
+        "created_at": "2026-10-07T15:59:22+00:00"
+      },
+      {
+        "seq": 2,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Procurement\", \"subject\": \"S-103 RM-103 PO000210 slipped 4 weeks: update promise date and decide on the quantity now that S-111 cover is raised\", \"details\": \"Supplier S-103 (Castellan Excipients) will ship its next RM-103 (Glycerin USP) lot, PO000210 (3,300, promised 2026-10-03), about 4 weeks late (~2026-10-31). Mitigation raised: PR-C915E075 for 3,300 RM-103 from alternate qualified supplier S-111 (Kingsley Excipients) to PL-01, need-by 2026-10-23 (S-111 lead time ~23 days). S-111 is portal-approved for PL-01 only, not PL-02. Please: (1) convert PR-C915E075 and confirm the S-111 ship date; (2) update the PO000210 promised ship date in ERP; (3) decide whether to keep PO000210 as buffer or reduce/cancel it to avoid double cover; (4) confirm with S-103 that the later open POs (PO000211 due 10-10, PO000212 due 10-18, PO000213 due 10-25) are not affected, and get a root cause. S-103's RM-103 record has otherwise been strong: 1 late out of 53 POs. Other open RM-103 POs: S-111 PO000228 (5,300, due 10-17).\", \"related_ids\": [\"PO000210\", \"PR-C915E075\", \"S-103\", \"S-111\", \"RM-103\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-66F364A9\", \"status\": \"open\", \"owner\": \"Procurement\"}",
+        "created_at": "2026-10-07T15:59:33+00:00"
+      },
+      {
+        "seq": 3,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Supply Planning lead\", \"subject\": \"DC-EAST Lacrivia (FG-1001/FG-1002) below safety stock, and RM-103 supplier delay hits the same supply chain\", \"details\": \"While handling the S-103 RM-103 delay, I found that DC-EAST Lacrivia stock was already well below safety stock before this delay (snapshot 2026-09-25): FG-1001 (NDC 99101-0101-05) 46 on hand vs SS 471 and ~237/wk shipped; FG-1002 (NDC 99101-0101-10) 34 on hand vs SS 233 and ~110/wk. The drawdown began mid-August (FG-1001 1,227 on 8/14), so the RM-103 delay didn't cause it. But RM-103 feeds Lacrivia and Cyclosporine at PL-01 (RM-103 -> SEMI-044/045), so the delay adds risk. DC-CENTRAL (FG-1001 677/SS 314; FG-1002 351/SS 155) and DC-WEST (FG-1001 593/SS 261; FG-1002 324/SS 129) are above safety stock and could be transfer sources. Mitigation for the RM-103 slip: PR-C915E075 (3,300 from S-111 to PL-01, need-by 10/23). I have not created an allocation or stock transfer. Please decide whether a DC-to-DC transfer or allocation is warranted. Other RM-103-dependent finished goods (FG-1003 Cyclosporine, FG-2001/2002 Oculon via CMP-320 bought from CDMOs S-202/S-203) are above safety stock at all DCs.\", \"related_ids\": [\"DC-EAST\", \"FG-1001\", \"FG-1002\", \"PR-C915E075\", \"PO000210\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-A00FD7A8\", \"status\": \"open\", \"owner\": \"Supply Planning lead\"}",
+        "created_at": "2026-10-07T15:59:33+00:00"
+      }
+    ]
+  },
+  "discovery": false,
+  "trusted_playbooks_offered": {},
+  "execution_trace": null
+}

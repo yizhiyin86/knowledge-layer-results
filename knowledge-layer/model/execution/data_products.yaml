@@ -1,0 +1,69 @@
+# Data products: the glue between the domain ontology and the technical ontology.
+# Only tables listed here are authoritative sources for the concepts a product realizes.
+# sensitivity: Public < Internal < Confidential < Restricted (default Internal); agent badges are cleared up to a level.
+data_products:
+  - name: Commercial Demand
+    owner: Commercial Analytics
+    status: ratified
+    description: "Weekly prescription demand (TRx/NRx) by prescriber, pack, plan and channel, with the product master, market definitions and the ratified share mart."
+    tables: [PHARMA_DEMO.RAW_3P.RXT_WKLY, PHARMA_DEMO.CORE.PRODUCT, PHARMA_DEMO.BIZ.MKT_DEF_DRIVER, PHARMA_DEMO.MART.PYR_SHR_WK]
+    realizes: [Prescription, MedicinalProduct, PackagedProduct, TherapeuticMarket]
+  - name: Market Access
+    owner: Market Access
+    status: ratified
+    description: "Claim adjudication (paid, rejected, reversed), reject reasons, switching, abandonment, formulary coverage and the payer spine."
+    tables: [PHARMA_DEMO.RAW_3P.CLMLNS_ADJ, PHARMA_DEMO.RAW_3P.FMLY_MAP, PHARMA_DEMO.CORE.PAYER_SPINE, PHARMA_DEMO.CORE.PRODUCT]
+    realizes: [Claim, ClaimRejection, Plan, Payer, Formulary]
+  - name: Field Force
+    owner: Field Operations
+    status: ratified
+    description: "Prescribers, account hierarchy, territories and districts, reps and teams, call activity, call plans and IC goals."
+    tables: [PHARMA_DEMO.CORE.PRESCRIBER, PHARMA_DEMO.CORE.ACCOUNT, PHARMA_DEMO.CORE.TERRITORY, PHARMA_DEMO.CORE.REP_ROSTER,
+             PHARMA_DEMO.CORE.CALL_ACT, PHARMA_DEMO.CORE.CALL_PLAN, PHARMA_DEMO.CORE.IC_GOAL]
+    realizes: [Prescriber, Account, Territory, District, SalesRep, Call, CallPlan, IncentiveGoal]
+  - name: Patient Insights
+    owner: Compliance
+    status: restricted
+    sensitivity: Restricted
+    description: "RESTRICTED patient-level panel. Use only as permitted by data-use agreement DUA-3P-07."
+    tables: [PHARMA_DEMO.RAW_3P.PATHPT_LVL]
+    realizes: [Patient]
+  - name: Supply Network
+    owner: Supply Planning
+    status: ratified
+    description: "Material master, multi-level bill of materials, suppliers and their qualification, plants, and the material-to-NDC crosswalk."
+    tables: [SUPPLY_DEMO.dbo.MATERIAL, SUPPLY_DEMO.dbo.BOM, SUPPLY_DEMO.dbo.SUPPLIER, SUPPLY_DEMO.dbo.SUPPLIER_MATERIAL,
+             SUPPLY_DEMO.dbo.PLANT, SUPPLY_DEMO.dbo.PLANT_MATERIAL, SUPPLY_DEMO.dbo.MATERIAL_NDC_XREF]
+    realizes: [Supplier, Material, BillOfMaterials, Plant]
+  - name: Supply Execution
+    owner: Supply Planning
+    status: ratified
+    description: "Purchase orders and ship dates, DC inventory and safety stock, wholesaler shipments."
+    tables: [SUPPLY_DEMO.dbo.PURCH_ORD, SUPPLY_DEMO.dbo.DC, SUPPLY_DEMO.dbo.DC_INV, SUPPLY_DEMO.dbo.WHSLR, SUPPLY_DEMO.dbo.WHSLR_SHIP]
+    realizes: [PurchaseOrder, DistributionCenter, InventorySnapshot, Wholesaler, Shipment]
+  - name: Supply Contracts
+    owner: Supply Planning
+    status: ratified
+    sensitivity: Confidential
+    description: "Supply contracts and customer tiers from the contract-management system (held in the knowledge layer; not in either warehouse)."
+    tables: []
+    realizes: []
+  - name: Reference
+    owner: Market Access
+    status: ratified
+    description: "Governed code sets and crosswalks: reject codes and groups, channels, coverage tiers, market definitions, NDC crosswalk."
+    tables: [PHARMA_DEMO.REF.REJ_CODE, PHARMA_DEMO.REF.CHNL, PHARMA_DEMO.REF.CVG_TIER, PHARMA_DEMO.BIZ.MKT_DEF_DRIVER,
+             SUPPLY_DEMO.dbo.MATERIAL_NDC_XREF]
+    realizes: [Channel, ClaimRejection, TherapeuticMarket, PackagedProduct]
+
+reports:
+  - name: Payer Report
+    owner: Commercial Analytics
+    description: "Weekly payer access and share report for market-access leadership."
+    reads: [PHARMA_DEMO.MART.PYR_SHR_WK, PHARMA_DEMO.RAW_3P.CLMLNS_ADJ]
+    metrics: [trx_share_by_market, paid_rate, rejection_rate_by_group]
+  - name: Rep Report
+    owner: Field Operations
+    description: "Weekly rep scorecard for field sales (legacy build)."
+    reads: [PHARMA_DEMO.RAW_3P.RXT_WKLY, PHARMA_DEMO.RAW_3P.CLMLNS_ADJ, PHARMA_DEMO.CORE.IC_GOAL]
+    metrics: [ic_attainment, call_plan_adherence, paid_rate_rep_v1]

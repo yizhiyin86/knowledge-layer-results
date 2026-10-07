@@ -1,0 +1,38 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "B",
+  "qid": "Q14",
+  "question": "What did we conclude last time about exposure to supplier S-104, and has its next ship date changed since?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "The next ship date hasn't changed. S-104's next shipment is still purchase order PO005791: 4,200 units of RM-221 (Polysorbate 80), due to ship 2026-10-07, still open and not yet shipped. The exposure we found last time also still holds.\n\n**What we concluded last time (two earlier analyses, both 2026-09-30)**\n- **The risk is RM-221, Polysorbate 80 NF low-peroxide.** S-104 is its only qualified supplier. S-131 (Pinecrest) is listed but not qualified.\n- **S-104's other material, RM-222 (benzalkonium chloride), is covered.** S-130 (Oakridge) is a qualified alternate, so the Oculon products are safe.\n- **RM-221 goes into 14 finished goods** under the current bill of materials:\n  - Lacrivia 0.1% 5 mL (NDC 99101010105) and 10 mL (99101010110), and Cyclosporine 0.05% 5 mL (99101020205). These are 5 levels up via an emulsifier premix (CMP-310) that also has only one supplier, S-201.\n  - 11 lens-care solutions (FG-3001 to FG-3011), 7 levels up. These aren't in the commercial database.\n- **The three eye-drop products had 13,986 prescriptions over the last 13 weeks** (weeks 2026-07-03 to 2026-09-25).\n  - The top 10 customers took 80.5% of that. The largest were Oak Hollow HS (1,731), Riverbend HS (1,609) and Northfield HS (1,532).\n  - The top payers were Northstar (1,635), Bluecrest (1,630) and Silverline (1,427).\n- **It takes 50 days to recover** from RM-221 arriving to Lacrivia 5 mL (FG-1001) reaching the distribution center.\n- **Lacrivia would have no approved substitute,** because Cyclosporine, the usual substitute, depends on the same material.\n\n**What I checked today**\n- **Next ship date:** PO005791 is unchanged (details above).\n- **Exposure:** Re-tracing the bill of materials from RM-221 gives the same 14 finished goods, the same single-source status and the same S-131 gap.\n- **Other open orders from S-104:**\n  - PO000430: 2,600 units of RM-222, due to ship 2026-10-26.\n  - PO000369: 3,300 units of RM-221, due to ship 2026-10-29.\n  - Both show an order date of 2026-10-02, which is after the data's as-of date of 2026-09-30. That looks like a data-entry or planned-order issue and is worth checking with purchasing. RM-221 has no shipment from S-104 between 2026-10-07 and 2026-10-29, so a slip on PO005791 can't be made up by a later order within the month.\n\n**Sources and assumptions**\n- The earlier conclusions come from the two saved past analyses; the logged answers only name the top 3 customers and payers used here.\n- I re-ran last time's purchase-order query on the supply warehouse (dbo.PURCH_ORD), filtered to S-104. The data-use check allowed it for the Supply Planner role.\n- The bill-of-materials trace ignores retired links (e.g., RM-221 into CMP-320, which ended 2025-06-30).\n- \"Next ship date\" means the earliest promised ship date on an open order with no actual ship date.\n- I didn't re-query prescription volumes. Only one day has passed and the data is still as of 2026-09-30, so last time's numbers stand.\n- This check is logged as trace 43a47f99.",
+  "stop_reason": "end_turn",
+  "model_turns": 6,
+  "tool_calls": [
+    "similar_past_decisions",
+    "check_policy",
+    "describe_table",
+    "run_sql",
+    "trace_supply_exposure",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND (ACTUAL_SHIP_DT IS NULL OR STATUS <> 'CLOSED' OR PROMISED_SHIP_DT >= '2026-09-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 1.65
+    }
+  ],
+  "usage": {
+    "input": 14,
+    "output": 3009,
+    "cache_read": 53672,
+    "cache_write": 15367
+  },
+  "cost_usd": 0.1478,
+  "latency_s": 47.1,
+  "cypher_queries": 15
+}

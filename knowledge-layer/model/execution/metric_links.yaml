@@ -1,0 +1,25 @@
+# What OSI metrics can't express: which columns they're computed from, which concept they measure, who
+# ratified them, and their status. Metric names match kl/osi/semantic_model.yaml.
+metrics:
+  trx_share_by_market: {measures: TherapeuticMarket, ratified_by: Commercial Analytics, status: ratified,
+    computed_from: [PHARMA_DEMO.RAW_3P.RXT_WKLY.TRX_QTY, PHARMA_DEMO.CORE.PRODUCT.BRAND_NM, PHARMA_DEMO.BIZ.MKT_DEF_DRIVER.MKT_DEF]}
+  paid_rate: {measures: Claim, ratified_by: Market Access, status: ratified,
+    computed_from: [PHARMA_DEMO.RAW_3P.CLMLNS_ADJ.ADJ_STAT]}
+  paid_rate_rep_v1: {measures: Claim, ratified_by: Field Operations, status: unratified, variant_of: paid_rate,
+    computed_from: [PHARMA_DEMO.RAW_3P.CLMLNS_ADJ.ADJ_STAT]}
+  rejection_rate: {measures: ClaimRejection, ratified_by: Market Access, status: ratified,
+    computed_from: [PHARMA_DEMO.RAW_3P.CLMLNS_ADJ.ADJ_STAT]}
+  rejection_rate_by_group: {measures: ClaimRejection, ratified_by: Market Access, status: ratified,
+    computed_from: [PHARMA_DEMO.RAW_3P.CLMLNS_ADJ.ADJ_STAT, PHARMA_DEMO.RAW_3P.CLMLNS_ADJ.REJ_RSN_CD, PHARMA_DEMO.REF.REJ_CODE.REJ_GRP]}
+  abandonment_after_rejection: {measures: ClaimRejection, ratified_by: Market Access, status: ratified,
+    computed_from: [PHARMA_DEMO.RAW_3P.CLMLNS_ADJ.ADJ_STAT, PHARMA_DEMO.RAW_3P.CLMLNS_ADJ.ABNDN_FLG]}
+  ic_attainment: {measures: IncentiveGoal, ratified_by: Finance, status: ratified,
+    computed_from: [PHARMA_DEMO.RAW_3P.RXT_WKLY.TRX_QTY, PHARMA_DEMO.CORE.IC_GOAL.TRX_GOAL, PHARMA_DEMO.CORE.PRESCRIBER.TERR_ID]}
+  call_plan_adherence: {measures: CallPlan, ratified_by: Field Operations, status: ratified,
+    computed_from: [PHARMA_DEMO.CORE.CALL_ACT.CALL_ID, PHARMA_DEMO.CORE.CALL_PLAN.PLAN_CALLS]}
+  late_ship_rate: {measures: PurchaseOrder, ratified_by: Supply Planning, status: ratified,
+    computed_from: [SUPPLY_DEMO.dbo.PURCH_ORD.ACTUAL_SHIP_DT, SUPPLY_DEMO.dbo.PURCH_ORD.PROMISED_SHIP_DT, SUPPLY_DEMO.dbo.PURCH_ORD.STATUS]}
+  days_of_supply: {measures: InventorySnapshot, ratified_by: Supply Planning, status: ratified,
+    computed_from: [SUPPLY_DEMO.dbo.DC_INV.ON_HAND_UNITS, SUPPLY_DEMO.dbo.WHSLR_SHIP.UNITS]}
+  qualified_supplier_count: {measures: Supplier, ratified_by: Supply Planning, status: ratified,
+    computed_from: [SUPPLY_DEMO.dbo.SUPPLIER_MATERIAL.QUALIFIED_FLG]}

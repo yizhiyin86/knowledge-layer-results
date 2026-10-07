@@ -1,0 +1,84 @@
+{
+  "run_id": "eval_20261002T0046_r2",
+  "agent": "B",
+  "qid": "Q6",
+  "question": "Which customers are exposed if supplier S-104 misses its next ship date? Show the affected products and the top 10 accounts and payers by volume on them.",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "S-104's next ship date is **PO005791, 4,200 units of RM-221 (Polysorbate 80 NF, low-peroxide), promised for 2026-10-07**. If that shipment slips, the customers exposed are the ones buying the **cyclosporine eye-emulsion line: Lacrivia 5 mL and 10 mL, and the cyclosporine 0.05% generic**. That's 13,986 prescriptions (TRx) in the last 13 weeks. Eight health systems account for about 77% of that volume.\n\nThe risk is real for three reasons:\n- **No backup supplier.** S-104 is the only qualified supplier for RM-221. The listed alternate, S-131, is not qualified.\n- **Second single-source step.** RM-221 then goes into an emulsifier premix (CMP-310) that only S-201 makes.\n- **Poor on-time record.** 32.3% of S-104's closed purchase orders shipped late.\n\n**Recovery time:** once RM-221 finally arrives, it takes about **50 days** to get Lacrivia 5 mL to the distribution centre. That covers 6 days transit, 10 days for the premix, 12 days across two bulk-emulsion steps, 3 days filling, and 19 days for final QC release (including a 14-day sterility test) plus 4 days transit to the DC. Every day of supplier delay pushes availability back by the same amount.\n\n**Affected products**\n| Product | NDC | Through | TRx, last 13 weeks |\n|---|---|---|---|\n| Lacrivia 0.1% 5 mL | 99101-0101-05 | RM-221 (single source) | 7,017 |\n| Lacrivia 0.1% 10 mL | 99101-0101-10 | RM-221 | 3,425 |\n| Cyclosporine 0.05% 5 mL | 99101-0202-05 | RM-221 | 3,544 |\n| Lens-care solutions 1\u201311 | 99101-4001\u20264011 | RM-221 | Not in the commercial database |\n| *Oculon 2.5 mL / 5 mL* | *99101-0303-25 / -50* | *RM-222* | *2,568 / 986* |\n\nThe Oculon rows are a lower risk: RM-222's next order is due later (2026-10-26) and has a qualified backup supplier (S-130). I left Oculon out of the rankings below.\n\nThe approved substitute for Lacrivia is the cyclosporine 0.05% generic, but it depends on the same failing supply chain. **There is no usable substitute.**\n\n**Top 10 customers (rolled up to health system), TRx on the three cyclosporine products, last 13 weeks**\n| # | Customer | State | TRx | Share | Contract tier |\n|---|---|---|---|---|---|\n| 1 | Oak Hollow Health System | NY | 1,731 | 12.4% | A |\n| 2 | Riverbend Health System | CA | 1,609 | 11.5% | A |\n| 3 | Northfield Health System | NJ | 1,532 | 11.0% | A |\n| 4 | Sunridge Health System | OH | 1,511 | 10.8% | B |\n| 5 | Brightwater Health System | FL | 1,418 | 10.1% | \u2013 |\n| 6 | Stonegate Health System | MN | 1,200 | 8.6% | \u2013 |\n| 7 | Clearview Health System | OH | 1,068 | 7.6% | B (expires 2026-12-31) |\n| 8 | Willow Creek Health System | MN | 701 | 5.0% | \u2013 |\n| 9 | Sunridge Vision Associates 20 (independent clinic) | PA | 248 | 1.8% | \u2013 |\n| 10 | Glenmoor Vision Associates 12 (independent clinic) | CA | 246 | 1.8% | \u2013 |\n\nIf stock runs short, the shortage allocation rule ships to Tier A first (#1\u20133), then Tier B (#4 and #7), then everyone else in proportion to their last-13-week TRx.\n\n**Top 10 payers, same products and period**\n| # | Payer | TRx | Share |\n|---|---|---|---|\n| 1 | Northstar Health | 1,635 | 11.7% |\n| 2 | Bluecrest Mutual | 1,630 | 11.7% |\n| 3 | Silverline Health | 1,427 | 10.2% |\n| 4 | Harborview Health | 1,274 | 9.1% |\n| 5 | Redwood Benefit Trust | 1,030 | 7.4% |\n| 6 | Pinnacle Benefit Group | 926 | 6.6% |\n| 7 | Lakeshore Health | 915 | 6.5% |\n| 8 | Keystone Medical Plan | 802 | 5.7% |\n| 9 | Meadowbrook Care | 775 | 5.5% |\n| 10 | Cash / Discount Card | 771 | 5.5% |\n\n**Sources and definitions**\n- **Next ship date:** the earliest promised ship date on S-104's open orders (supply purchase-order table).\n- **Late-ship rate:** the ratified metric (closed orders shipped late \u00f7 all closed orders).\n- **Single source:** the ratified qualified-supplier count (= 1).\n- **Products exposed:** traced through the current bill of materials only, using the supply-exposure trace. Superseded BOM links and the deprecated BOM_FLAT_LEGACY table were not used.\n- **Recovery time:** standard manufacturing times from get_lead_times, following the recovery lead-time rule (BR-LEAD-01).\n- **Customer and payer volume:** follows the approved product-to-customers-and-payers path. Prescriptions come from the weekly 3rd-party TRx table (RXT_WKLY), linked through each prescriber's account, with payers from the plan-to-payer lookup (PAYER_SPINE). The last 13 weeks run from 2026-07-03 to 2026-09-25.\n- **\"Customer\":** the top-level account under rule BR-CUST-01. Clinics are rolled up to their health system; independent clinics count on their own.\n- **Contract tiers and allocation:** tiers come from the governed supply_contracts reference list; allocation order is BR-ALLOC-01; the substitute check is BR-SUB-01.\n- **Policy:** no restrictions apply to these tables for the supply-planner role. The incentive-compensation goals table was not used.\n\n**Assumptions**\n- \"Misses its next ship date\" means the 2026-10-07 RM-221 order slips. The other two open orders (RM-221 on 10-29, RM-222 on 10-26) would make the exposure worse.\n- The 50-day recovery time is for Lacrivia 5 mL. The other cyclosporine packs take a similar route.\n- Lens-care products have no prescription data, so there is no customer view for them here.",
+  "stop_reason": "end_turn",
+  "model_turns": 7,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "trace_supply_exposure",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_lead_times",
+    "get_reference"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT p.PO_ID, p.MATERIAL_ID, m.MATERIAL_NM, m.MATERIAL_TYP, p.ORDER_DT, p.PROMISED_SHIP_DT, p.QTY, p.STATUS, s.SUPPLIER_NM, s.TIER\nFROM dbo.PURCH_ORD p JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=p.SUPPLIER_ID LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=p.MATERIAL_ID\nWHERE p.SUPPLIER_ID='S-104' AND p.STATUS='OPEN' ORDER BY p.PROMISED_SHIP_DT",
+      "ok": false,
+      "rows": null,
+      "error": "('42S22', \"[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'MATERIAL_NM'. (207) (SQLExecDirectW)\")",
+      "elapsed_s": 3.9
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.MATERIAL_ID, sm.QUALIFIED_FLG, sm.PRIMARY_FLG, (SELECT SUM(CASE WHEN x.QUALIFIED_FLG='Y' THEN 1 ELSE 0 END) FROM dbo.SUPPLIER_MATERIAL x WHERE x.MATERIAL_ID=sm.MATERIAL_ID) AS qualified_supplier_count,\n(SELECT AVG(CASE WHEN p.ACTUAL_SHIP_DT>p.PROMISED_SHIP_DT THEN 1.0 ELSE 0 END) FROM dbo.PURCH_ORD p WHERE p.SUPPLIER_ID='S-104' AND p.STATUS='CLOSED') AS late_ship_rate\nFROM dbo.SUPPLIER_MATERIAL sm WHERE sm.SUPPLIER_ID='S-104'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.94
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT p.PO_ID, p.MATERIAL_ID, p.ORDER_DT, p.PROMISED_SHIP_DT, p.QTY, p.STATUS, s.SUPPLIER_NM, s.TIER\nFROM dbo.PURCH_ORD p JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=p.SUPPLIER_ID\nWHERE p.SUPPLIER_ID='S-104' AND p.STATUS='OPEN' ORDER BY p.PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.45
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT PROD_NDC11, SUM(TRX_QTY) trx, MIN(r.WK_END_DT) first_wk, MAX(r.WK_END_DT) last_wk\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk USING (WK_END_DT)\nWHERE PROD_NDC11 IN ('99101010105','99101010110','99101020205','99101030325','99101030350')\nGROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.7
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nrx AS (SELECT r.PRSCRBR_ME, r.TRX_QTY FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk USING (WK_END_DT)\n WHERE PROD_NDC11 IN ('99101010105','99101010110','99101020205')),\nacct AS (SELECT a.ACCOUNT_ID, COALESCE(gp.ACCOUNT_ID, p.ACCOUNT_ID, a.ACCOUNT_ID) top_id\n FROM PHARMA_DEMO.CORE.ACCOUNT a LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT p ON p.ACCOUNT_ID=a.PARENT_ACCOUNT_ID\n LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT gp ON gp.ACCOUNT_ID=p.PARENT_ACCOUNT_ID),\ntot AS (SELECT SUM(TRX_QTY) t FROM rx)\nSELECT t.ACCOUNT_ID, t.ACCOUNT_NM, t.ACCT_TYP, t.STATE, SUM(rx.TRX_QTY) trx, ROUND(100*SUM(rx.TRX_QTY)/MAX(tot.t),1) pct, COUNT(DISTINCT rx.PRSCRBR_ME) prescribers\nFROM rx JOIN PHARMA_DEMO.CORE.PRESCRIBER pr ON pr.PRSCRBR_ME=rx.PRSCRBR_ME\nJOIN acct ON acct.ACCOUNT_ID=pr.ACCOUNT_ID JOIN PHARMA_DEMO.CORE.ACCOUNT t ON t.ACCOUNT_ID=acct.top_id CROSS JOIN tot\nGROUP BY 1,2,3,4 ORDER BY trx DESC LIMIT 10",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 2.06
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nrx AS (SELECT r.PLAN_ID, r.TRX_QTY FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk USING (WK_END_DT)\n WHERE PROD_NDC11 IN ('99101010105','99101010110','99101020205')),\ntot AS (SELECT SUM(TRX_QTY) t FROM rx)\nSELECT COALESCE(ps.PAYER_NM,'(unmapped plan)') payer, SUM(rx.TRX_QTY) trx, ROUND(100*SUM(rx.TRX_QTY)/MAX(tot.t),1) pct, COUNT(DISTINCT rx.PLAN_ID) plans\nFROM rx LEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE ps ON ps.PLAN_ID=rx.PLAN_ID CROSS JOIN tot\nGROUP BY 1 ORDER BY trx DESC LIMIT 10",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 5.36
+    }
+  ],
+  "cypher_queries": 14,
+  "usage": {
+    "input": 16,
+    "output": 6141,
+    "cache_read": 79443,
+    "cache_write": 10885
+  },
+  "cost_usd": 0.1932,
+  "latency_s": 101.2
+}

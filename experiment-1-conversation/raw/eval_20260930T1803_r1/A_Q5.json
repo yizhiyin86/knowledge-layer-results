@@ -1,0 +1,118 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "A",
+  "qid": "Q5",
+  "question": "When Lacrivia claims are rejected, which products are patients switched to?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "When a Lacrivia claim is rejected and the patient switches, the switch goes to TEARSOL about half the time. Generic cyclosporine is second. Only about a third of rejections end in a recorded switch, though.\n\n**Rejected Lacrivia claims, Sep 27, 2025 to Sep 25, 2026: 9,199 in total**\n\n| Where the patient went | Claims | % of switches | % of all rejections |\n|---|---|---|---|\n| **TEARSOL** (lifitegrast, a competitor) | 1,630 | 49.6% | 17.7% |\n| **Generic cyclosporine 0.05%** | 820 | 24.9% | 8.9% |\n| **CYCLOMIST** (cyclosporine 0.09%, a competitor) | 497 | 15.1% | 5.4% |\n| **HYDROVA** (perfluorohexyloctane, a competitor) | 340 | 10.3% | 3.7% |\n| **Total switched** | **3,287** | 100% | **35.7%** |\n| Abandoned, no substitute | 2,231 | \u2013 | 24.3% |\n| No substitute and not abandoned (outcome not recorded) | 3,681 | \u2013 | 40.0% |\n\n**What stands out**\n- **None of the switches go to our own Cyclosporine OS.** Every switch goes to a competitor or to generic cyclosporine.\n- **The pattern holds across reject reasons.** Prior-authorisation rejects are the biggest group (5,376 claims, 58% of rejections), and switches there split the same way: TEARSOL 952, generic 462, CYCLOMIST 287, HYDROVA 191. Rejects for \"not covered\", plan limits, refill/DUR and distribution limits all rank TEARSOL first and generic second too. No step-therapy rejects appear for Lacrivia.\n- **It's stable over time.** Each full quarter since Q4 2025 has had about 2,160\u20132,350 rejections, 35\u201337% of them switching, and TEARSOL taking 48\u201352% of the switches. CYCLOMIST rose a little in Q3 2026: 147 switches against about 100\u2013124 in earlier quarters.\n\n**Sources and definitions**\n- Claims come from `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ`, one row per claim (I checked there are no duplicate claim IDs). A rejected claim is `ADJ_STAT = 'R'` on either Lacrivia pack (NDCs 99101010105 and 99101010110). The product switched to is `SUBST_NDC11`.\n- Product names come from `CORE.PRODUCT`. Reject reasons are grouped with `REF.REJ_CODE`. Abandonment is `ABNDN_FLG = 'Y'`.\n- The period is all the data available. Weeks and percentages count claims, not unique patients.\n\n**Assumptions and limitations**\n- I read `SUBST_NDC11` as the product dispensed in place of Lacrivia after the rejection. The field has no documentation, so this couldn't be confirmed. If it actually holds the payer's preferred alternative rather than what was dispensed, these figures describe steering, not confirmed switches.\n- The claims file has no patient ID, so I couldn't follow patients across claims. The 40% of rejections with no substitute and no abandonment flag may include claims that were resubmitted and paid, or that were never followed up.\n- I found no data-use restrictions on these tables for a Market Access user. The figures are aggregated claim counts with no patient-level details.",
+  "stop_reason": "end_turn",
+  "model_turns": 9,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.CORE.PRODUCT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.29
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.REF.REJ_CODE",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.35
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select c.prod_ndc11, c.adj_stat, (c.subst_ndc11 is not null) has_sub, count(*) n, min(clm_dt), max(clm_dt) from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c group by 1,2,3 order by 1,2,3",
+      "ok": true,
+      "rows": 48,
+      "error": null,
+      "elapsed_s": 1.31
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select c.subst_ndc11, p.brand_nm, count(*) n, count(distinct clm_id) nd from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c left join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.subst_ndc11 where c.prod_ndc11 in ('99101010105','99101010110') and adj_stat='R' group by 1,2 order by 3 desc",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 3.65
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*), count(distinct clm_id), count(distinct clm_id||adj_stat) from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 2.61
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.BIZ.MKT_DEF_DRIVER",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 2.6
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select table_schema, table_name, column_name, comment from PHARMA_DEMO.INFORMATION_SCHEMA.COLUMNS where table_schema in ('RAW_3P','REF','BIZ') and comment is not null",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 2.62
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select coalesce(r.rej_grp,'UNMAPPED:'||coalesce(c.rej_rsn_cd,'NULL')) grp, coalesce(p.brand_nm,'NO SUBSTITUTE RECORDED') sub, count(*) n\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c left join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.subst_ndc11\nleft join PHARMA_DEMO.REF.REJ_CODE r on r.rej_rsn_cd=c.rej_rsn_cd\nwhere c.prod_ndc11 in ('99101010105','99101010110') and adj_stat='R' group by 1,2 order by 1,3 desc",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 1.43
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select date_trunc('quarter',clm_dt) q, count(*) rej, count(subst_ndc11) w_sub,\nsum(iff(subst_ndc11='99201011005',1,0)) tearsol, sum(iff(subst_ndc11='99301014005',1,0)) generic, sum(iff(subst_ndc11='99202012005',1,0)) cyclomist, sum(iff(subst_ndc11='99203013005',1,0)) hydrova\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ where prod_ndc11 in ('99101010105','99101010110') and adj_stat='R' group by 1 order by 1",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 4.04
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select (subst_ndc11 is not null) has_sub, abndn_flg, count(*) from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ where prod_ndc11 in ('99101010105','99101010110') and adj_stat='R' group by 1,2 order by 1,2",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 17.09
+    }
+  ],
+  "usage": {
+    "input": 20,
+    "output": 4469,
+    "cache_read": 73524,
+    "cache_write": 14883
+  },
+  "cost_usd": 0.1786,
+  "latency_s": 116.9
+}

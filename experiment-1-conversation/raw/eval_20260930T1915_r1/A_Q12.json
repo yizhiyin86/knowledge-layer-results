@@ -1,0 +1,175 @@
+{
+  "run_id": "eval_20260930T1915_r1",
+  "agent": "A",
+  "qid": "Q12",
+  "question": "If S-104's next RM-221 shipment ships two weeks late, when will DC-EAST run out of Lacrivia, when will supply recover there, and which customers get supply first under our allocation rules?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "I can give you the stockout date, but not a firm recovery date or a customer priority order. The data has no lead times and no allocation rules.\n\n**When DC-EAST runs out of Lacrivia:** it's already out, or will be within days, regardless of the delay. The stockout comes before the PO's original ship date, so the two-week slip doesn't move it.\n\n| SKU | On hand (2026-09-25) | Safety stock | Avg weekly demand (last 13 wks) | Weekly inbound since mid-Aug | Estimated stockout |\n|---|---|---|---|---|---|\n| FG-1001 Lacrivia 5 mL | 46 | 471 | 244 | ~106\u2013141 | ~Sep 26\u201327 |\n| FG-1002 Lacrivia 10 mL | 34 | 233 | 116 | ~56\u201368 | ~Sep 27\u201329 |\n\n- Inbound to DC-EAST has run at roughly half of demand since the week of Aug 21.\n- In the week to Sep 11, about 259 + 123 more units left DC-EAST stock than shipped to customers. It looks like a write-off or quality hold; it's worth confirming.\n\n**When supply recovers:**\n- **The delayed shipment:** the next RM-221 shipment from S-104 (Delmar Specialty Chemicals, India) is PO005791, 4,200 units. It was due to ship Oct 7; two weeks late means **Oct 21**.\n- **Why it matters:** S-104 is the only qualified supplier of RM-221. The other supplier on file, S-131, isn't qualified, so there's no backup. The current BOM (bill of materials) makes RM-221 a direct input to every Lacrivia unit: RM-221 \u2192 emulsifier premix CMP-310 \u2192 bulk SEMI-031 \u2192 bulk SEMI-044 \u2192 filled bottles \u2192 FG-1001/FG-1002, all made at plant PL-01. RM-221 was also in CMP-320, but that link ended 2025-06-30, so I left it out.\n- **Recovery date:** Oct 21 plus the time for shipping from India, manufacturing at PL-01, quality release and delivery to DC-EAST. None of these lead times are in the data. Recovery is therefore at least two weeks later than the no-delay plan, and DC-EAST stays out of stock until then. Give me the lead time and I can turn this into a date.\n- **Stopgap:** DC-CENTRAL and DC-WEST hold about 695 units of FG-1001 and 391 of FG-1002 above their safety stock. That's roughly 3 weeks of DC-EAST demand if transferred.\n\n**Which customers get supply first:** I can't say. I found no allocation rules anywhere in the supply or commercial data, and I didn't make up a ranking. DC-EAST serves two wholesalers:\n- W-01 Keystone Drug Distributors: 52% of DC-EAST Lacrivia volume over the last 12 months.\n- W-02 Atlas Pharma Supply: 48%.\n\nIf the allocation policy lives in a separate document or system, send it and I'll apply it. A pro-rata split on these historical shares is a neutral default, but it would need approval as policy.\n\n**Sources and definitions:**\n- **Supply data (Fabric):**\n  - PURCH_ORD: next open RM-221 order = earliest open PO.\n  - SUPPLIER_MATERIAL: qualified sources.\n  - BOM: current links only.\n  - PLANT_MATERIAL: where Lacrivia is made.\n  - DC_INV: latest snapshot 2026-09-25.\n  - WHSLR_SHIP and WHSLR: DC-EAST shipments to wholesalers.\n  - MATERIAL: Lacrivia = FG-1001/FG-1002.\n- **Commercial data (Snowflake):** checked for allocation rules; none found.\n- **Definitions:**\n  - Demand = DC-EAST shipments to wholesalers, weeks of Jun 29 \u2013 Sep 21.\n  - Weekly inbound = change in on-hand + shipments out.\n- **Assumptions:**\n  - Stockout dates assume current demand and the recent inbound rate. With no inbound at all, both SKUs run out a day or two sooner.\n  - \"Late\" applies to the ship date only.",
+  "stop_reason": "end_turn",
+  "model_turns": 13,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ FROM dbo.MATERIAL m WHERE m.MATERIAL_DESC LIKE '%Lacrivia%' OR m.MATERIAL_ID IN ('RM-221') OR m.MATERIAL_ID IN (SELECT PARENT_MATERIAL_ID FROM dbo.BOM WHERE CHILD_MATERIAL_ID='RM-221') OR m.MATERIAL_ID IN (SELECT CHILD_MATERIAL_ID FROM dbo.BOM WHERE PARENT_MATERIAL_ID IN ('FG-1001','FG-1002'))",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.45
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.SUPPLIER_MATERIAL WHERE MATERIAL_ID='RM-221' OR SUPPLIER_ID='S-104'",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.SUPPLIER WHERE SUPPLIER_ID='S-104'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.35
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH x AS (\n SELECT PARENT_MATERIAL_ID, CHILD_MATERIAL_ID, QTY_PER, EFF_FROM, EFF_TO, 1 AS lvl FROM dbo.BOM WHERE CHILD_MATERIAL_ID='RM-221'\n UNION ALL\n SELECT b.PARENT_MATERIAL_ID, b.CHILD_MATERIAL_ID, b.QTY_PER, b.EFF_FROM, b.EFF_TO, x.lvl+1 FROM dbo.BOM b JOIN x ON b.CHILD_MATERIAL_ID = x.PARENT_MATERIAL_ID WHERE x.lvl<6\n) SELECT * FROM x",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 1.2
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.BOM WHERE PARENT_MATERIAL_ID IN ('FG-1001','FG-1002','FILL-1001','FILL-1002','CMP-310','CMP-320') ORDER BY PARENT_MATERIAL_ID",
+      "ok": true,
+      "rows": 17,
+      "error": null,
+      "elapsed_s": 0.48
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b.*, m.MATERIAL_DESC FROM dbo.BOM b LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=b.PARENT_MATERIAL_ID WHERE b.CHILD_MATERIAL_ID IN ('RM-221','CMP-310','CMP-320','SEMI-044') OR b.PARENT_MATERIAL_ID='SEMI-044' ORDER BY b.CHILD_MATERIAL_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.52
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD WHERE MATERIAL_ID='RM-221' ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 50,
+      "error": null,
+      "elapsed_s": 1.58
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT TOP 20 * FROM dbo.PURCH_ORD_ARCHIVE WHERE MATERIAL_ID='RM-221' ORDER BY PROMISED_SHIP_DT DESC",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 2.67
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT >= '2026-06-01' ORDER BY MATERIAL_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 34,
+      "error": null,
+      "elapsed_s": 1.22
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.MATERIAL_ID, s.WHSLR_ID, w.WHSLR_NM, w.REGION, COUNT(*) n, SUM(s.UNITS) units, MIN(s.SHIP_DT) mn, MAX(s.SHIP_DT) mx FROM dbo.WHSLR_SHIP s LEFT JOIN dbo.WHSLR w ON w.WHSLR_ID=s.WHSLR_ID WHERE s.DC_ID='DC-EAST' AND s.MATERIAL_ID IN ('FG-1001','FG-1002') GROUP BY s.MATERIAL_ID, s.WHSLR_ID, w.WHSLR_NM, w.REGION ORDER BY 1,2",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.MATERIAL_ID, DATEADD(day, -((DATEPART(weekday, s.SHIP_DT)+5)%7), s.SHIP_DT) wk_mon, SUM(CASE WHEN WHSLR_ID='W-01' THEN UNITS ELSE 0 END) w01, SUM(CASE WHEN WHSLR_ID='W-02' THEN UNITS ELSE 0 END) w02, SUM(UNITS) tot FROM dbo.WHSLR_SHIP s WHERE s.DC_ID='DC-EAST' AND s.MATERIAL_ID IN ('FG-1001','FG-1002') AND s.SHIP_DT>='2026-06-01' GROUP BY s.MATERIAL_ID, DATEADD(day, -((DATEPART(weekday, s.SHIP_DT)+5)%7), s.SHIP_DT) ORDER BY 1,2",
+      "ok": true,
+      "rows": 34,
+      "error": null,
+      "elapsed_s": 1.46
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH inv AS (\n SELECT MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, LAG(SNAPSHOT_DT) OVER (PARTITION BY MATERIAL_ID ORDER BY SNAPSHOT_DT) prev_dt, LAG(ON_HAND_UNITS) OVER (PARTITION BY MATERIAL_ID ORDER BY SNAPSHOT_DT) prev_oh\n FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT>='2026-05-01')\nSELECT i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, (SELECT SUM(UNITS) FROM dbo.WHSLR_SHIP s WHERE s.DC_ID='DC-EAST' AND s.MATERIAL_ID=i.MATERIAL_ID AND s.SHIP_DT>i.prev_dt AND s.SHIP_DT<=i.SNAPSHOT_DT) shipped,\n i.ON_HAND_UNITS - i.prev_oh + (SELECT SUM(UNITS) FROM dbo.WHSLR_SHIP s WHERE s.DC_ID='DC-EAST' AND s.MATERIAL_ID=i.MATERIAL_ID AND s.SHIP_DT>i.prev_dt AND s.SHIP_DT<=i.SNAPSHOT_DT) implied_receipts\nFROM inv i WHERE prev_dt IS NOT NULL ORDER BY 1,2",
+      "ok": true,
+      "rows": 42,
+      "error": null,
+      "elapsed_s": 4.33
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, MAX(SNAPSHOT_DT) last_dt, COUNT(*) n FROM dbo.DC_INV GROUP BY DC_ID, MATERIAL_ID ORDER BY 1,2",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PLANT_MATERIAL WHERE MATERIAL_ID IN ('FG-1001','FG-1002','FILL-1001','FILL-1002','SEMI-044','SEMI-031','CMP-310','RM-221')",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 0.4
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS, (SELECT SUM(UNITS)/13.0 FROM dbo.WHSLR_SHIP s WHERE s.DC_ID=i.DC_ID AND s.MATERIAL_ID=i.MATERIAL_ID AND s.SHIP_DT>'2026-06-26' AND s.SHIP_DT<='2026-09-25') avg_wk_ship FROM dbo.DC_INV i WHERE i.SNAPSHOT_DT='2026-09-25' AND i.MATERIAL_ID IN ('FG-1001','FG-1002') ORDER BY 2,1",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.48
+    }
+  ],
+  "usage": {
+    "input": 28,
+    "output": 10262,
+    "cache_read": 179250,
+    "cache_write": 29906
+  },
+  "cost_usd": 0.3907,
+  "latency_s": 171.0
+}

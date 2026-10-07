@@ -1,0 +1,145 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "A",
+  "qid": "Q9",
+  "question": "Which sources feed \"paid rate\", and is it defined the same way in the Payer Report and the Rep Report?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "**Short answer:** Only one table can feed \"paid rate\": the claims table `RAW_3P.CLMLNS_ADJ` in Snowflake. I can't tell you whether the Payer Report and the Rep Report define it the same way. Neither report's logic, nor any written definition of \"paid rate\", is stored in Snowflake or Fabric. The data does show two things, though. The same claims give anywhere from **85.1% to 90.0%** depending on the rules used. And a rep-level paid rate can't be built straight from claims, so the Rep Report must be using a different method. You should assume the two numbers aren't comparable until the report owners confirm their logic.\n\n**What feeds paid rate**\n| Role | Table | Notes |\n|---|---|---|\n| Paid and rejected status | `RAW_3P.CLMLNS_ADJ` | 287,395 claim lines, one per claim ID, dated 27 Sep 2025 \u2013 30 Sep 2026. Status codes: P = paid (244,448), R = rejected (36,258), V = reversed (6,689). Also carries reject reason, secondary-payer, abandoned, substitution and patient-type flags. |\n| Reject reasons | `REF.REJ_CODE` | 16 codes in 7 groups (not covered, prior authorisation, step therapy, refill/DUR, plan limits, distribution limits, other). Every reject code in the claims matches this table. |\n| Payer and channel rollup | `CORE.PAYER_SPINE` + `REF.CHNL` | Plan \u2192 payer \u2192 PBM \u2192 channel. All claim plans match. |\n| Backup copy | `RAW_3P.CLMLNS_ADJ_BKP_2025` | 77,757 lines. It is an exact copy of the Q4-2025 claims (same IDs, same statuses), so no restatement. Using it alongside the main table would double-count. |\n| Not a source | Fabric `SUPPLY_DEMO` | Supply chain only. No claim, plan or payer columns. |\n\n**Why the definitions are likely to differ**\n1. **Rules change the answer by about 5 points** (full year of claims):\n   - Paid \u00f7 all lines, including reversals: **85.06%**\n   - Paid \u00f7 (paid + rejected), reversals left out: **87.08%**\n   - Same, primary payer only: **87.08%**\n   - Same, cash/discount channel also left out: **86.44%**. Cash claims are always 100% paid, which inflates a blended rate.\n   - Primary payer only, refill-too-soon and DUR rejects left out: **88.22%**\n   - Primary payer only, abandoned claims left out: **89.95%**\n2. **Level of detail:** claims have a plan but no prescriber. The Payer Report can roll claims up by plan, payer, PBM and channel directly. The Rep Report can't tie claims to prescribers, territories or reps. It must either estimate a rep's rate from their plan mix in the weekly prescription data (`RAW_3P.RXT_WKLY`, which has prescriber and plan but no paid/rejected status) or use some other source. Either way, a rep's \"paid rate\" is an estimate, not a count of adjudicated claims.\n3. **Channel mix:** by channel (paid \u00f7 (paid + rejected)), Commercial is 86.4%, Part D 86.0%, Exchange 84.0%, Medicaid fee-for-service 89.5%, Managed Medicaid 88.3% and Cash 100%. A report that includes or weights channels differently will show a different number.\n\n**Suggested next step:** ask both report owners for their numerator, denominator and exclusions (reversals, secondary payer, cash, soft rejects, abandoned claims), plus how the Rep Report assigns claims to reps. I can then rebuild each version from the claims table and reconcile them.\n\n**Sources, definitions and assumptions**\n- Snowflake `PHARMA_DEMO`: `RAW_3P.CLMLNS_ADJ`, `RAW_3P.CLMLNS_ADJ_BKP_2025`, `REF.REJ_CODE`, `REF.CHNL`, `CORE.PAYER_SPINE`, `RAW_3P.RXT_WKLY` and `RAW_3P.PATHPT_LVL`. I also checked the Snowflake catalogue and column comments. Nothing mentions \"paid\", a paid rate or either report.\n- Fabric `SUPPLY_DEMO`: searched the columns; nothing relevant.\n- The code meanings (P = paid, R = rejected, V = reversed; flags Y/N) are my reading of the data, not documented. For example, rejected lines always carry a reject code, and paid and reversed lines never do.\n- The rates cover the full claims history (about 12 months), not the last 13 weeks, and all products. I didn't restrict them to a market definition.\n- The sandbox tables, such as `KPI_BKP_0412`, have no documentation, so I didn't use them.",
+  "stop_reason": "end_turn",
+  "model_turns": 13,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT table_schema, table_name, table_type, comment FROM PHARMA_DEMO.INFORMATION_SCHEMA.TABLES WHERE table_schema <> 'INFORMATION_SCHEMA' ORDER BY 1,2",
+      "ok": true,
+      "rows": 40,
+      "error": null,
+      "elapsed_s": 2.23
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT table_schema, table_name, column_name, comment FROM PHARMA_DEMO.INFORMATION_SCHEMA.COLUMNS WHERE table_schema <> 'INFORMATION_SCHEMA' AND (column_name ILIKE '%PAID%' OR column_name ILIKE '%PD%' OR comment ILIKE '%paid%' OR column_name ILIKE '%RATE%' OR column_name ILIKE '%ADJ%' OR comment ILIKE '%report%')",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.99
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT ADJ_STAT, SEC_PYR_FLG, ABNDN_FLG, PAT_TYP, (REJ_RSN_CD IS NULL) AS rej_null, (SUBST_NDC11 IS NULL) AS subst_null, COUNT(*) n, MIN(CLM_DT), MAX(CLM_DT) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ GROUP BY 1,2,3,4,5,6 ORDER BY n DESC",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 3.42
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) n, COUNT(DISTINCT CLM_ID) d, MIN(CLM_DT), MAX(CLM_DT), 'CUR' src FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ UNION ALL SELECT COUNT(*), COUNT(DISTINCT CLM_ID), MIN(CLM_DT), MAX(CLM_DT), 'BKP' FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ_BKP_2025",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.63
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.REF.REJ_CODE ORDER BY REJ_GRP, REJ_RSN_CD",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 3.34
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_NAME LIKE '%PAID%' OR COLUMN_NAME LIKE '%RATE%' OR COLUMN_NAME LIKE '%CLM%' OR COLUMN_NAME LIKE '%PLAN%' OR COLUMN_NAME LIKE '%PAY%'",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.06
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.REJ_RSN_CD, r.REJ_GRP, COUNT(*) n FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c LEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON c.REJ_RSN_CD=r.REJ_RSN_CD WHERE c.ADJ_STAT='R' GROUP BY 1,2 ORDER BY n DESC",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 3.8
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CASE WHEN c.CLM_ID IS NULL THEN 'BKP_ONLY' WHEN b.CLM_ID IS NULL THEN 'CUR_ONLY' ELSE 'BOTH' END grp, b.ADJ_STAT bkp_stat, c.ADJ_STAT cur_stat, COUNT(*) n FROM (SELECT * FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ WHERE CLM_DT<= '2025-12-31') c FULL OUTER JOIN PHARMA_DEMO.RAW_3P.CLMLNS_ADJ_BKP_2025 b ON c.CLM_ID=b.CLM_ID GROUP BY 1,2,3 ORDER BY 1,2,3",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.61
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH c AS (SELECT c.*, r.REJ_GRP FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c LEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON c.REJ_RSN_CD=r.REJ_RSN_CD)\nSELECT 'A: P / all lines (P+R+V)' def, SUM(IFF(ADJ_STAT='P',1,0)) paid, COUNT(*) denom, ROUND(100*paid/denom,2) pct FROM c\nUNION ALL SELECT 'B: P / (P+R), reversals excluded', SUM(IFF(ADJ_STAT='P',1,0)), SUM(IFF(ADJ_STAT IN ('P','R'),1,0)), ROUND(100*SUM(IFF(ADJ_STAT='P',1,0))/SUM(IFF(ADJ_STAT IN ('P','R'),1,0)),2) FROM c\nUNION ALL SELECT 'C: B + primary payer only', SUM(IFF(ADJ_STAT='P',1,0)), SUM(IFF(ADJ_STAT IN ('P','R'),1,0)), ROUND(100*SUM(IFF(ADJ_STAT='P',1,0))/SUM(IFF(ADJ_STAT IN ('P','R'),1,0)),2) FROM c WHERE SEC_PYR_FLG='N'\nUNION ALL SELECT 'D: C + exclude REFILL/DUR soft rejects', SUM(IFF(ADJ_STAT='P',1,0)), SUM(IFF(ADJ_STAT IN ('P','R'),1,0)), ROUND(100*SUM(IFF(ADJ_STAT='P',1,0))/SUM(IFF(ADJ_STAT IN ('P','R'),1,0)),2) FROM c WHERE SEC_PYR_FLG='N' AND COALESCE(REJ_GRP,'x')<>'REFILL'\nUNION ALL SELECT 'E: C + exclude abandoned', SUM(IFF(ADJ_STAT='P',1,0)), SUM(IFF(ADJ_STAT IN ('P','R'),1,0)), ROUND(100*SUM(IFF(ADJ_STAT='P',1,0))/SUM(IFF(ADJ_STAT IN ('P','R'),1,0)),2) FROM c WHERE SEC_PYR_FLG='N' AND ABNDN_FLG='N'",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.54
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT (s.PLAN_ID IS NOT NULL) mapped, s.CHNL_CD, COUNT(*) n, ROUND(100*SUM(IFF(c.ADJ_STAT='P',1,0))/SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),2) paid_rate_B FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c LEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON c.PLAN_ID=s.PLAN_ID GROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.2
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.REF.CHNL",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.39
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT SUM(IFF(c.ADJ_STAT='P',1,0)) paid, SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)) denom, ROUND(100*paid/denom,2) pct FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON c.PLAN_ID=s.PLAN_ID WHERE s.CHNL_CD<>'X' AND c.SEC_PYR_FLG='N'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.14
+    }
+  ],
+  "usage": {
+    "input": 28,
+    "output": 7884,
+    "cache_read": 168426,
+    "cache_write": 22969
+  },
+  "cost_usd": 0.3063,
+  "latency_s": 180.9
+}

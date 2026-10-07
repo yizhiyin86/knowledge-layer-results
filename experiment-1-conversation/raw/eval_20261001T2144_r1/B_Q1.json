@@ -1,0 +1,62 @@
+{
+  "run_id": "eval_20261001T2144_r1",
+  "agent": "B",
+  "qid": "Q1",
+  "question": "What is Lacrivia's market share by payer channel over the last 13 weeks, and how is it trending?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Over the last 13 weeks (weeks ending 3 Jul to 25 Sep 2026), Lacrivia held **23.7% of TRx in the dry-eye market** (10,442 of 43,975 TRx). That share went up from 22.8% in the first 4 weeks to 24.6% in the last 4. Almost all of the gain came from Commercial. Medicare Part D is the one channel clearly losing share.\n\n| Payer channel | Lacrivia TRx | Market TRx | Share, 13 weeks | First 4 weeks | Last 4 weeks | Trend |\n|---|---|---|---|---|---|---|\n| Commercial | 5,649 | 21,530 | **26.2%** | 23.6% | 28.8% | \u25b2 Steady rise (+5 pts) |\n| Medicare Part D | 2,184 | 11,055 | **19.8%** | 22.3% | 18.3% | \u25bc Falling (\u22124 pts) |\n| Managed Medicaid | 999 | 4,412 | **22.6%** | 22.4% | 21.6% | \u25ba Flat to slightly down |\n| Health Exchange | 589 | 2,679 | **22.0%** | 21.7% | 22.5% | \u25ba Flat, noisy |\n| Cash / Discount | 585 | 2,414 | **24.2%** | 22.1% | 25.3% | \u25ba Up on average, but volatile |\n| Medicaid FFS | 436 | 1,885 | **23.1%** | 20.4% | 24.4% | \u25ba Up, but small base |\n| **Total** | **10,442** | **43,975** | **23.7%** | 22.8% | 24.6% | \u25b2 +1.8 pts |\n\n**How each channel is trending:**\n- **Commercial (about half of market volume):** share rose almost every week, from 23.1% (3 Jul) to 29.3% (25 Sep). There was a clear step up in mid-August, to about 27% from the 14 Aug week, and weekly TRx went from about 390 to about 490. This is the main reason total share is growing.\n- **Medicare Part D:** share drifted from about 21\u201322% in July (with a one-off 26.3% in the 17 Jul week) to 17\u201319% in August and September. Lacrivia's weekly TRx stayed roughly flat (about 155\u2013170), so the market grew around it rather than Lacrivia losing scripts. That points to competitors gaining in Part D, which is worth checking against formulary positions and paid rates.\n- **Smaller channels** (Medicaid FFS, Managed Medicaid, Health Exchange, Cash) have only 30\u201390 Lacrivia TRx a week, so weekly share moves 5\u201310 points. Read their trends as directional only. Cash spiked to about 31% in late August and early September, then fell back to about 21%.\n\n**Sources and definitions**\n- **Metric:** the ratified `trx_share_by_market` definition: Lacrivia TRx \u00f7 TRx of all packs in the DRY_EYE market. The denominator is not all products.\n- **Market definition:** `PHARMA_DEMO.BIZ.MKT_DEF_DRIVER` (DRY_EYE, within its effective dates), checked against the governed `market_definition` reference. It covers 7 packs: Lacrivia 5 mL and 10 mL, Cyclosporine OS, Cyclomist, Cyclosporine generic, Hydrova and Tearsol.\n- **Prescription volume:** `PHARMA_DEMO.RAW_3P.RXT_WKLY` (ratified source for TRx and share). Channel comes from that table's `CHNL_CD` field, decoded with `PHARMA_DEMO.REF.CHNL`. Brand comes from `CORE.PRODUCT`.\n- **Last 13 weeks:** the 13 most recent week-ending dates in the data, 2026-07-03 to 2026-09-25.\n- **Deprecated table avoided:** I did not use `MART.PYR_SHR_WK_OLD`.\n- **Policy:** the MARKET_ACCESS role is allowed this analysis. The only restricted table, `IC_GOAL` (incentive-compensation goals), wasn't needed.\n\n**Assumptions**\n- Share is based on TRx (total prescriptions), not NRx (new-to-brand).\n- Both Lacrivia pack sizes (5 mL and 10 mL) are counted together.\n- I compared the first 4 weeks with the last 4 weeks to show direction; it is not a statistical test.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "get_reference",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT p.*, m.MKT_DEF, m.EFF_FROM, m.EFF_TO FROM PHARMA_DEMO.CORE.PRODUCT p LEFT JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON p.PROD_NDC11=m.PROD_NDC11 ORDER BY m.MKT_DEF, p.BRAND_NM",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.7
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT MIN(WK_END_DT), MAX(WK_END_DT), COUNT(DISTINCT WK_END_DT) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.61
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nrx AS (\n SELECT r.WK_END_DT, r.CHNL_CD, p.BRAND_NM, r.TRX_QTY\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n JOIN wk ON r.WK_END_DT = wk.WK_END_DT\n JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON r.PROD_NDC11 = m.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\n JOIN PHARMA_DEMO.CORE.PRODUCT p ON r.PROD_NDC11 = p.PROD_NDC11)\nSELECT COALESCE(c.CHNL_NM,'TOTAL') CHNL, \n SUM(IFF(BRAND_NM='LACRIVIA',TRX_QTY,0)) LAC_TRX, SUM(TRX_QTY) MKT_TRX,\n ROUND(100*SUM(IFF(BRAND_NM='LACRIVIA',TRX_QTY,0))/SUM(TRX_QTY),2) SHR_13W,\n ROUND(100*SUM(IFF(BRAND_NM='LACRIVIA' AND WK_END_DT<= '2026-07-24',TRX_QTY,0))/NULLIF(SUM(IFF(WK_END_DT<='2026-07-24',TRX_QTY,0)),0),2) SHR_FIRST4,\n ROUND(100*SUM(IFF(BRAND_NM='LACRIVIA' AND WK_END_DT>= '2026-09-04',TRX_QTY,0))/NULLIF(SUM(IFF(WK_END_DT>='2026-09-04',TRX_QTY,0)),0),2) SHR_LAST4\nFROM rx LEFT JOIN PHARMA_DEMO.REF.CHNL c ON rx.CHNL_CD=c.CHNL_CD\nGROUP BY ROLLUP(c.CHNL_NM) ORDER BY MKT_TRX DESC",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 2.2
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT r.WK_END_DT, r.CHNL_CD,\n ROUND(100*SUM(IFF(p.BRAND_NM='LACRIVIA',r.TRX_QTY,0))/SUM(r.TRX_QTY),1) SHR, SUM(IFF(p.BRAND_NM='LACRIVIA',r.TRX_QTY,0)) LAC\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT=wk.WK_END_DT\nJOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON r.PROD_NDC11=m.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\nJOIN PHARMA_DEMO.CORE.PRODUCT p ON r.PROD_NDC11=p.PROD_NDC11\nGROUP BY 1,2 ORDER BY 2,1",
+      "ok": true,
+      "rows": 78,
+      "error": null,
+      "elapsed_s": 1.41
+    }
+  ],
+  "cypher_queries": 8,
+  "usage": {
+    "input": 10,
+    "output": 3765,
+    "cache_read": 24318,
+    "cache_write": 15472
+  },
+  "cost_usd": 0.1576,
+  "latency_s": 48.1
+}

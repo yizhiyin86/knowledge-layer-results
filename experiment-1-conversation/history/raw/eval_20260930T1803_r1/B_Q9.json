@@ -1,0 +1,42 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "B",
+  "qid": "Q9",
+  "question": "Which sources feed \"paid rate\", and is it defined the same way in the Payer Report and the Rep Report?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Both reports get paid rate from the same table, `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ` (column `ADJ_STAT`), but they define it differently. Only the Payer Report uses the approved definition. The Rep Report counts reversed claims in the denominator, so its paid rate comes out about 2 points lower.\n\n**Source**\n- The only source is the `ADJ_STAT` column of `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ`, which records whether each claim line was paid (P), rejected (R) or reversed (V).\n- That table belongs to the Market Access data product and is the approved source for paid rate and rejection rate.\n- A backup copy, `CLMLNS_ADJ_BKP_2025`, is deprecated and shouldn't be used.\n- The Payer Report also reads `MART.PYR_SHR_WK`, but only for share. The Rep Report also reads `CORE.IC_GOAL` and `RAW_3P.RXT_WKLY`, but only for goal attainment. Neither feeds paid rate.\n\n**How the two reports define it**\n\n| | Payer Report | Rep Report |\n|---|---|---|\n| Metric | `paid_rate` | `paid_rate_rep_v1` (older version) |\n| Status | Approved by Market Access | Not approved; owned by Field Operations |\n| Formula | Paid \u00f7 (Paid + Rejected) | Paid \u00f7 all claim lines |\n| Reversals | Left out of the count | Counted as not paid |\n\n**What the difference comes to** (all claim lines, 2025-09-27 to 2026-09-30)\n- Total claim lines: 287,395 (244,448 paid, 36,258 rejected, 6,689 reversed, none with any other status).\n- **Payer Report definition:** 244,448 \u00f7 280,706 = **87.08%**\n- **Rep Report definition:** 244,448 \u00f7 287,395 = **85.06%**\n- **Gap:** about 2.0 points. All of it comes from the reversed claims in the Rep Report's denominator.\n\n**What to do about it:** Use the Payer Report definition for any number you publish. If the Rep Report is to match, Field Operations would need to switch it to the approved formula. Until then, expect its paid rate to be about 1\u20132 points lower than the Payer Report's for the same claims.\n\n**Sources and assumptions**\n- Knowledge-layer items used:\n  - metric definitions: `paid_rate`, `paid_rate_rep_v1` and the related `rejection_rate`\n  - report lineage for the Payer Report and the Rep Report\n  - the Market Access data product and the Claim concept\n  - the deprecated-tables list\n- The policy check for MARKET_ACCESS allowed the query, with no columns masked.\n- I compared the two definitions over the full claim history rather than a specific week or brand. Each report's own filters may shift the gap slightly, but the cause stays the same.\n- I logged this as decision trace `0093424f-285a-4895-9f1d-cea617230604`.",
+  "stop_reason": "end_turn",
+  "model_turns": 6,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_metric",
+    "get_report",
+    "get_report",
+    "get_data_product",
+    "list_deprecated_tables",
+    "check_policy",
+    "describe_table",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) AS total_lines,\n  SUM(CASE WHEN ADJ_STAT='P' THEN 1 ELSE 0 END) AS paid,\n  SUM(CASE WHEN ADJ_STAT='R' THEN 1 ELSE 0 END) AS rejected,\n  SUM(CASE WHEN ADJ_STAT='V' THEN 1 ELSE 0 END) AS reversed,\n  SUM(CASE WHEN ADJ_STAT NOT IN ('P','R','V') OR ADJ_STAT IS NULL THEN 1 ELSE 0 END) AS other,\n  MIN(CLM_DT) AS min_dt, MAX(CLM_DT) AS max_dt,\n  SUM(CASE WHEN ADJ_STAT='P' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN ADJ_STAT IN ('P','R') THEN 1 ELSE 0 END),0) AS paid_rate_ratified,\n  SUM(CASE WHEN ADJ_STAT='P' THEN 1 ELSE 0 END) / COUNT(*) AS paid_rate_rep_v1\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 4.09
+    }
+  ],
+  "usage": {
+    "input": 14,
+    "output": 3371,
+    "cache_read": 54612,
+    "cache_write": 14878
+  },
+  "cost_usd": 0.1528,
+  "latency_s": 49.6,
+  "cypher_queries": 15
+}

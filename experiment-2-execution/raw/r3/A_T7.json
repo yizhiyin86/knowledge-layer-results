@@ -1,0 +1,245 @@
+{
+  "run_id": "execution_20261007T1700_r3",
+  "agent": "A",
+  "task": "T7",
+  "qid": "T7",
+  "question": "Supplier S-108 will miss its next CMP-510 shipment by four weeks. Handle it.",
+  "role": "SUPPLY_PLANNER",
+  "badge": "Supply Response Agent",
+  "effort": "high",
+  "answer": "I've raised a requisition from the backup supplier to cover the larger affected plant, and opened two cases to cover the other plant. I made no allocation plans and sent no customer notices, because nothing yet shows the delay will cause a finished-product shortage.\n\n**The delay**\n- S-108's next CMP-510 (tamper-evident cap) shipment is PO001006: 4,100 caps promised for 2026-10-07. Four weeks late puts it at about 2026-11-04. Its other open orders (PO001007/1008/1009, due 10-15, 10-21 and 10-28) are assumed to be on time.\n- Each finished pack uses one cap. Two plants are affected:\n  - **PL-01:** Lacrivia 5 mL and 10 mL, and Cyclosporine 5 mL. About 1,073 caps a week (80% of use over the last 13 weeks).\n  - **PL-02:** Oculon 2.5 mL and 5 mL. About 273 caps a week (20%).\n- The only other qualified supplier, S-112 (Lambert Plastics), is active and has shipped all 10 orders this year on time. But the supplier portal shows it is approved for this cap at PL-01 only, not PL-02.\n\n**What I did**\n1. **Requisition PR-3C0BA657:** 3,300 caps from S-112 to PL-01, needed by 2026-10-07. That is PL-01's 80% share of the late 4,100, rounded up.\n2. **Procurement case CASE-8D6CE39E:**\n   - Expedite the requisition, since S-112 normally needs about 30 days, and confirm its open order PO001023.\n   - For PL-02's share (about 830 caps, roughly 3 weeks of use), get S-108 to ship part of PO001006 early or move PL-02's quantity forward on PO001007 (due 10-15).\n   - Confirm the delay doesn't also hit S-108's later orders.\n3. **Supplier Quality case CASE-A23362FA:** assess approving S-112 for PL-02. PL-02 currently has only one approved source.\n\n**What I didn't do, and why**\n- **PL-02 bridge order:** I didn't order S-112 caps for PL-02 or plan moving PL-01 caps there. Either would mean using S-112 caps at a plant where they aren't approved.\n- **Allocations and customer notices:** Distribution-centre stock of Oculon covers about 4.8\u20135 weeks, and PO001007 arrives one week after the original date. There is no data on cap stock at the plants, so I can't prove a shortage.\n\n**Assumptions**\n- The plants' cap demand is estimated from the last 13 weekly shipments to wholesalers (6/29\u20139/21).\n- PO001006 has no plant on it, so I split it by demand share.\n\n**Separate issue for you:** At the East distribution centre, Lacrivia 5 mL is at 46 units against a safety stock of 471, and Lacrivia 10 mL at 34 against 233. Both were falling before this delay and are still shipping about 240 and 120 units a week. Restocking from other centres or allocation will probably be needed whatever happens with the caps. I took no action on it because it wasn't part of this task. Both need your decision and approval from the Supply Planning lead.",
+  "stop_reason": "end_turn",
+  "model_turns": 13,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_supplier_status",
+    "get_supplier_status",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "create_purchase_requisition",
+    "create_escalation_case",
+    "create_escalation_case"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.MATERIAL WHERE MATERIAL_ID='CMP-510';\nSELECT * FROM dbo.SUPPLIER WHERE SUPPLIER_ID='S-108';",
+      "ok": false,
+      "rows": null,
+      "error": "rejected: expected exactly one statement, got 2",
+      "elapsed_s": 0.0
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, s.SUPPLIER_NM, s.COUNTRY, s.TIER FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID='CMP-510'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.88
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD WHERE MATERIAL_ID='CMP-510' ORDER BY ORDER_DT DESC",
+      "ok": true,
+      "rows": 64,
+      "error": null,
+      "elapsed_s": 1.34
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.*, (SELECT STRING_AGG(PLANT_ID, ',') FROM dbo.PLANT_MATERIAL pm WHERE pm.MATERIAL_ID=m.MATERIAL_ID) plants FROM dbo.MATERIAL m WHERE m.MATERIAL_ID IN ('CMP-510') OR m.MATERIAL_ID IN (SELECT PARENT_MATERIAL_ID FROM dbo.BOM WHERE CHILD_MATERIAL_ID='CMP-510')",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.1
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.BOM WHERE CHILD_MATERIAL_ID='CMP-510'",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH r AS (SELECT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c, CAST(QTY_PER AS decimal(18,6)) q, 1 lvl FROM dbo.BOM WHERE CHILD_MATERIAL_ID='CMP-510' AND EFF_TO>='2026-09-30' AND EFF_FROM<='2026-09-30'\nUNION ALL SELECT b.PARENT_MATERIAL_ID, r.c, CAST(r.q*b.QTY_PER AS decimal(18,6)), r.lvl+1 FROM dbo.BOM b JOIN r ON b.CHILD_MATERIAL_ID=r.p WHERE b.EFF_TO>='2026-09-30' AND b.EFF_FROM<='2026-09-30')\nSELECT r.p, r.q, r.lvl, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ, x.NDC FROM r JOIN dbo.MATERIAL m ON m.MATERIAL_ID=r.p LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=r.p ORDER BY r.lvl, r.p",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 0.93
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.BOM WHERE PARENT_MATERIAL_ID LIKE 'FG-1%' OR PARENT_MATERIAL_ID LIKE 'FG-2%' OR CHILD_MATERIAL_ID LIKE 'FILL-%' ORDER BY PARENT_MATERIAL_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 0.45
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ, x.NDC, (SELECT STRING_AGG(PLANT_ID, ',') FROM dbo.PLANT_MATERIAL pm WHERE pm.MATERIAL_ID=m.MATERIAL_ID) plants, (SELECT COUNT(*) FROM dbo.BOM b WHERE b.CHILD_MATERIAL_ID=m.MATERIAL_ID) n_parents FROM dbo.MATERIAL m LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=m.MATERIAL_ID WHERE m.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002','FILL-1001','FILL-1002','FILL-1003','FILL-2001','FILL-2002','KIT-100','CMP-510')",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.18
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.BOM_FLAT_LEGACY WHERE COMPONENT_MATERIAL_ID='CMP-510' OR SUPPLIER_ID='S-108'",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 0.36
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.DC",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.87
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') AND SNAPSHOT_DT >= '2026-08-20' ORDER BY MATERIAL_ID, DC_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 90,
+      "error": null,
+      "elapsed_s": 2.15
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, DC_ID, DATEADD(week, DATEDIFF(week, '2026-01-05', SHIP_DT), '2026-01-05') wk, SUM(UNITS) u FROM dbo.WHSLR_SHIP WHERE MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT>='2026-07-01' GROUP BY MATERIAL_ID, DC_ID, DATEADD(week, DATEDIFF(week, '2026-01-05', SHIP_DT), '2026-01-05') ORDER BY 1,2,3",
+      "ok": true,
+      "rows": 76,
+      "error": null,
+      "elapsed_s": 1.65
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, DC_ID, COUNT(DISTINCT WHSLR_ID) n_wh, MIN(SHIP_DT) mn, MAX(SHIP_DT) mx, SUM(CASE WHEN SHIP_DT>='2026-07-01' THEN UNITS END) u_since_jul, SUM(CASE WHEN SHIP_DT>='2026-09-01' THEN UNITS END) u_sep FROM dbo.WHSLR_SHIP WHERE MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') GROUP BY MATERIAL_ID, DC_ID ORDER BY 1,2",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 0.39
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH w AS (SELECT MATERIAL_ID, UNITS, DATEADD(week, DATEDIFF(week, '2026-01-05', SHIP_DT), '2026-01-05') wk FROM dbo.WHSLR_SHIP WHERE MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002')),\nwks AS (SELECT DISTINCT TOP 13 wk FROM w ORDER BY wk DESC)\nSELECT MATERIAL_ID, MIN(w.wk) first_wk, MAX(w.wk) last_wk, COUNT(DISTINCT w.wk) n_wk, SUM(UNITS) units_13w, SUM(UNITS)/13.0 avg_wk FROM w JOIN wks ON wks.wk=w.wk GROUP BY MATERIAL_ID ORDER BY 1",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 2.02
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SUPPLIER_ID, COUNT(*) n, AVG(DATEDIFF(day, ORDER_DT, PROMISED_SHIP_DT)*1.0) avg_lead, SUM(CASE WHEN ACTUAL_SHIP_DT>PROMISED_SHIP_DT THEN 1 ELSE 0 END) n_late, SUM(QTY) qty FROM dbo.PURCH_ORD WHERE MATERIAL_ID='CMP-510' AND ORDER_DT>='2026-01-01' GROUP BY SUPPLIER_ID",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.38
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 28,
+    "output": 11450,
+    "cache_read": 228337,
+    "cache_write": 35382
+  },
+  "cost_usd": 0.4517,
+  "latency_s": 165.0,
+  "final_state": {
+    "allocation_plans": [],
+    "purchase_requisitions": [
+      {
+        "pr_id": "PR-3C0BA657",
+        "material_id": "CMP-510",
+        "supplier_id": "S-112",
+        "quantity": 3300,
+        "ship_to_plant": "PL-01",
+        "need_by": "2026-10-07",
+        "reason": "Bridge supply: primary supplier S-108 (Halvorsen Closures) will ship PO001006 (4,100 caps, promised 2026-10-07) ~4 weeks late (~2026-11-04). Qty = PL-01 share (~80%, 13-wk FG demand Lacrivia 5/10 mL + Cyclosporine 5 mL) of the slipped 4,100, rounded. S-112 is qualified, portal-APPROVED for CMP-510 at PL-01 only. Standard S-112 lead ~30 days; please expedite toward need-by.",
+        "created_at": "2026-10-07T17:55:34+00:00"
+      }
+    ],
+    "approvals": [],
+    "crm_tasks": [],
+    "edi_messages": [],
+    "escalation_cases": [
+      {
+        "case_id": "CASE-8D6CE39E",
+        "owner": "Procurement",
+        "subject": "CMP-510 tamper-evident cap: S-108 PO001006 slipping ~4 weeks \u2013 expedite bridge PR and protect PL-02",
+        "details": "S-108 (Halvorsen Closures, primary) will ship PO001006 (CMP-510, 4,100 caps, promised 2026-10-07) about 4 weeks late (~2026-11-04). CMP-510 is 1 per unit in FILL-1001/1002/1003 at PL-01 (Lacrivia 5 mL, Lacrivia 10 mL, Cyclosporine 5 mL) and FILL-2001/2002 at PL-02 (Oculon 2.5 mL, 5 mL). Demand over the last 13 weeks is about 1,073 caps/wk at PL-01 and 273 caps/wk at PL-02.\nActions requested:\n1) Expedite bridge PR PR-3C0BA657 (S-112 Lambert Plastics, 3,300 caps to PL-01, need-by 2026-10-07). S-112's normal lead time is about 30 days, so confirm the earliest ship date. Open S-112 PO001023 (3,300, promised 2026-10-01) should also be confirmed.\n2) PL-02 can't be bridged by S-112: it is approved for CMP-510 at PL-01 only (supplier portal). PL-02's share of the slipped quantity is about 830 caps (about 3 weeks of PL-02 use). Please ask S-108 to ship part of PO001006 early or move PL-02 quantity forward on PO001007 (5,100, promised 2026-10-15).\n3) Confirm with S-108 that the cause of the delay doesn't also affect PO001007/1008/1009 (promised 10-15, 10-21, 10-28). If it does, the gap is much bigger and Supply Planning must be told right away.",
+        "related_ids": "[\"PO001006\", \"PO001007\", \"PO001023\", \"PR-3C0BA657\", \"S-108\", \"S-112\", \"CMP-510\"]",
+        "created_at": "2026-10-07T17:55:48+00:00"
+      },
+      {
+        "case_id": "CASE-A23362FA",
+        "owner": "Supplier Quality",
+        "subject": "Assess adding PL-02 to S-112 approved sites for CMP-510 (single-source exposure)",
+        "details": "CMP-510 (tamper-evident cap) for Oculon 2.5 mL/5 mL at PL-02 comes from only one approved source, S-108. S-112 (Lambert Plastics) is qualified for CMP-510 but approved only for PL-01. S-108's next shipment (PO001006) is slipping about 4 weeks, so PL-02 has no backup source. Please assess whether PL-02 can be added to S-112's approved sites for CMP-510 (expedited if possible). This is not a request to use S-112 caps at PL-02 before approval.",
+        "related_ids": "[\"S-112\", \"S-108\", \"CMP-510\", \"PL-02\", \"PO001006\"]",
+        "created_at": "2026-10-07T17:55:48+00:00"
+      }
+    ],
+    "tool_calls": [
+      {
+        "seq": 1,
+        "tool": "create_purchase_requisition",
+        "args": "{\"material_id\": \"CMP-510\", \"supplier_id\": \"S-112\", \"quantity\": 3300, \"ship_to_plant\": \"PL-01\", \"need_by\": \"2026-10-07\", \"reason\": \"Bridge supply: primary supplier S-108 (Halvorsen Closures) will ship PO001006 (4,100 caps, promised 2026-10-07) ~4 weeks late (~2026-11-04). Qty = PL-01 share (~80%, 13-wk FG demand Lacrivia 5/10 mL + Cyclosporine 5 mL) of the slipped 4,100, rounded. S-112 is qualified, portal-APPROVED for CMP-510 at PL-01 only. Standard S-112 lead ~30 days; please expedite toward need-by.\"}",
+        "accepted": 1,
+        "result": "{\"pr_id\": \"PR-3C0BA657\", \"status\": \"created\"}",
+        "created_at": "2026-10-07T17:55:34+00:00"
+      },
+      {
+        "seq": 2,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Procurement\", \"subject\": \"CMP-510 tamper-evident cap: S-108 PO001006 slipping ~4 weeks \\u2013 expedite bridge PR and protect PL-02\", \"details\": \"S-108 (Halvorsen Closures, primary) will ship PO001006 (CMP-510, 4,100 caps, promised 2026-10-07) about 4 weeks late (~2026-11-04). CMP-510 is 1 per unit in FILL-1001/1002/1003 at PL-01 (Lacrivia 5 mL, Lacrivia 10 mL, Cyclosporine 5 mL) and FILL-2001/2002 at PL-02 (Oculon 2.5 mL, 5 mL). Demand over the last 13 weeks is about 1,073 caps/wk at PL-01 and 273 caps/wk at PL-02.\\nActions requested:\\n1) Expedite bridge PR PR-3C0BA657 (S-112 Lambert Plastics, 3,300 caps to PL-01, need-by 2026-10-07). S-112's normal lead time is about 30 days, so confirm the earliest ship date. Open S-112 PO001023 (3,300, promised 2026-10-01) should also be confirmed.\\n2) PL-02 can't be bridged by S-112: it is approved for CMP-510 at PL-01 only (supplier portal). PL-02's share of the slipped quantity is about 830 caps (about 3 weeks of PL-02 use). Please ask S-108 to ship part of PO001006 early or move PL-02 quantity forward on PO001007 (5,100, promised 2026-10-15).\\n3) Confirm with S-108 that the cause of the delay doesn't also affect PO001007/1008/1009 (promised 10-15, 10-21, 10-28). If it does, the gap is much bigger and Supply Planning must be told right away.\", \"related_ids\": [\"PO001006\", \"PO001007\", \"PO001023\", \"PR-3C0BA657\", \"S-108\", \"S-112\", \"CMP-510\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-8D6CE39E\", \"status\": \"open\", \"owner\": \"Procurement\"}",
+        "created_at": "2026-10-07T17:55:48+00:00"
+      },
+      {
+        "seq": 3,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Supplier Quality\", \"subject\": \"Assess adding PL-02 to S-112 approved sites for CMP-510 (single-source exposure)\", \"details\": \"CMP-510 (tamper-evident cap) for Oculon 2.5 mL/5 mL at PL-02 comes from only one approved source, S-108. S-112 (Lambert Plastics) is qualified for CMP-510 but approved only for PL-01. S-108's next shipment (PO001006) is slipping about 4 weeks, so PL-02 has no backup source. Please assess whether PL-02 can be added to S-112's approved sites for CMP-510 (expedited if possible). This is not a request to use S-112 caps at PL-02 before approval.\", \"related_ids\": [\"S-112\", \"S-108\", \"CMP-510\", \"PL-02\", \"PO001006\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-A23362FA\", \"status\": \"open\", \"owner\": \"Supplier Quality\"}",
+        "created_at": "2026-10-07T17:55:48+00:00"
+      }
+    ]
+  },
+  "discovery": false,
+  "trusted_playbooks_offered": {},
+  "execution_trace": null
+}

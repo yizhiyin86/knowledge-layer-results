@@ -1,0 +1,10 @@
+# Removed from the evaluation on 2026-10-02 (original id kept).
+- id: Q3
+  category: parity
+  role: MARKET_ACCESS
+  question: For Northstar Health – Commercial, how do Lacrivia's paid rate and market
+    share over the last 13 weeks compare with national?
+  traps:
+  - T2
+  - T3
+  check: four numbers within ±1.0 pt

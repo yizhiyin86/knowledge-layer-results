@@ -1,0 +1,102 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "A",
+  "qid": "Q14",
+  "question": "What did we conclude last time about exposure to supplier S-104, and has its next ship date changed since?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "I can't tell you what we concluded last time. I don't keep memory between conversations, and neither warehouse has saved notes or past analyses. I also can't confirm whether S-104's next ship date has changed, because the purchase order table only keeps the current promised date, with no change history or earlier snapshots. If you share the date from last time, I can compare it with today's.\n\n**What the data shows now (as of 2026-09-30)**\n\n**Next ship date: 2026-10-07.** That's order PO005791 for 4,200 of RM-221, ordered 2026-09-02 and still open. A few things about this order are worth checking:\n- Its 35 days from order to promised ship is longer than S-104's usual ~27 days for RM-221 (a normal date would be about 2026-09-29), which could mean it was already pushed back.\n- Its order number is out of sequence with S-104's other orders (PO000352\u2013PO000369), which suggests it was re-issued or entered manually.\n- Order numbers PO000365\u2013368 and PO000427\u2013429 are missing from both the current and archived order tables.\n\nThe other open orders are PO000430 (RM-222, 2,600, ships 2026-10-26) and PO000369 (RM-221, 3,300, ships 2026-10-29). Both show an order date of 2026-10-02, which is after the data date, so treat them as planned orders or a data error.\n\n**Current exposure to S-104**\n- **Supplier:** Delmar Specialty Chemicals, India, tier 2. It is the qualified primary supplier for two raw materials.\n- **RM-221 (Polysorbate 80 NF, low-peroxide): effectively single-sourced.** The only other supplier, S-131 (Pinecrest, China), is not qualified.\n  - It goes into the Lacrivia 0.1% ophthalmic emulsion 5 mL (FG-1001) and 10 mL (FG-1002), and Cyclosporine 0.05% ophthalmic emulsion 5 mL (FG-1003).\n  - It also feeds a large chain of intermediates (INT-LC\u2026) that I didn't trace all the way to finished goods.\n- **RM-222 (Benzalkonium chloride 50%): has a qualified backup,** S-130 (Oakridge Chemicals, US, not primary). It goes into Oculon 0.005% ophthalmic solution 2.5 mL (FG-2001) and 5 mL (FG-2002).\n- **Recent reliability:** 6 of 25 orders due between 2026-07-02 and 2026-09-26 shipped late, by 3 to 17 days. The worst were PO000423 (17 days late) and PO000360 (14 days late).\n\n**Sources and assumptions**\n- Supply warehouse (Fabric SUPPLY_DEMO): supplier list, supplier-material links, current and archived purchase orders, materials, and the bill of materials (only entries effective on 2026-09-30).\n- \"Next ship date\" means the earliest promised ship date on an S-104 order that is open and not yet shipped.\n- Lead time means the gap between order date and promised ship date.\n- I didn't check inventory or days of cover. If exposure is still a concern, the next step would be to look at stock on hand for RM-221 against how much Lacrivia and cyclosporine production uses.",
+  "stop_reason": "end_turn",
+  "model_turns": 8,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.SUPPLIER WHERE SUPPLIER_ID='S-104';\n",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.5
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT 'CUR' src, PO_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND (ACTUAL_SHIP_DT IS NULL OR STATUS<>'CLOSED' OR ORDER_DT>='2026-06-01')\nUNION ALL\nSELECT 'ARC', PO_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD_ARCHIVE WHERE SUPPLIER_ID='S-104' AND (ACTUAL_SHIP_DT IS NULL OR STATUS<>'CLOSED')\nORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 0.59
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, m.* FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=sm.MATERIAL_ID WHERE sm.SUPPLIER_ID='S-104'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.MATERIAL_ID, sm.SUPPLIER_ID, s.SUPPLIER_NM, s.COUNTRY, sm.QUALIFIED_FLG, sm.PRIMARY_FLG FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID IN ('RM-221','RM-222') ORDER BY 1,2",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.01
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT 'CUR' src,* FROM dbo.PURCH_ORD WHERE PO_ID IN ('PO005791','PO000430','PO000369','PO000427','PO000428','PO000429','PO000365','PO000366','PO000367','PO000368')\nUNION ALL SELECT 'ARC',* FROM dbo.PURCH_ORD_ARCHIVE WHERE PO_ID IN ('PO005791','PO000430','PO000369','PO000427','PO000428','PO000429','PO000365','PO000366','PO000367','PO000368')",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.39
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH up AS (\n SELECT CHILD_MATERIAL_ID AS rm, PARENT_MATERIAL_ID AS parent, 1 AS lvl FROM dbo.BOM WHERE CHILD_MATERIAL_ID IN ('RM-221','RM-222') AND '2026-09-30' BETWEEN EFF_FROM AND EFF_TO\n UNION ALL\n SELECT u.rm, b.PARENT_MATERIAL_ID, u.lvl+1 FROM up u JOIN dbo.BOM b ON b.CHILD_MATERIAL_ID=u.parent AND '2026-09-30' BETWEEN b.EFF_FROM AND b.EFF_TO WHERE u.lvl<8)\nSELECT u.rm, u.parent, u.lvl, m.MATERIAL_DESC, m.MATERIAL_TYP FROM up u LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=u.parent ORDER BY u.rm, u.lvl, u.parent",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 1.66
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b1.CHILD_MATERIAL_ID rm, b1.PARENT_MATERIAL_ID l1, m1.MATERIAL_TYP t1, b2.PARENT_MATERIAL_ID l2, m2.MATERIAL_TYP t2, b3.PARENT_MATERIAL_ID l3, m3.MATERIAL_TYP t3, b4.PARENT_MATERIAL_ID l4\nFROM dbo.BOM b1\nLEFT JOIN dbo.MATERIAL m1 ON m1.MATERIAL_ID=b1.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b2 ON b2.CHILD_MATERIAL_ID=b1.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b2.EFF_FROM AND b2.EFF_TO\nLEFT JOIN dbo.MATERIAL m2 ON m2.MATERIAL_ID=b2.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b3 ON b3.CHILD_MATERIAL_ID=b2.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b3.EFF_FROM AND b3.EFF_TO\nLEFT JOIN dbo.MATERIAL m3 ON m3.MATERIAL_ID=b3.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b4 ON b4.CHILD_MATERIAL_ID=b3.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b4.EFF_FROM AND b4.EFF_TO\nWHERE b1.CHILD_MATERIAL_ID IN ('RM-221','RM-222') AND '2026-09-30' BETWEEN b1.EFF_FROM AND b1.EFF_TO\nORDER BY 1,2,4,6",
+      "ok": true,
+      "rows": 36,
+      "error": null,
+      "elapsed_s": 1.31
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b.CHILD_MATERIAL_ID, b.PARENT_MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP FROM dbo.BOM b LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=b.PARENT_MATERIAL_ID WHERE b.CHILD_MATERIAL_ID IN ('FILL-1001','FILL-1002','FILL-1003','FG-2001','FG-2002') AND '2026-09-30' BETWEEN b.EFF_FROM AND b.EFF_TO\nUNION ALL SELECT MATERIAL_ID, NULL, MATERIAL_DESC, MATERIAL_TYP FROM dbo.MATERIAL WHERE MATERIAL_ID IN ('FG-2001','FG-2002')",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 0.98
+    }
+  ],
+  "usage": {
+    "input": 18,
+    "output": 5552,
+    "cache_read": 50340,
+    "cache_write": 15118
+  },
+  "cost_usd": 0.1968,
+  "latency_s": 72.7
+}

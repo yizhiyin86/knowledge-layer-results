@@ -1,0 +1,86 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "B",
+  "qid": "Q13",
+  "question": "Show Lacrivia abandonment by territory over the last 13 weeks so district managers can plan rep coaching.",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "I can't give you Lacrivia abandonment by territory. The only approved source for abandonment is the pharmacy claims table, `RAW_3P.CLMLNS_ADJ`, and it has no prescriber, patient or location key. The knowledge layer also has no approved way to link claims to a prescriber or territory. Any territory numbers would be allocations I made up, not measurements, and they shouldn't be used to judge reps. What the data does show is that abandonment comes from payer rejections, mostly prior authorisation (PA), and it looks about the same in every territory.\n\n**National Lacrivia, last 13 weeks (weeks ending 3 Jul \u2013 25 Sep 2026)**\n- **25.4% of rejected claims were abandoned** (601 of 2,367). Weekly rates ranged from 18.5% to 29.4%, with no trend.\n- 18.5% of claims were rejected. Across all claims, 850 of 13,058 (6.5%) were abandoned.\n- **Prior authorisation is the main driver.** PA codes (75 \"PA required\", 3N \"PA denied\", PA \"PA exhausted\") account for 1,372 rejections (58%) and 370 abandonments (62%). \"Not covered\" and \"not on formulary\" add another 124 abandonments.\n- **By payer:**\n\n| Payer | Rejected | Abandoned after rejection | Share abandoned | Rejection rate |\n|---|---|---|---|---|\n| Harborview Health | 389 | 97 | 24.9% | 29.3% |\n| Northstar Health | 340 | 88 | 25.9% | 21.7% |\n| Bluecrest Mutual | 234 | 65 | 27.8% | 15.8% |\n| Redwood Benefit Trust | 203 | 62 | 30.5% | 20.5% |\n| Evergreen Health Plans | 168 | 44 | 26.2% | 39.3% |\n\n**What I could do by territory:** I took each territory's Lacrivia prescriptions over the 13 weeks (10,442 in total) and weighted them by each payer's abandonment rate. This gives an estimate based on payer mix, not a measurement.\n- Every territory falls between **6.2 and 6.6 expected abandonments per 100 prescriptions** (lowest T032 and T064 at 6.23; highest T042 at 6.56 and T022 at 6.55). Estimated rejection rates range from 17.1% to 18.4%.\n- T042 has only 46 prescriptions, so its figure means little.\n- Payer mix doesn't separate territories. There's no data-based reason to single out any territory or rep for abandonment coaching.\n\n**Suggested coaching focus for district managers:** Coach reps to help offices with PA paperwork, since PA drives most abandonment. Put the most effort into offices with a lot of Harborview, Evergreen and Northstar patients, using the territory prescription mix, which can be measured. If territory abandonment is required, a patient-support or PA hub feed with a prescriber key would need to be ratified first. The current `SANDBOX.HUB_PA_STATUS` table is a sandbox and not approved for reporting.\n\n**Sources and definitions**\n- **Metrics:** \"abandonment after rejection\" (rejected claims the patient abandoned \u00f7 rejected claims) and \"rejection rate\" (rejected \u00f7 paid plus rejected, reversals excluded). Both were ratified by Market Access.\n- **Data products:** Market Access (`RAW_3P.CLMLNS_ADJ`, `CORE.PAYER_SPINE`, `CORE.PRODUCT`), Commercial Demand (`RAW_3P.RXT_WKLY`) and Field Force (`CORE.PRESCRIBER`, `CORE.TERRITORY`).\n- **Linking:** prescribers to territories used the approved \"SalesRep to Prescriber\" path; payer mix used the approved \"PackagedProduct to customers and payers\" path. Reject codes and territory names come from the governed reference lists.\n- **Policy check:** passed for the FIELD_SALES role for this purpose, with no columns masked.\n\n**Assumptions**\n- Lacrivia means both packs (NDC 99101010105 and 99101010110).\n- The 13 weeks are the 13 most recent weeks in the prescription data. Claims were assigned to the Saturday\u2013Friday week they fall in, so claims from 26\u201330 Sep aren't counted.\n- The claims and prescription files are separate sources, so their totals don't match (13,058 claims vs 10,442 prescriptions).\n\nI logged this decision trace (ID 71137de8).",
+  "stop_reason": "end_turn",
+  "model_turns": 13,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_metric",
+    "get_concept",
+    "get_business_rules",
+    "get_join_path",
+    "check_policy",
+    "describe_table",
+    "get_concept",
+    "get_join_path",
+    "get_data_product",
+    "list_deprecated_tables",
+    "get_context_by_column_business_term_hybrid_search",
+    "get_reference",
+    "check_policy",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_reference",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PRODUCT WHERE UPPER(BRAND_NM) LIKE '%LACRIVIA%'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 3.43
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT w.WK_END_DT,\n COUNT(c.CLM_ID) AS claims,\n SUM(IFF(c.ABNDN_FLG='Y',1,0)) AS abandoned_all,\n SUM(IFF(c.ADJ_STAT='R',1,0)) AS rejected,\n SUM(IFF(c.ADJ_STAT='R' AND c.ABNDN_FLG='Y',1,0)) AS rej_abandoned,\n ROUND(SUM(IFF(c.ADJ_STAT='R' AND c.ABNDN_FLG='Y',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT='R',1,0)),0),4) AS abandonment_after_rejection,\n ROUND(SUM(IFF(c.ADJ_STAT='R',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),0),4) AS rejection_rate\nFROM wks w LEFT JOIN PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\n ON c.CLM_DT BETWEEN DATEADD(day,-6,w.WK_END_DT) AND w.WK_END_DT\n AND c.PROD_NDC11 IN ('99101010105','99101010110')\nGROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 13,
+      "error": null,
+      "elapsed_s": 2.22
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT p.PAYER_NM,\n COUNT(*) claims,\n SUM(IFF(c.ADJ_STAT='R',1,0)) rejected,\n SUM(IFF(c.ADJ_STAT='R' AND c.ABNDN_FLG='Y',1,0)) rej_abandoned,\n SUM(IFF(c.ABNDN_FLG='Y',1,0)) abandoned_all,\n ROUND(SUM(IFF(c.ADJ_STAT='R' AND c.ABNDN_FLG='Y',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT='R',1,0)),0),3) aar,\n ROUND(SUM(IFF(c.ADJ_STAT='R',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),0),3) rej_rate\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\nJOIN PHARMA_DEMO.CORE.PAYER_SPINE p ON p.PLAN_ID=c.PLAN_ID\nWHERE c.PROD_NDC11 IN ('99101010105','99101010110')\n AND c.CLM_DT BETWEEN (SELECT DATEADD(day,-6,MIN(WK_END_DT)) FROM wks) AND (SELECT MAX(WK_END_DT) FROM wks)\nGROUP BY 1 ORDER BY rej_abandoned DESC",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 16.96
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\npr AS (\n SELECT p.PAYER_NM, SUM(IFF(c.ABNDN_FLG='Y',1,0))/COUNT(*) abn_per_claim,\n  SUM(IFF(c.ADJ_STAT='R',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),0) rej_rate\n FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PAYER_SPINE p ON p.PLAN_ID=c.PLAN_ID\n WHERE c.PROD_NDC11 IN ('99101010105','99101010110')\n  AND c.CLM_DT BETWEEN (SELECT DATEADD(day,-6,MIN(WK_END_DT)) FROM wks) AND (SELECT MAX(WK_END_DT) FROM wks)\n GROUP BY 1),\nrx AS (\n SELECT t.TERR_ID, t.TERR_NM, t.DISTRICT_ID, ps.PAYER_NM, SUM(r.TRX_QTY) trx\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n JOIN PHARMA_DEMO.CORE.PRESCRIBER pr ON pr.PRSCRBR_ME=r.PRSCRBR_ME\n JOIN PHARMA_DEMO.CORE.TERRITORY t ON t.TERR_ID=pr.TERR_ID\n LEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE ps ON ps.PLAN_ID=r.PLAN_ID\n WHERE r.PROD_NDC11 IN ('99101010105','99101010110') AND r.WK_END_DT IN (SELECT WK_END_DT FROM wks)\n GROUP BY 1,2,3,4)\nSELECT rx.DISTRICT_ID, rx.TERR_ID, rx.TERR_NM, SUM(trx) trx_13w,\n ROUND(SUM(trx*pr.abn_per_claim)/NULLIF(SUM(trx),0)*100,2) exp_abn_per_100,\n ROUND(SUM(trx*pr.rej_rate)/NULLIF(SUM(trx),0)*100,1) exp_rej_rate_pct,\n ROUND(SUM(IFF(rx.PAYER_NM IN ('Harborview Health','Evergreen Health Plans'),trx,0))/NULLIF(SUM(trx),0)*100,1) pct_trx_harbor_evergreen\nFROM rx LEFT JOIN pr ON pr.PAYER_NM=rx.PAYER_NM\nGROUP BY 1,2,3 ORDER BY 1,2",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 3.78
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT c.REJ_RSN_CD, COUNT(*) rejected, SUM(IFF(c.ABNDN_FLG='Y',1,0)) abandoned,\n ROUND(SUM(IFF(c.ABNDN_FLG='Y',1,0))/COUNT(*),3) aar\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\nWHERE c.PROD_NDC11 IN ('99101010105','99101010110') AND c.ADJ_STAT='R'\n AND c.CLM_DT BETWEEN (SELECT DATEADD(day,-6,MIN(WK_END_DT)) FROM wks) AND (SELECT MAX(WK_END_DT) FROM wks)\nGROUP BY 1 ORDER BY 2 DESC",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 2.04
+    }
+  ],
+  "usage": {
+    "input": 28,
+    "output": 8764,
+    "cache_read": 205403,
+    "cache_write": 28764
+  },
+  "cost_usd": 0.3603,
+  "latency_s": 142.0,
+  "cypher_queries": 76
+}

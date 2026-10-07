@@ -1,0 +1,96 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "B",
+  "qid": "Q6",
+  "question": "Which customers are exposed if supplier S-104 misses its next ship date? Show the affected products and the top 10 accounts and payers by volume on them.",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "If S-104 (Delmar Specialty Chemicals, a tier-2 supplier in India) misses its next ship date, all prescriptions for the three Lacrivia/Cyclosporine eye-drop packs are exposed: 13,986 TRx in the last 13 weeks. Eight health systems and two independent clinics account for 80.5% of that volume, and the top 10 payers account for 80.0%.\n\n**What's at risk**\n- **The next shipment:** order PO005791 for 4,200 units of RM-221 (Polysorbate 80, low-peroxide), promised to ship **2026-10-07**. S-104's other material, RM-222, doesn't ship again until 2026-10-26.\n- **No backup supplier:** S-104 is the only approved source for RM-221. The alternate, S-131, isn't qualified. The next step up (CMP-310, a premix made by S-201) also has only one supplier.\n- **Recovery takes about 50 days:** that's the time from RM-221 arriving until finished Lacrivia 5 mL reaches the distribution centre (DC). It includes a 14-day sterility test, so every day of delay pushes the recovery date back.\n\n**Affected products (current bill of materials only)**\n| Product | NDC | TRx, last 13 weeks |\n|---|---|---|\n| Lacrivia 0.1% emulsion 5 mL (FG-1001) | 99101-0101-05 | 7,017 |\n| Lacrivia 0.1% emulsion 10 mL (FG-1002) | 99101-0101-10 | 3,425 |\n| Cyclosporine 0.05% emulsion 5 mL (FG-1003) | 99101-0202-05 | 3,544 |\n| Lens care solutions 1\u201311 (FG-3001 to FG-3011) | 99101-40xx | Not in the commercial database; no customer view |\n\n**Top 10 customers by TRx on these three packs (weeks ending 2026-07-03 to 2026-09-25)**\n| # | Customer | Type | Supply contract tier | TRx | Share |\n|---|---|---|---|---|---|\n| 1 | Oak Hollow Health System | Health system | A | 1,731 | 12.4% |\n| 2 | Riverbend Health System | Health system | A | 1,609 | 11.5% |\n| 3 | Northfield Health System | Health system | A | 1,532 | 11.0% |\n| 4 | Sunridge Health System | Health system | B | 1,511 | 10.8% |\n| 5 | Brightwater Health System | Health system | \u2013 | 1,418 | 10.1% |\n| 6 | Stonegate Health System | Health system | \u2013 | 1,200 | 8.6% |\n| 7 | Clearview Health System | Health system | B (expires 2026-12-31) | 1,068 | 7.6% |\n| 8 | Willow Creek Health System | Health system | \u2013 | 701 | 5.0% |\n| 9 | Sunridge Vision Associates 20 | Independent clinic | \u2013 | 248 | 1.8% |\n| 10 | Glenmoor Vision Associates 12 | Independent clinic | \u2013 | 246 | 1.8% |\n\nIf supply runs short, units go first to Tier A (Oak Hollow, Riverbend, Northfield), then Tier B (Sunridge, Clearview). Everyone else is split in proportion to their last-13-week TRx.\n\n**Top 10 payers by TRx on these three packs**\n| # | Payer | TRx | Share |\n|---|---|---|---|\n| 1 | Northstar Health | 1,635 | 11.7% |\n| 2 | Bluecrest Mutual | 1,630 | 11.7% |\n| 3 | Silverline Health | 1,427 | 10.2% |\n| 4 | Harborview Health | 1,274 | 9.1% |\n| 5 | Redwood Benefit Trust | 1,030 | 7.4% |\n| 6 | Pinnacle Benefit Group | 926 | 6.6% |\n| 7 | Lakeshore Health | 915 | 6.5% |\n| 8 | Keystone Medical Plan | 802 | 5.7% |\n| 9 | Meadowbrook Care | 775 | 5.5% |\n| 10 | Cash / Discount Card | 771 | 5.5% |\n\nCash / Discount Card isn't an insurer. The next insured payer is Granite Plains Health (735).\n\n**Sources and definitions**\n- **Supply side:** the approved supplier-to-finished-good path through the bill of materials (superseded recipes excluded; one ended link from RM-221 to CMP-320 was ignored). Tables: PURCH_ORD and SUPPLIER_MATERIAL in Fabric.\n- **Customer side:** the approved product-to-customers-and-payers path in Snowflake: weekly prescriptions (RXT_WKLY) linked to prescribers, accounts and the payer list (PAYER_SPINE).\n- **\"Customer\":** the top-level contracted account (business rule BR-CUST-01). Clinics and hospitals are rolled up to their health system; independent clinics stand on their own.\n- **Other rules and data:** shortage allocation (BR-ALLOC-01), recovery lead time (BR-LEAD-01), the supply contract list, and standard manufacturing times.\n- **Policy check:** passed for the SUPPLY_PLANNER role, with no masking. The decision was logged (trace b7600707).\n\n**Assumptions**\n- **\"Next ship date\":** the open S-104 order with the earliest promised ship date.\n- **\"Volume\":** TRx over the 13 most recent weeks.\n- **Sunridge and Glenmoor Vision Associates:** they have no parent account in the data, so I treated them as independent. That's why Sunridge Vision Associates 20 appears separately from Sunridge Health System.\n- **Lead time:** the 50-day figure is for Lacrivia 5 mL. The other packs follow similar paths, but I didn't pull their times.",
+  "stop_reason": "end_turn",
+  "model_turns": 11,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_business_rules",
+    "get_concept",
+    "get_join_path",
+    "get_data_product",
+    "list_deprecated_tables",
+    "check_policy",
+    "check_policy",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "trace_supply_exposure",
+    "get_metric",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_reference",
+    "get_lead_times",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.*, sm.MATERIAL_ID, sm.QUALIFIED_FLG, m.MATERIAL_TYP FROM dbo.SUPPLIER s LEFT JOIN dbo.SUPPLIER_MATERIAL sm ON sm.SUPPLIER_ID=s.SUPPLIER_ID LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=sm.MATERIAL_ID WHERE s.SUPPLIER_ID='S-104'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 2.25
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND (ACTUAL_SHIP_DT IS NULL OR STATUS <> 'CLOSED' OR PROMISED_SHIP_DT >= '2026-09-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 1.21
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT r.PROD_NDC11, COUNT(DISTINCT r.WK_END_DT) weeks, MIN(r.WK_END_DT) first_wk, MAX(r.WK_END_DT) last_wk, SUM(r.TRX_QTY) trx_13w,\n SUM(CASE WHEN p.ACCOUNT_ID IS NULL THEN r.TRX_QTY ELSE 0 END) trx_no_acct\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT=wk.WK_END_DT\nLEFT JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME=r.PRSCRBR_ME\nWHERE r.PROD_NDC11 IN ('99101010105','99101010110','99101020205')\nGROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.98
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT a1.ACCT_TYP t1, a2.ACCT_TYP t2, a3.ACCT_TYP t3, a4.ACCT_TYP t4, COUNT(*) n\nFROM PHARMA_DEMO.CORE.ACCOUNT a1\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT a2 ON a2.ACCOUNT_ID=a1.PARENT_ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT a3 ON a3.ACCOUNT_ID=a2.PARENT_ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT a4 ON a4.ACCOUNT_ID=a3.PARENT_ACCOUNT_ID\nGROUP BY 1,2,3,4 ORDER BY n DESC",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.51
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nrx AS (SELECT r.* FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT=wk.WK_END_DT\n       WHERE r.PROD_NDC11 IN ('99101010105','99101010110','99101020205'))\nSELECT COALESCE(a3.ACCOUNT_ID,a2.ACCOUNT_ID,a1.ACCOUNT_ID) top_acct_id,\n       COALESCE(a3.ACCOUNT_NM,a2.ACCOUNT_NM,a1.ACCOUNT_NM) top_acct_nm,\n       COALESCE(a3.ACCT_TYP,a2.ACCT_TYP,a1.ACCT_TYP) top_acct_typ,\n       SUM(rx.TRX_QTY) trx_13w,\n       SUM(CASE WHEN rx.PROD_NDC11='99101010105' THEN rx.TRX_QTY ELSE 0 END) lac_5ml,\n       SUM(CASE WHEN rx.PROD_NDC11='99101010110' THEN rx.TRX_QTY ELSE 0 END) lac_10ml,\n       SUM(CASE WHEN rx.PROD_NDC11='99101020205' THEN rx.TRX_QTY ELSE 0 END) cyclo_5ml,\n       ROUND(100*SUM(rx.TRX_QTY)/SUM(SUM(rx.TRX_QTY)) OVER (),1) pct\nFROM rx JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME=rx.PRSCRBR_ME\nJOIN PHARMA_DEMO.CORE.ACCOUNT a1 ON a1.ACCOUNT_ID=p.ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT a2 ON a2.ACCOUNT_ID=a1.PARENT_ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT a3 ON a3.ACCOUNT_ID=a2.PARENT_ACCOUNT_ID\nGROUP BY 1,2,3 ORDER BY trx_13w DESC LIMIT 12",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 5.32
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nrx AS (SELECT r.* FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT=wk.WK_END_DT\n       WHERE r.PROD_NDC11 IN ('99101010105','99101010110','99101020205'))\nSELECT ps.PAYER_ID, ps.PAYER_NM, SUM(rx.TRX_QTY) trx_13w,\n       SUM(CASE WHEN rx.PROD_NDC11='99101010105' THEN rx.TRX_QTY ELSE 0 END) lac_5ml,\n       SUM(CASE WHEN rx.PROD_NDC11='99101010110' THEN rx.TRX_QTY ELSE 0 END) lac_10ml,\n       SUM(CASE WHEN rx.PROD_NDC11='99101020205' THEN rx.TRX_QTY ELSE 0 END) cyclo_5ml,\n       ROUND(100*SUM(rx.TRX_QTY)/SUM(SUM(rx.TRX_QTY)) OVER (),1) pct,\n       SUM(CASE WHEN ps.PLAN_ID IS NULL THEN rx.TRX_QTY END) unmatched\nFROM rx LEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE ps ON ps.PLAN_ID=rx.PLAN_ID\nGROUP BY 1,2 ORDER BY trx_13w DESC LIMIT 12",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 2.12
+    }
+  ],
+  "usage": {
+    "input": 24,
+    "output": 9322,
+    "cache_read": 162174,
+    "cache_write": 30430
+  },
+  "cost_usd": 0.3711,
+  "latency_s": 140.5,
+  "cypher_queries": 86
+}

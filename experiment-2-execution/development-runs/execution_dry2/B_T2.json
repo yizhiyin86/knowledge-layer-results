@@ -1,0 +1,560 @@
+{
+  "run_id": "execution_dry2",
+  "agent": "B",
+  "task": "T2",
+  "qid": "T2",
+  "question": "Supplier S-105 will miss its next CMP-502 shipment by three weeks. Handle it.",
+  "role": "SUPPLY_PLANNER",
+  "badge": "Supply Response Agent",
+  "effort": "high",
+  "answer": "I've handled the S-105 delay. Only one product is hit: Lacrivia 0.1% 10 mL. It is short at one warehouse (DC-EAST), and I split that stock among customers. No purchase order went to the backup supplier because it is on a quality hold. I notified all 23 affected accounts and asked Trade Relations to tell the two DC-EAST wholesalers.\n\nI followed the standard process for this kind of disruption (Supply Disruption Response). No proven playbook matched this case, but the process covered it, so I didn't use the exploratory mode that flags a run for human review.\n\n**What I found**\n- **The late order:** S-105 (Everline Packaging) has open order PO000869 for 5,800 units of CMP-502, a 10 mL dropper bottle. It was due to ship 2026-10-04 and now ships around 2026-10-25.\n- **Product affected:** CMP-502 goes into one finished product: Lacrivia 0.1% 10 mL (FG-1002, NDC 99101-0101-10), made at plant PL-01.\n- **Backup supplier:** S-108 (Halvorsen Closures) is qualified and approved to ship to PL-01, but the supplier portal shows it on quality hold (closure torque failures, corrective action open). So no available supplier can cover the gap.\n- **Recovery date:** About 2026-11-19 at the warehouses. After the bottles arrive, it takes 25 days: 3 days transit, 3 days fill and QC, 14 days for the sterility test and release, 4 days to the warehouse.\n- **Stock against safety levels (2026-09-25 count):**\n\n| Warehouse | On hand | Safety stock | Status |\n|---|---|---|---|\n| DC-EAST | 34 | 233 | Below \u2014 about 2 days of supply |\n| DC-CENTRAL | 351 | 155 | Above \u2014 about 30 days |\n| DC-WEST | 324 | 129 | Above \u2014 about 34 days |\n\n- **Substitute:** The other Lacrivia pack (5 mL) can't be offered because it is also below safety stock at DC-EAST (46 vs 471). The approved substitute, Cyclosporine OS 0.05% 5 mL, is not made with CMP-502 and is well stocked at DC-EAST (615 vs 252), so that is what account teams were told to offer.\n\n**What I did**\n1. **Split the DC-EAST stock (plan AL-BA541D8D):** All 34 units go to the three Tier A health systems, in proportion to their last-13-week prescriptions (TRx) of this pack in the states DC-EAST serves. Leftover units after rounding went to the largest account.\n   - Riverbend (AC00059): 15 units (271 prescriptions)\n   - Oak Hollow (AC00038): 11 units (237)\n   - Northfield (AC00117): 8 units (174)\n   - Tier B and all other accounts get nothing; the Tier A demand used up all 34 units.\n   - The plan is worth $26,520 at the $780 list price. That is under the $50,000 approval limit and moves no stock between warehouses, so no approval was needed.\n2. **Notified account teams (23 tasks, one per DC-EAST account with prescriptions of this pack).** Each message gives the account's units (or none), the ~2026-11-19 recovery date and the Cyclosporine OS substitute.\n   - Tier A: CRM-9F61F5EB (AC00059), CRM-008F1E4F (AC00038), CRM-30F0C469 (AC00117).\n   - Tier B: CRM-0D18061D (AC00001), CRM-CC05F8DD (AC00138).\n   - All other accounts: CRM-1B17DD9F, CRM-85C5E6DF, CRM-20FB445A, CRM-4D94175C, CRM-22917AB3, CRM-AD030BEF, CRM-5EF711C2, CRM-46DDE0D8, CRM-73FD4045, CRM-DE3B7D34, CRM-CF89367A, CRM-8DD54EC7, CRM-A8DF21C4, CRM-FC422EC1, CRM-E497CA0D, CRM-D2DEF0B3, CRM-EB1AEA89, CRM-D7FF3180.\n3. **Wholesaler notice (CASE-A2C587A6, owner Trade Relations):** The system for sending notices to wholesalers has no connection I can use, so I asked Trade Relations to notify W-01 Keystone Drug Distributors and W-02 Atlas Pharma Supply, the two wholesalers DC-EAST serves.\n\n**What I did not do, and why**\n- **No order to S-108:** It is on quality hold.\n- **No split at DC-CENTRAL or DC-WEST:** Both are above safety stock, and the rules only allow splitting stock where it is below.\n- **No transfer to DC-EAST from another warehouse:** It would need Supply Planning lead approval. All warehouses depend on the same delayed plant, so moving stock would only shift the shortage. The lead can still ask for one.\n- **No wholesaler stock check:** The wholesaler inventory feed returned an error (HTTP 503, not loaded yet).\n- **No patient-level data used, per data-use policy POL-DUA-01.**\n\n**Assumptions and risks**\n- I assumed only PO000869 slips. If S-105's later orders (PO000870\u2013872) slip too, DC-CENTRAL and DC-WEST run out around 2026-10-25 and 2026-10-29, before supply recovers. I'd re-check them at the next weekly stock count.\n- S-108's open order PO000887 (4,900 units, due 2026-10-18) is probably blocked by its quality hold too. I counted no supply from it.\n- To place prescriptions in DC-EAST's states I used the state of each prescriber's clinic, and I rolled clinics up to their top-level health system.\n- Independent clinics with names like \"Sunridge Vision Associates 20\" have no parent health system in the account data, so they don't get that system's contract tier.\n\n**Knowledge-layer sources used:** process Supply Disruption Response (SDR-1.1 to 4.2); rules BR-ALLOC-01/02, BR-APPR-01, BR-SUB-01/02, BR-LEAD-01, BR-CUST-01, BR-REGION-01; reference sets supply_contracts, list_prices, dc_service_regions, approved_substitutes and ndc_crosswalk; the supply-exposure trace and lead-time lookup.",
+  "stop_reason": "end_turn",
+  "model_turns": 16,
+  "tool_calls": [
+    "get_process",
+    "find_playbooks",
+    "get_context",
+    "trace_supply_exposure",
+    "run_sql",
+    "get_supplier_status",
+    "get_supplier_status",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "get_reference",
+    "get_reference",
+    "run_sql",
+    "get_reference",
+    "get_lead_times",
+    "get_reference",
+    "get_context",
+    "get_reference",
+    "check_policy",
+    "run_sql",
+    "run_sql",
+    "get_wholesaler_inventory",
+    "get_wholesaler_inventory",
+    "create_allocation",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "create_escalation_case"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE MATERIAL_ID='CMP-502' AND (STATUS='OPEN' OR ORDER_DT >= '2026-06-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 23,
+      "error": null,
+      "elapsed_s": 3.0
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.SUPPLIER_ID, sm.MATERIAL_ID, sm.QUALIFIED_FLG, sm.PRIMARY_FLG, s.SUPPLIER_NM, s.TIER FROM dbo.SUPPLIER_MATERIAL sm JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID='CMP-502'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 2.3
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.MATERIAL_ID, m.MATERIAL_NM, m.MATERIAL_TYP, x.* FROM dbo.MATERIAL m LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=m.MATERIAL_ID WHERE m.MATERIAL_TYP='FG'",
+      "ok": false,
+      "rows": null,
+      "error": "('42S22', \"[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'MATERIAL_NM'. (207) (SQLExecDirectW)\")",
+      "elapsed_s": 1.5
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS FROM dbo.DC_INV i WHERE i.SNAPSHOT_DT = (SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) ORDER BY i.MATERIAL_ID, i.DC_ID",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 0.86
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PLANT_MATERIAL WHERE MATERIAL_ID IN ('FG-1002','FILL-1002','CMP-502')",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.47
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, MATERIAL_DESC, MATERIAL_TYP, PACK_SZ FROM dbo.MATERIAL WHERE MATERIAL_TYP='FG'",
+      "ok": true,
+      "rows": 60,
+      "error": null,
+      "elapsed_s": 1.99
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nrx AS (SELECT r.PRSCRBR_ME, SUM(r.TRX_QTY) trx FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wks w ON w.WK_END_DT=r.WK_END_DT WHERE r.PROD_NDC11='99101010110' GROUP BY 1),\na AS (SELECT p.PRSCRBR_ME, c.ACCOUNT_ID clinic, c.STATE, c.PARENT_ACCOUNT_ID p1, h.PARENT_ACCOUNT_ID p2 FROM PHARMA_DEMO.CORE.PRESCRIBER p JOIN PHARMA_DEMO.CORE.ACCOUNT c ON c.ACCOUNT_ID=p.ACCOUNT_ID LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT h ON h.ACCOUNT_ID=c.PARENT_ACCOUNT_ID)\nSELECT COALESCE(a.p2, a.p1, a.clinic) top_acct, t.ACCOUNT_NM, t.ACCT_TYP, SUM(rx.trx) trx13, COUNT(DISTINCT a.STATE) n_states, (SELECT MIN(WK_END_DT)||' to '||MAX(WK_END_DT) FROM wks) wk_range\nFROM rx JOIN a ON a.PRSCRBR_ME=rx.PRSCRBR_ME JOIN PHARMA_DEMO.CORE.ACCOUNT t ON t.ACCOUNT_ID=COALESCE(a.p2, a.p1, a.clinic)\nWHERE a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH')\nGROUP BY 1,2,3 HAVING SUM(rx.trx)>0 ORDER BY trx13 DESC",
+      "ok": true,
+      "rows": 23,
+      "error": null,
+      "elapsed_s": 5.17
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.DC_ID, s.WHSLR_ID, w.WHSLR_NM, w.REGION, SUM(s.UNITS) units_28d, MAX(s.SHIP_DT) last_ship FROM dbo.WHSLR_SHIP s JOIN dbo.WHSLR w ON w.WHSLR_ID=s.WHSLR_ID WHERE s.MATERIAL_ID='FG-1002' AND s.SHIP_DT > DATEADD(day,-28,(SELECT MAX(SHIP_DT) FROM dbo.WHSLR_SHIP)) GROUP BY s.DC_ID, s.WHSLR_ID, w.WHSLR_NM, w.REGION ORDER BY s.DC_ID, units_28d DESC",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 2.02
+    }
+  ],
+  "cypher_queries": 77,
+  "usage": {
+    "input": 34,
+    "output": 19127,
+    "cache_read": 453410,
+    "cache_write": 52313
+  },
+  "cost_usd": 0.7349,
+  "latency_s": 211.2,
+  "final_state": {
+    "allocation_plans": [
+      {
+        "plan_id": "AL-BA541D8D",
+        "dc_id": "DC-EAST",
+        "ndc11": "99101010110",
+        "from_dc": null,
+        "approval_id": null,
+        "basis": "BR-ALLOC-01/02: S-105 CMP-502 PO000869 slips 3 weeks (promised 2026-10-04 -> ~2026-10-25); alternate S-108 on quality HOLD so no qualified alternate available. FG-1002 at DC-EAST 34 on hand vs 233 safety stock (snapshot 2026-09-25). All 34 units to Tier A health systems pro rata by last-13-week TRx of NDC 99101010110 (wks 2026-07-03..2026-09-25) from prescribers in DC-EAST states, rolled up to top-level account: Riverbend 271, Oak Hollow 237, Northfield 174 (total 682) -> 13/11/8 rounded down, remainder 2 to largest (Riverbend). Tier B and other accounts: 0. Value $26,520 at list ($780) < $50k, no inter-DC transfer -> no approval required (BR-APPR-01).",
+        "created_at": "2026-10-07T15:48:05+00:00",
+        "lines": [
+          {
+            "account_id": "AC00038",
+            "units": 11
+          },
+          {
+            "account_id": "AC00059",
+            "units": 15
+          },
+          {
+            "account_id": "AC00117",
+            "units": 8
+          }
+        ]
+      }
+    ],
+    "purchase_requisitions": [],
+    "approvals": [],
+    "crm_tasks": [
+      {
+        "task_id": "CRM-9F61F5EB",
+        "account_id": "AC00059",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. Riverbend Health System (Tier A) is allocated 15 units (allocation plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19 (component now ships ~2026-10-25, plus 25 days make/QC incl. 14-day sterility test and DC transit). Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:16+00:00"
+      },
+      {
+        "task_id": "CRM-008F1E4F",
+        "account_id": "AC00038",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. Oak Hollow Health System (Tier A) is allocated 11 units (allocation plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19 (component now ships ~2026-10-25, plus 25 days make/QC incl. 14-day sterility test and DC transit). Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:16+00:00"
+      },
+      {
+        "task_id": "CRM-30F0C469",
+        "account_id": "AC00117",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. Northfield Health System (Tier A) is allocated 8 units (allocation plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19 (component now ships ~2026-10-25, plus 25 days make/QC incl. 14-day sterility test and DC transit). Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:17+00:00"
+      },
+      {
+        "task_id": "CRM-0D18061D",
+        "account_id": "AC00001",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. Clearview Health System (Tier B) receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:42+00:00"
+      },
+      {
+        "task_id": "CRM-CC05F8DD",
+        "account_id": "AC00138",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. Sunridge Health System (Tier B) receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:43+00:00"
+      },
+      {
+        "task_id": "CRM-1B17DD9F",
+        "account_id": "AC00017",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:43+00:00"
+      },
+      {
+        "task_id": "CRM-85C5E6DF",
+        "account_id": "AC00080",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:43+00:00"
+      },
+      {
+        "task_id": "CRM-20FB445A",
+        "account_id": "AC00178",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:43+00:00"
+      },
+      {
+        "task_id": "CRM-4D94175C",
+        "account_id": "AC00101",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:44+00:00"
+      },
+      {
+        "task_id": "CRM-22917AB3",
+        "account_id": "AC00184",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:44+00:00"
+      },
+      {
+        "task_id": "CRM-AD030BEF",
+        "account_id": "AC00160",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:44+00:00"
+      },
+      {
+        "task_id": "CRM-5EF711C2",
+        "account_id": "AC00171",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:45+00:00"
+      },
+      {
+        "task_id": "CRM-46DDE0D8",
+        "account_id": "AC00169",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:48:45+00:00"
+      },
+      {
+        "task_id": "CRM-73FD4045",
+        "account_id": "AC00174",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:49:15+00:00"
+      },
+      {
+        "task_id": "CRM-DE3B7D34",
+        "account_id": "AC00177",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:49:16+00:00"
+      },
+      {
+        "task_id": "CRM-CF89367A",
+        "account_id": "AC00187",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:49:16+00:00"
+      },
+      {
+        "task_id": "CRM-8DD54EC7",
+        "account_id": "AC00159",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:49:16+00:00"
+      },
+      {
+        "task_id": "CRM-A8DF21C4",
+        "account_id": "AC00164",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:49:16+00:00"
+      },
+      {
+        "task_id": "CRM-FC422EC1",
+        "account_id": "AC00162",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:49:17+00:00"
+      },
+      {
+        "task_id": "CRM-E497CA0D",
+        "account_id": "AC00172",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:49:17+00:00"
+      },
+      {
+        "task_id": "CRM-D2DEF0B3",
+        "account_id": "AC00166",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:49:17+00:00"
+      },
+      {
+        "task_id": "CRM-EB1AEA89",
+        "account_id": "AC00167",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:49:17+00:00"
+      },
+      {
+        "task_id": "CRM-D7FF3180",
+        "account_id": "AC00185",
+        "subject": "Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST",
+        "message": "A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.",
+        "created_at": "2026-10-07T15:49:18+00:00"
+      }
+    ],
+    "edi_messages": [],
+    "escalation_cases": [
+      {
+        "case_id": "CASE-A2C587A6",
+        "owner": "TRADE_RELATIONS",
+        "subject": "Notify DC-EAST wholesalers: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) supply delay",
+        "details": "Supply Disruption Response step SDR-4.2. The wholesaler EDI gateway has no API, so this needs Trade Relations to send the notice. Supplier S-105 (Everline Packaging) will ship CMP-502 (10 mL LDPE dropper bottle, PO000869) about 3 weeks late: promised 2026-10-04, now about 2026-10-25. The qualified alternate S-108 is on quality hold. Lacrivia 0.1% 10 mL (FG-1002) at DC-EAST has 34 units on hand against a safety stock of 233 (snapshot 2026-09-25). All 34 units are allocated to Tier A contracts (plan AL-BA541D8D). Expected recovery at DC-EAST is about 2026-11-19 (25 days from component arrival, including the 14-day sterility test). Please notify the wholesalers served by DC-EAST: W-01 Keystone Drug Distributors (235 units shipped in the last 28 days) and W-02 Atlas Pharma Supply (231 units). Approved substitute: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05) is above safety stock at DC-EAST. FYI: DC-CENTRAL (W-03, W-04) and DC-WEST (W-05, W-06) are above safety stock today (about 30 and 34 days of supply). No allocation is needed there for now. Wholesaler inventory feed was unavailable (HTTP 503), so I could not check wholesaler on-hand.",
+        "related_ids": "[\"PO000869\", \"AL-BA541D8D\", \"S-105\", \"S-108\", \"CMP-502\", \"FG-1002\", \"W-01\", \"W-02\"]",
+        "created_at": "2026-10-07T15:49:18+00:00"
+      }
+    ],
+    "tool_calls": [
+      {
+        "seq": 1,
+        "tool": "create_allocation",
+        "args": "{\"dc_id\": \"DC-EAST\", \"ndc11\": \"99101010110\", \"lines\": [{\"account_id\": \"AC00059\", \"units\": 15}, {\"account_id\": \"AC00038\", \"units\": 11}, {\"account_id\": \"AC00117\", \"units\": 8}], \"basis\": \"BR-ALLOC-01/02: S-105 CMP-502 PO000869 slips 3 weeks (promised 2026-10-04 -> ~2026-10-25); alternate S-108 on quality HOLD so no qualified alternate available. FG-1002 at DC-EAST 34 on hand vs 233 safety stock (snapshot 2026-09-25). All 34 units to Tier A health systems pro rata by last-13-week TRx of NDC 99101010110 (wks 2026-07-03..2026-09-25) from prescribers in DC-EAST states, rolled up to top-level account: Riverbend 271, Oak Hollow 237, Northfield 174 (total 682) -> 13/11/8 rounded down, remainder 2 to largest (Riverbend). Tier B and other accounts: 0. Value $26,520 at list ($780) < $50k, no inter-DC transfer -> no approval required (BR-APPR-01).\"}",
+        "accepted": 1,
+        "result": "{\"plan_id\": \"AL-BA541D8D\", \"status\": \"recorded\", \"lines\": 3, \"units\": 34}",
+        "created_at": "2026-10-07T15:48:05+00:00"
+      },
+      {
+        "seq": 2,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00059\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. Riverbend Health System (Tier A) is allocated 15 units (allocation plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19 (component now ships ~2026-10-25, plus 25 days make/QC incl. 14-day sterility test and DC transit). Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-9F61F5EB\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:16+00:00"
+      },
+      {
+        "seq": 3,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00038\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. Oak Hollow Health System (Tier A) is allocated 11 units (allocation plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19 (component now ships ~2026-10-25, plus 25 days make/QC incl. 14-day sterility test and DC transit). Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-008F1E4F\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:16+00:00"
+      },
+      {
+        "seq": 4,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00117\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. Northfield Health System (Tier A) is allocated 8 units (allocation plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19 (component now ships ~2026-10-25, plus 25 days make/QC incl. 14-day sterility test and DC transit). Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-30F0C469\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:17+00:00"
+      },
+      {
+        "seq": 5,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00001\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. Clearview Health System (Tier B) receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-0D18061D\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:42+00:00"
+      },
+      {
+        "seq": 6,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00138\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. Sunridge Health System (Tier B) receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-CC05F8DD\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:43+00:00"
+      },
+      {
+        "seq": 7,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00017\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-1B17DD9F\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:43+00:00"
+      },
+      {
+        "seq": 8,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00080\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-85C5E6DF\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:43+00:00"
+      },
+      {
+        "seq": 9,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00178\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-20FB445A\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:43+00:00"
+      },
+      {
+        "seq": 10,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00101\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-4D94175C\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:44+00:00"
+      },
+      {
+        "seq": 11,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00184\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-22917AB3\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:44+00:00"
+      },
+      {
+        "seq": 12,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00160\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-AD030BEF\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:44+00:00"
+      },
+      {
+        "seq": 13,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00171\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-5EF711C2\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:45+00:00"
+      },
+      {
+        "seq": 14,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00169\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-46DDE0D8\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:48:45+00:00"
+      },
+      {
+        "seq": 15,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00174\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-73FD4045\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:49:15+00:00"
+      },
+      {
+        "seq": 16,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00177\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-DE3B7D34\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:49:16+00:00"
+      },
+      {
+        "seq": 17,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00187\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-CF89367A\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:49:16+00:00"
+      },
+      {
+        "seq": 18,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00159\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-8DD54EC7\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:49:16+00:00"
+      },
+      {
+        "seq": 19,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00164\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-A8DF21C4\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:49:16+00:00"
+      },
+      {
+        "seq": 20,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00162\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-FC422EC1\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:49:17+00:00"
+      },
+      {
+        "seq": 21,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00172\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-E497CA0D\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:49:17+00:00"
+      },
+      {
+        "seq": 22,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00166\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-D2DEF0B3\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:49:17+00:00"
+      },
+      {
+        "seq": 23,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00167\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-EB1AEA89\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:49:17+00:00"
+      },
+      {
+        "seq": 24,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00185\", \"subject\": \"Supply notice: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) constrained at DC-EAST\", \"message\": \"A supplier delay on a packaging component (3 weeks) constrains Lacrivia 0.1% 10 mL at DC-EAST. This account receives no allocation of this pack: the 34 units on hand were fully allocated to Tier A contracts under the shortage allocation rules (plan AL-BA541D8D). Expected supply recovery at DC-EAST: around 2026-11-19. Approved company substitute available: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05), in stock above safety stock at DC-EAST and not affected by this issue. Lacrivia 5 mL is also below safety stock at DC-EAST and is not offered as an alternative.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-D7FF3180\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:49:18+00:00"
+      },
+      {
+        "seq": 25,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"TRADE_RELATIONS\", \"subject\": \"Notify DC-EAST wholesalers: Lacrivia 0.1% 10 mL (NDC 99101-0101-10) supply delay\", \"details\": \"Supply Disruption Response step SDR-4.2. The wholesaler EDI gateway has no API, so this needs Trade Relations to send the notice. Supplier S-105 (Everline Packaging) will ship CMP-502 (10 mL LDPE dropper bottle, PO000869) about 3 weeks late: promised 2026-10-04, now about 2026-10-25. The qualified alternate S-108 is on quality hold. Lacrivia 0.1% 10 mL (FG-1002) at DC-EAST has 34 units on hand against a safety stock of 233 (snapshot 2026-09-25). All 34 units are allocated to Tier A contracts (plan AL-BA541D8D). Expected recovery at DC-EAST is about 2026-11-19 (25 days from component arrival, including the 14-day sterility test). Please notify the wholesalers served by DC-EAST: W-01 Keystone Drug Distributors (235 units shipped in the last 28 days) and W-02 Atlas Pharma Supply (231 units). Approved substitute: Cyclosporine OS 0.05% 5 mL (NDC 99101-0202-05) is above safety stock at DC-EAST. FYI: DC-CENTRAL (W-03, W-04) and DC-WEST (W-05, W-06) are above safety stock today (about 30 and 34 days of supply). No allocation is needed there for now. Wholesaler inventory feed was unavailable (HTTP 503), so I could not check wholesaler on-hand.\", \"related_ids\": [\"PO000869\", \"AL-BA541D8D\", \"S-105\", \"S-108\", \"CMP-502\", \"FG-1002\", \"W-01\", \"W-02\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-A2C587A6\", \"status\": \"open\", \"owner\": \"TRADE_RELATIONS\"}",
+        "created_at": "2026-10-07T15:49:18+00:00"
+      }
+    ]
+  },
+  "discovery": false,
+  "trusted_playbooks_offered": {},
+  "execution_trace": {
+    "trace_id": "ed522842-1242-49f3-846a-9ba3ca29ace4",
+    "followed": [
+      "SDR-1.2",
+      "SDR-2.1",
+      "SDR-2.4",
+      "SDR-3.3",
+      "SDR-4.1",
+      "SDR-4.2"
+    ],
+    "seeded_asset": null
+  }
+}

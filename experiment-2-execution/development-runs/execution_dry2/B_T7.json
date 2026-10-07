@@ -1,0 +1,282 @@
+{
+  "run_id": "execution_dry2",
+  "agent": "B",
+  "task": "T7",
+  "qid": "T7",
+  "question": "Supplier S-107 will miss its next CMP-530 shipment by four weeks. Handle it.",
+  "role": "SUPPLY_PLANNER",
+  "badge": "Supply Response Agent",
+  "effort": "high",
+  "answer": "I've handled the S-107 delay. I ordered the missing 600 cartons from the backup supplier, S-114, and notified the five contracted health systems at DC-EAST. Wholesaler notices and alternative-product guidance are handed to the right teams. **I recorded no allocation:** the only packs below safety stock are covered by the backup supplier. There was no approved playbook, so I followed the Supply Disruption Response process steps.\n\n## What I found\n- **The late order:** S-107 (Glenwood Cartons) has 4 open orders for CMP-530 (a folding carton). The next one, PO001160, is 600 units promised to ship 2026-10-03. Four weeks late puts it around 2026-10-31.\n- **Products affected:** CMP-530 goes into the pack kit KIT-100, made at plant PL-01. The kit is used in:\n  - Lacrivia 5 mL and 10 mL, and Cyclosporine OS 0.05% (made at PL-01);\n  - Oculon 2.5 mL and 5 mL (made at PL-02);\n  - lens-care, surgical, supplement, diagnostic and antibiotic products made at plants PL-03 and PL-04. None of these is in the commercial database, and there is no DC stock record for them.\n- **Backup supplier:** S-114 (Norland Paperboard) is qualified for CMP-530. The supplier portal shows it active and approved, but only for plant PL-01. S-107 is not on hold.\n- **DC stock vs safety stock (snapshot 2026-09-25):**\n\n| DC | Pack | On hand | Safety stock |\n|---|---|---|---|\n| DC-EAST | Lacrivia 5 mL | 46 | 471 |\n| DC-EAST | Lacrivia 10 mL | 34 | 233 |\n\n  Every other affected pack at every DC is at or above safety stock, including all Oculon packs.\n- **Recovery time:** it takes 23 days from carton arrival to stock at the DC (transit, kitting, a 14-day sterility test, then shipping to the DC). Recovery is expected around 2026-11-15 if S-114's open order PO001178 ships on 2026-10-23, and around 2026-11-23 if S-107's late shipment arrives about 2026-10-31.\n- **Substitutes:** none can be offered. The other Lacrivia pack is also below safety stock at DC-EAST, and Cyclosporine OS uses the same carton and kit. That leaves no company substitute, so Medical Affairs guides alternatives.\n- **Why no allocation:** the rules only allow allocating packs the delay actually cuts off. The two short Lacrivia packs are made at PL-01, which S-114 can supply. Oculon isn't covered by S-114, but it is above safety stock everywhere.\n\n## Actions taken\n| Step | Action | ID |\n|---|---|---|\n| Backup supply | Purchase requisition to S-114 for 600 CMP-530, ship to PL-01, need-by 2026-10-06, marked expedite | PR-CFEC4687 |\n| Account teams | Riverbend AC00059 (Tier A) | CRM-D31011C9 |\n| | Oak Hollow AC00038 (Tier A) | CRM-372E052D |\n| | Northfield AC00117 (Tier A) | CRM-9AE3B6F7 |\n| | Clearview AC00001 (Tier B) | CRM-6D7C2D84 |\n| | Sunridge AC00138 (Tier B) | CRM-BBC23E26 |\n| Wholesalers | Case for Trade Relations to notify W-01 Keystone and W-02 Atlas (the wholesaler messaging system has no connection) | CASE-2528FE50 |\n| Alternatives | Case for Medical Affairs to advise on alternatives to Lacrivia | CASE-876DB7F3 |\n\nEach account-team task says the account gets no allocation, gives the expected recovery date, and says no company substitute can be offered.\n\n## Not done, and why\n- **No allocation and no approval request:** nothing qualifies under the allocation rules, as explained above.\n- **No direct messages to wholesalers:** the messaging system has no connection, so Trade Relations has it.\n- **No transfer from DC-CENTRAL or DC-WEST to DC-EAST:** both have spare Lacrivia stock, but a transfer needs the Supply Planning lead's approval and isn't part of this process. Raise it if you want one.\n\n## Assumptions and risks\n- **The backup order may not arrive sooner.** S-114 usually takes about 33 days from order to shipment, so the new order is only faster than S-107's late shipment if S-114 expedites it. Purchasing should confirm a ship date.\n- **\"Affected DC\" means DC-EAST**, the only DC with an affected pack below safety stock. I only notified the five contracted health systems there (all have Lacrivia prescriptions at DC-EAST in the last 13 weeks). Accounts without a contract weren't notified.\n- **Plant coverage:** I treated S-114 as covering packs made at PL-01, as the allocation rule is worded. Since the carton is only used at PL-01, either reading leads to the same result: no allocation.\n- **DC-EAST was already short before this delay.** Lacrivia there was below safety stock while CENTRAL and WEST had plenty, so the shortage may come from how stock is spread across DCs, not only from the cartons.\n- **The other products** using this carton (PL-03 and PL-04) have no DC stock or prescription data, so I couldn't check their exposure.\n\nKnowledge-layer sources: process \"Supply Disruption Response\" (steps SDR-1.1 to 4.2), rules BR-ALLOC-01/02, BR-SUB-01/02, BR-LEAD-01, BR-CUST-01, BR-REGION-01 and BR-APPR-01, the supply exposure trace and lead times, and reference sets supply_contracts, dc_service_regions, approved_substitutes and list_prices.",
+  "stop_reason": "end_turn",
+  "model_turns": 15,
+  "tool_calls": [
+    "get_process",
+    "find_playbooks",
+    "get_context",
+    "trace_supply_exposure",
+    "run_sql",
+    "run_sql",
+    "get_supplier_status",
+    "get_supplier_status",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_lead_times",
+    "get_lead_times",
+    "run_sql",
+    "run_sql",
+    "get_reference",
+    "get_reference",
+    "get_reference",
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "get_reference",
+    "create_purchase_requisition",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "create_escalation_case",
+    "create_escalation_case"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE MATERIAL_ID='CMP-530' AND (STATUS='OPEN' OR ORDER_DT >= '2026-01-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 51,
+      "error": null,
+      "elapsed_s": 3.53
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.SUPPLIER_ID, s.SUPPLIER_NM, s.TIER, sm.QUALIFIED_FLG, sm.PRIMARY_FLG FROM dbo.SUPPLIER_MATERIAL sm JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID='CMP-530'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 2.39
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT pm.PLANT_ID, pm.MATERIAL_ID FROM dbo.PLANT_MATERIAL pm WHERE pm.MATERIAL_ID IN ('CMP-530','KIT-100','FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') ORDER BY pm.MATERIAL_ID, pm.PLANT_ID",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.57
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT pm.PLANT_ID, COUNT(DISTINCT b.PARENT_MATERIAL_ID) AS n_parents FROM dbo.BOM b JOIN dbo.PLANT_MATERIAL pm ON pm.MATERIAL_ID=b.PARENT_MATERIAL_ID WHERE b.CHILD_MATERIAL_ID IN ('CMP-530','KIT-100') AND b.EFF_TO >= '2026-09-30' GROUP BY pm.PLANT_ID",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.0
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b.CHILD_MATERIAL_ID, b.PARENT_MATERIAL_ID, b.QTY_PER, b.EFF_FROM, b.EFF_TO, pm.PLANT_ID, m.MATERIAL_TYP FROM dbo.BOM b LEFT JOIN dbo.PLANT_MATERIAL pm ON pm.MATERIAL_ID=b.PARENT_MATERIAL_ID LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=b.PARENT_MATERIAL_ID WHERE (b.CHILD_MATERIAL_ID='CMP-530' OR (b.CHILD_MATERIAL_ID='KIT-100' AND b.PARENT_MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002'))) ORDER BY 1,2",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 2.13
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH fg AS (SELECT DISTINCT b.PARENT_MATERIAL_ID AS MATERIAL_ID FROM dbo.BOM b JOIN dbo.MATERIAL m ON m.MATERIAL_ID=b.PARENT_MATERIAL_ID WHERE b.CHILD_MATERIAL_ID='KIT-100' AND b.EFF_TO >= '2026-09-30' AND m.MATERIAL_TYP='FG'),\nlatest AS (SELECT MAX(SNAPSHOT_DT) AS dt FROM dbo.DC_INV)\nSELECT pm.PLANT_ID, i.DC_ID, COUNT(*) AS n_fg_dc, SUM(CASE WHEN i.ON_HAND_UNITS < i.SAFETY_STOCK_UNITS THEN 1 ELSE 0 END) AS n_below_ss, MAX(i.SNAPSHOT_DT) AS snap\nFROM fg JOIN dbo.DC_INV i ON i.MATERIAL_ID=fg.MATERIAL_ID JOIN latest l ON i.SNAPSHOT_DT=l.dt LEFT JOIN dbo.PLANT_MATERIAL pm ON pm.MATERIAL_ID=fg.MATERIAL_ID\nGROUP BY pm.PLANT_ID, i.DC_ID ORDER BY 1,2",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 2.65
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, x.NDC, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS FROM dbo.DC_INV i JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=i.MATERIAL_ID WHERE i.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') AND i.SNAPSHOT_DT=(SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) ORDER BY i.DC_ID, i.MATERIAL_ID",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.85
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nacct AS (SELECT a.ACCOUNT_ID, a.STATE, COALESCE(gp.ACCOUNT_ID, p.ACCOUNT_ID, a.ACCOUNT_ID) AS TOP_ID FROM PHARMA_DEMO.CORE.ACCOUNT a LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT p ON p.ACCOUNT_ID=a.PARENT_ACCOUNT_ID LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT gp ON gp.ACCOUNT_ID=p.PARENT_ACCOUNT_ID)\nSELECT ac.TOP_ID, t.ACCOUNT_NM, r.PROD_NDC11, SUM(r.TRX_QTY) AS TRX13, MIN(w.WK_END_DT) wk_from, MAX(w.WK_END_DT) wk_to\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wks w ON w.WK_END_DT=r.WK_END_DT\nJOIN PHARMA_DEMO.CORE.PRESCRIBER pr ON pr.PRSCRBR_ME=r.PRSCRBR_ME\nJOIN acct ac ON ac.ACCOUNT_ID=pr.ACCOUNT_ID\nJOIN PHARMA_DEMO.CORE.ACCOUNT t ON t.ACCOUNT_ID=ac.TOP_ID\nWHERE r.PROD_NDC11 IN ('99101010105','99101010110') AND ac.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH')\nGROUP BY 1,2,3 HAVING SUM(r.TRX_QTY)>0 ORDER BY TRX13 DESC",
+      "ok": true,
+      "rows": 46,
+      "error": null,
+      "elapsed_s": 23.08
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.DC_ID, s.WHSLR_ID, w.WHSLR_NM, s.MATERIAL_ID, SUM(s.UNITS) AS units_91d FROM dbo.WHSLR_SHIP s JOIN dbo.WHSLR w ON w.WHSLR_ID=s.WHSLR_ID WHERE s.MATERIAL_ID IN ('FG-1001','FG-1002') AND s.SHIP_DT > DATEADD(day,-91,'2026-09-30') GROUP BY s.DC_ID, s.WHSLR_ID, w.WHSLR_NM, s.MATERIAL_ID ORDER BY s.DC_ID, s.WHSLR_ID, s.MATERIAL_ID",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 2.99
+    }
+  ],
+  "cypher_queries": 58,
+  "usage": {
+    "input": 32,
+    "output": 16446,
+    "cache_read": 456505,
+    "cache_write": 54685
+  },
+  "cost_usd": 0.6938,
+  "latency_s": 211.0,
+  "final_state": {
+    "allocation_plans": [],
+    "purchase_requisitions": [
+      {
+        "pr_id": "PR-CFEC4687",
+        "material_id": "CMP-530",
+        "supplier_id": "S-114",
+        "quantity": 600,
+        "ship_to_plant": "PL-01",
+        "need_by": "2026-10-06",
+        "reason": "Mitigation for S-107 (Glenwood Cartons) slip: open PO PO001160 (600 units CMP-530 folding carton, promised ship 2026-10-03) will ship ~4 weeks late (~2026-10-31). S-114 is qualified (SUPPLIER_MATERIAL) and ACTIVE/APPROVED for CMP-530 at PL-01 (supplier portal). CMP-530 feeds KIT-100 (PL-01) for Lacrivia 5/10 mL, Cyclosporine OS, Oculon and other franchises; Lacrivia 5 mL and 10 mL already below safety stock at DC-EAST. Please expedite: S-114 standard order-to-ship is ~33 days; need-by is the original arrival date at PL-01. Process SDR-2.2.",
+        "created_at": "2026-10-07T15:54:21+00:00"
+      }
+    ],
+    "approvals": [],
+    "crm_tasks": [
+      {
+        "task_id": "CRM-D31011C9",
+        "account_id": "AC00059",
+        "subject": "Supply notice: Lacrivia 0.1% 5 mL / 10 mL tight at DC-EAST (carton supplier delay)",
+        "message": "Our carton supplier for ophthalmic pack kits (CMP-530, supplier S-107) will ship its next lot ~4 weeks late (now ~2026-10-31). We have raised an expedited requisition with a qualified alternate supplier (PR-CFEC4687) for the plant that makes Lacrivia, so no allocation is being imposed on your account: allocation units = none (no allocation plan recorded). Note that Lacrivia 0.1% 5 mL (NDC 99101-0101-05) and 10 mL (99101-0101-10) are currently below safety stock at DC-EAST, so order fills may be tight. Expected recovery at DC-EAST: by about 2026-11-15 to 2026-11-23 (carton arrival + kitting + 14-day sterility QC release + DC transit = 23 days). Substitute: no approved company substitute can be offered. The other Lacrivia pack is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% uses the same carton/kit, so it is affected by the same supply issue (BR-SUB-01/02). Medical Affairs will provide guidance on therapeutic alternatives if needed. Oculon is not affected at DC-EAST (above safety stock).",
+        "created_at": "2026-10-07T15:54:50+00:00"
+      },
+      {
+        "task_id": "CRM-372E052D",
+        "account_id": "AC00038",
+        "subject": "Supply notice: Lacrivia 0.1% 5 mL / 10 mL tight at DC-EAST (carton supplier delay)",
+        "message": "Our carton supplier for ophthalmic pack kits (CMP-530, supplier S-107) will ship its next lot ~4 weeks late (now ~2026-10-31). We have raised an expedited requisition with a qualified alternate supplier (PR-CFEC4687) for the plant that makes Lacrivia, so no allocation is being imposed on your account: allocation units = none (no allocation plan recorded). Note that Lacrivia 0.1% 5 mL (NDC 99101-0101-05) and 10 mL (99101-0101-10) are currently below safety stock at DC-EAST, so order fills may be tight. Expected recovery at DC-EAST: by about 2026-11-15 to 2026-11-23 (carton arrival + kitting + 14-day sterility QC release + DC transit = 23 days). Substitute: no approved company substitute can be offered. The other Lacrivia pack is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% uses the same carton/kit, so it is affected by the same supply issue (BR-SUB-01/02). Medical Affairs will provide guidance on therapeutic alternatives if needed. Oculon is not affected at DC-EAST (above safety stock).",
+        "created_at": "2026-10-07T15:54:50+00:00"
+      },
+      {
+        "task_id": "CRM-9AE3B6F7",
+        "account_id": "AC00117",
+        "subject": "Supply notice: Lacrivia 0.1% 5 mL / 10 mL tight at DC-EAST (carton supplier delay)",
+        "message": "Our carton supplier for ophthalmic pack kits (CMP-530, supplier S-107) will ship its next lot ~4 weeks late (now ~2026-10-31). We have raised an expedited requisition with a qualified alternate supplier (PR-CFEC4687) for the plant that makes Lacrivia, so no allocation is being imposed on your account: allocation units = none (no allocation plan recorded). Note that Lacrivia 0.1% 5 mL (NDC 99101-0101-05) and 10 mL (99101-0101-10) are currently below safety stock at DC-EAST, so order fills may be tight. Expected recovery at DC-EAST: by about 2026-11-15 to 2026-11-23 (carton arrival + kitting + 14-day sterility QC release + DC transit = 23 days). Substitute: no approved company substitute can be offered. The other Lacrivia pack is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% uses the same carton/kit, so it is affected by the same supply issue (BR-SUB-01/02). Medical Affairs will provide guidance on therapeutic alternatives if needed. Oculon is not affected at DC-EAST (above safety stock).",
+        "created_at": "2026-10-07T15:54:50+00:00"
+      },
+      {
+        "task_id": "CRM-6D7C2D84",
+        "account_id": "AC00001",
+        "subject": "Supply notice: Lacrivia 0.1% 5 mL / 10 mL tight at DC-EAST (carton supplier delay)",
+        "message": "Our carton supplier for ophthalmic pack kits (CMP-530, supplier S-107) will ship its next lot ~4 weeks late (now ~2026-10-31). We have raised an expedited requisition with a qualified alternate supplier (PR-CFEC4687) for the plant that makes Lacrivia, so no allocation is being imposed on your account: allocation units = none (no allocation plan recorded). Note that Lacrivia 0.1% 5 mL (NDC 99101-0101-05) and 10 mL (99101-0101-10) are currently below safety stock at DC-EAST, so order fills may be tight. Expected recovery at DC-EAST: by about 2026-11-15 to 2026-11-23 (carton arrival + kitting + 14-day sterility QC release + DC transit = 23 days). Substitute: no approved company substitute can be offered. The other Lacrivia pack is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% uses the same carton/kit, so it is affected by the same supply issue (BR-SUB-01/02). Medical Affairs will provide guidance on therapeutic alternatives if needed. Oculon is not affected at DC-EAST (above safety stock).",
+        "created_at": "2026-10-07T15:54:51+00:00"
+      },
+      {
+        "task_id": "CRM-BBC23E26",
+        "account_id": "AC00138",
+        "subject": "Supply notice: Lacrivia 0.1% 5 mL / 10 mL tight at DC-EAST (carton supplier delay)",
+        "message": "Our carton supplier for ophthalmic pack kits (CMP-530, supplier S-107) will ship its next lot ~4 weeks late (now ~2026-10-31). We have raised an expedited requisition with a qualified alternate supplier (PR-CFEC4687) for the plant that makes Lacrivia, so no allocation is being imposed on your account: allocation units = none (no allocation plan recorded). Note that Lacrivia 0.1% 5 mL (NDC 99101-0101-05) and 10 mL (99101-0101-10) are currently below safety stock at DC-EAST, so order fills may be tight. Expected recovery at DC-EAST: by about 2026-11-15 to 2026-11-23 (carton arrival + kitting + 14-day sterility QC release + DC transit = 23 days). Substitute: no approved company substitute can be offered. The other Lacrivia pack is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% uses the same carton/kit, so it is affected by the same supply issue (BR-SUB-01/02). Medical Affairs will provide guidance on therapeutic alternatives if needed. Oculon is not affected at DC-EAST (above safety stock).",
+        "created_at": "2026-10-07T15:54:51+00:00"
+      }
+    ],
+    "edi_messages": [],
+    "escalation_cases": [
+      {
+        "case_id": "CASE-2528FE50",
+        "owner": "TRADE_RELATIONS",
+        "subject": "Notify DC-EAST wholesalers W-01 and W-02: Lacrivia supply delay (CMP-530 carton supplier slip)",
+        "details": "Process step SDR-4.2. The wholesaler EDI gateway has no API, so this is handed to Trade Relations. Please send a notice to Keystone Drug Distributors (W-01) and Atlas Pharma Supply (W-02), both served by DC-EAST. Facts: carton supplier S-107 will ship CMP-530 PO PO001160 about 4 weeks late (now ~2026-10-31 instead of 2026-10-03). A qualified alternate (S-114, approved for PL-01) has been requisitioned (PR-CFEC4687). At DC-EAST (snapshot 2026-09-25), Lacrivia 0.1% 5 mL (99101-0101-05) has 46 units on hand vs 471 safety stock, and Lacrivia 10 mL (99101-0101-10) has 34 vs 233. Expect constrained fills. Expected recovery at DC: ~2026-11-15 to 2026-11-23. No allocation plan was recorded: the packs are covered by the qualified alternate supplier (BR-ALLOC-02). No company substitute can be offered: Cyclosporine OS shares the same kit/carton (BR-SUB-01/02). Wholesalers at DC-CENTRAL (W-03, W-04) and DC-WEST (W-05, W-06) are not affected: all CMP-530-fed packs there are at or above safety stock.",
+        "related_ids": "[\"PO001160\", \"PR-CFEC4687\", \"CMP-530\", \"S-107\", \"S-114\", \"DC-EAST\", \"W-01\", \"W-02\"]",
+        "created_at": "2026-10-07T15:54:51+00:00"
+      },
+      {
+        "case_id": "CASE-876DB7F3",
+        "owner": "MEDICAL_AFFAIRS",
+        "subject": "Therapeutic-alternative guidance needed: Lacrivia short at DC-EAST, no company substitute",
+        "details": "Under BR-SUB-01/02, Medical Affairs guides therapeutic alternatives when there is no company substitute. At DC-EAST, Lacrivia 0.1% 5 mL and 10 mL are both below safety stock (46/471 and 34/233 units). Cyclosporine OS 0.05% (FG-1003) is fed by the same failing carton CMP-530 via KIT-100, so it cannot be offered as the company substitute. CMP-530 supplier S-107 is delayed ~4 weeks; an alternate supplier has been requisitioned (PR-CFEC4687). Expected recovery at DC: ~2026-11-15 to 2026-11-23. The account teams of contracted accounts AC00059, AC00038, AC00117, AC00001 and AC00138 have been told that Medical Affairs will guide therapeutic alternatives.",
+        "related_ids": "[\"CMP-530\", \"S-107\", \"PR-CFEC4687\", \"DC-EAST\", \"FG-1001\", \"FG-1002\", \"FG-1003\"]",
+        "created_at": "2026-10-07T15:54:51+00:00"
+      }
+    ],
+    "tool_calls": [
+      {
+        "seq": 1,
+        "tool": "create_purchase_requisition",
+        "args": "{\"material_id\": \"CMP-530\", \"supplier_id\": \"S-114\", \"quantity\": 600, \"ship_to_plant\": \"PL-01\", \"need_by\": \"2026-10-06\", \"reason\": \"Mitigation for S-107 (Glenwood Cartons) slip: open PO PO001160 (600 units CMP-530 folding carton, promised ship 2026-10-03) will ship ~4 weeks late (~2026-10-31). S-114 is qualified (SUPPLIER_MATERIAL) and ACTIVE/APPROVED for CMP-530 at PL-01 (supplier portal). CMP-530 feeds KIT-100 (PL-01) for Lacrivia 5/10 mL, Cyclosporine OS, Oculon and other franchises; Lacrivia 5 mL and 10 mL already below safety stock at DC-EAST. Please expedite: S-114 standard order-to-ship is ~33 days; need-by is the original arrival date at PL-01. Process SDR-2.2.\"}",
+        "accepted": 1,
+        "result": "{\"pr_id\": \"PR-CFEC4687\", \"status\": \"created\"}",
+        "created_at": "2026-10-07T15:54:21+00:00"
+      },
+      {
+        "seq": 2,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00059\", \"subject\": \"Supply notice: Lacrivia 0.1% 5 mL / 10 mL tight at DC-EAST (carton supplier delay)\", \"message\": \"Our carton supplier for ophthalmic pack kits (CMP-530, supplier S-107) will ship its next lot ~4 weeks late (now ~2026-10-31). We have raised an expedited requisition with a qualified alternate supplier (PR-CFEC4687) for the plant that makes Lacrivia, so no allocation is being imposed on your account: allocation units = none (no allocation plan recorded). Note that Lacrivia 0.1% 5 mL (NDC 99101-0101-05) and 10 mL (99101-0101-10) are currently below safety stock at DC-EAST, so order fills may be tight. Expected recovery at DC-EAST: by about 2026-11-15 to 2026-11-23 (carton arrival + kitting + 14-day sterility QC release + DC transit = 23 days). Substitute: no approved company substitute can be offered. The other Lacrivia pack is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% uses the same carton/kit, so it is affected by the same supply issue (BR-SUB-01/02). Medical Affairs will provide guidance on therapeutic alternatives if needed. Oculon is not affected at DC-EAST (above safety stock).\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-D31011C9\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:54:50+00:00"
+      },
+      {
+        "seq": 3,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00038\", \"subject\": \"Supply notice: Lacrivia 0.1% 5 mL / 10 mL tight at DC-EAST (carton supplier delay)\", \"message\": \"Our carton supplier for ophthalmic pack kits (CMP-530, supplier S-107) will ship its next lot ~4 weeks late (now ~2026-10-31). We have raised an expedited requisition with a qualified alternate supplier (PR-CFEC4687) for the plant that makes Lacrivia, so no allocation is being imposed on your account: allocation units = none (no allocation plan recorded). Note that Lacrivia 0.1% 5 mL (NDC 99101-0101-05) and 10 mL (99101-0101-10) are currently below safety stock at DC-EAST, so order fills may be tight. Expected recovery at DC-EAST: by about 2026-11-15 to 2026-11-23 (carton arrival + kitting + 14-day sterility QC release + DC transit = 23 days). Substitute: no approved company substitute can be offered. The other Lacrivia pack is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% uses the same carton/kit, so it is affected by the same supply issue (BR-SUB-01/02). Medical Affairs will provide guidance on therapeutic alternatives if needed. Oculon is not affected at DC-EAST (above safety stock).\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-372E052D\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:54:50+00:00"
+      },
+      {
+        "seq": 4,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00117\", \"subject\": \"Supply notice: Lacrivia 0.1% 5 mL / 10 mL tight at DC-EAST (carton supplier delay)\", \"message\": \"Our carton supplier for ophthalmic pack kits (CMP-530, supplier S-107) will ship its next lot ~4 weeks late (now ~2026-10-31). We have raised an expedited requisition with a qualified alternate supplier (PR-CFEC4687) for the plant that makes Lacrivia, so no allocation is being imposed on your account: allocation units = none (no allocation plan recorded). Note that Lacrivia 0.1% 5 mL (NDC 99101-0101-05) and 10 mL (99101-0101-10) are currently below safety stock at DC-EAST, so order fills may be tight. Expected recovery at DC-EAST: by about 2026-11-15 to 2026-11-23 (carton arrival + kitting + 14-day sterility QC release + DC transit = 23 days). Substitute: no approved company substitute can be offered. The other Lacrivia pack is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% uses the same carton/kit, so it is affected by the same supply issue (BR-SUB-01/02). Medical Affairs will provide guidance on therapeutic alternatives if needed. Oculon is not affected at DC-EAST (above safety stock).\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-9AE3B6F7\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:54:50+00:00"
+      },
+      {
+        "seq": 5,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00001\", \"subject\": \"Supply notice: Lacrivia 0.1% 5 mL / 10 mL tight at DC-EAST (carton supplier delay)\", \"message\": \"Our carton supplier for ophthalmic pack kits (CMP-530, supplier S-107) will ship its next lot ~4 weeks late (now ~2026-10-31). We have raised an expedited requisition with a qualified alternate supplier (PR-CFEC4687) for the plant that makes Lacrivia, so no allocation is being imposed on your account: allocation units = none (no allocation plan recorded). Note that Lacrivia 0.1% 5 mL (NDC 99101-0101-05) and 10 mL (99101-0101-10) are currently below safety stock at DC-EAST, so order fills may be tight. Expected recovery at DC-EAST: by about 2026-11-15 to 2026-11-23 (carton arrival + kitting + 14-day sterility QC release + DC transit = 23 days). Substitute: no approved company substitute can be offered. The other Lacrivia pack is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% uses the same carton/kit, so it is affected by the same supply issue (BR-SUB-01/02). Medical Affairs will provide guidance on therapeutic alternatives if needed. Oculon is not affected at DC-EAST (above safety stock).\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-6D7C2D84\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:54:51+00:00"
+      },
+      {
+        "seq": 6,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00138\", \"subject\": \"Supply notice: Lacrivia 0.1% 5 mL / 10 mL tight at DC-EAST (carton supplier delay)\", \"message\": \"Our carton supplier for ophthalmic pack kits (CMP-530, supplier S-107) will ship its next lot ~4 weeks late (now ~2026-10-31). We have raised an expedited requisition with a qualified alternate supplier (PR-CFEC4687) for the plant that makes Lacrivia, so no allocation is being imposed on your account: allocation units = none (no allocation plan recorded). Note that Lacrivia 0.1% 5 mL (NDC 99101-0101-05) and 10 mL (99101-0101-10) are currently below safety stock at DC-EAST, so order fills may be tight. Expected recovery at DC-EAST: by about 2026-11-15 to 2026-11-23 (carton arrival + kitting + 14-day sterility QC release + DC transit = 23 days). Substitute: no approved company substitute can be offered. The other Lacrivia pack is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% uses the same carton/kit, so it is affected by the same supply issue (BR-SUB-01/02). Medical Affairs will provide guidance on therapeutic alternatives if needed. Oculon is not affected at DC-EAST (above safety stock).\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-BBC23E26\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:54:51+00:00"
+      },
+      {
+        "seq": 7,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"TRADE_RELATIONS\", \"subject\": \"Notify DC-EAST wholesalers W-01 and W-02: Lacrivia supply delay (CMP-530 carton supplier slip)\", \"details\": \"Process step SDR-4.2. The wholesaler EDI gateway has no API, so this is handed to Trade Relations. Please send a notice to Keystone Drug Distributors (W-01) and Atlas Pharma Supply (W-02), both served by DC-EAST. Facts: carton supplier S-107 will ship CMP-530 PO PO001160 about 4 weeks late (now ~2026-10-31 instead of 2026-10-03). A qualified alternate (S-114, approved for PL-01) has been requisitioned (PR-CFEC4687). At DC-EAST (snapshot 2026-09-25), Lacrivia 0.1% 5 mL (99101-0101-05) has 46 units on hand vs 471 safety stock, and Lacrivia 10 mL (99101-0101-10) has 34 vs 233. Expect constrained fills. Expected recovery at DC: ~2026-11-15 to 2026-11-23. No allocation plan was recorded: the packs are covered by the qualified alternate supplier (BR-ALLOC-02). No company substitute can be offered: Cyclosporine OS shares the same kit/carton (BR-SUB-01/02). Wholesalers at DC-CENTRAL (W-03, W-04) and DC-WEST (W-05, W-06) are not affected: all CMP-530-fed packs there are at or above safety stock.\", \"related_ids\": [\"PO001160\", \"PR-CFEC4687\", \"CMP-530\", \"S-107\", \"S-114\", \"DC-EAST\", \"W-01\", \"W-02\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-2528FE50\", \"status\": \"open\", \"owner\": \"TRADE_RELATIONS\"}",
+        "created_at": "2026-10-07T15:54:51+00:00"
+      },
+      {
+        "seq": 8,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"MEDICAL_AFFAIRS\", \"subject\": \"Therapeutic-alternative guidance needed: Lacrivia short at DC-EAST, no company substitute\", \"details\": \"Under BR-SUB-01/02, Medical Affairs guides therapeutic alternatives when there is no company substitute. At DC-EAST, Lacrivia 0.1% 5 mL and 10 mL are both below safety stock (46/471 and 34/233 units). Cyclosporine OS 0.05% (FG-1003) is fed by the same failing carton CMP-530 via KIT-100, so it cannot be offered as the company substitute. CMP-530 supplier S-107 is delayed ~4 weeks; an alternate supplier has been requisitioned (PR-CFEC4687). Expected recovery at DC: ~2026-11-15 to 2026-11-23. The account teams of contracted accounts AC00059, AC00038, AC00117, AC00001 and AC00138 have been told that Medical Affairs will guide therapeutic alternatives.\", \"related_ids\": [\"CMP-530\", \"S-107\", \"PR-CFEC4687\", \"DC-EAST\", \"FG-1001\", \"FG-1002\", \"FG-1003\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-876DB7F3\", \"status\": \"open\", \"owner\": \"MEDICAL_AFFAIRS\"}",
+        "created_at": "2026-10-07T15:54:51+00:00"
+      }
+    ]
+  },
+  "discovery": false,
+  "trusted_playbooks_offered": {},
+  "execution_trace": {
+    "trace_id": "a02eaec2-3bc0-44e0-a9f2-a3893d29309c",
+    "followed": [
+      "SDR-1.2",
+      "SDR-2.1",
+      "SDR-2.4",
+      "SDR-2.2",
+      "SDR-4.1",
+      "SDR-4.2"
+    ],
+    "seeded_asset": null
+  }
+}

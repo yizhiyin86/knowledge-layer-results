@@ -1,0 +1,97 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "B",
+  "qid": "Q10",
+  "question": "Which of our products depend on a single-source material anywhere in their bill of materials, and how much TRx volume is at risk?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Answer:** 49 finished goods depend on at least one single-source material somewhere in their current bill of materials. Four of them have prescription data, and together they account for **16,554 TRx in the last 13 weeks (weeks ending 2026-07-03 to 2026-09-25). That is 94.4% of our 17,540 company TRx.**\n\n**TRx at risk (last 13 weeks)**\n\n| Product (NDC11) | TRx | Single-source material (only qualified supplier) | BOM depth |\n|---|---|---|---|\n| Lacrivia 0.1% 5 mL (99101010105) | 7,017 | CMP-310 emulsifier premix (S-201); RM-221 Polysorbate 80 low-peroxide (S-104) | 4 levels |\n| Lacrivia 0.1% 10 mL (99101010110) | 3,425 | Same as above | 4 levels |\n| Cyclosporine OS 0.05% 5 mL (99101020205) | 3,544 | Same as above | 4 levels |\n| Oculon 0.005% 2.5 mL (99101030325) | 2,568 | CMP-505 2.5 mL LDPE dropper bottle (S-150) | 2 levels |\n| **Total** | **16,554** | | |\n\n- **Not exposed:** Oculon 5 mL (986 TRx). It doesn't use the 2.5 mL dropper.\n- **Lacrivia's substitute is exposed too:** Cyclosporine OS relies on the same two single-source materials as Lacrivia. Under the substitution rule (BR-SUB-01), it would not count as an approved substitute in a shortage caused by those materials. Medical Affairs would then guide therapeutic alternatives. Oculon has no company substitute. Together that is 13,986 TRx (Lacrivia plus Cyclosporine OS) with no company fallback.\n- **RM-221 is easy to miss:** it has two suppliers listed, but only S-104 is qualified. Counting all listed suppliers would wrongly treat it as dual-source.\n- **The other 45 finished goods have no TRx data.** They are lens care (11), surgical viscoelastic (10), eye-health supplements (2), diagnostic drops (11) and ophthalmic antibiotics (11). Together they depend on 16 of the other single-source materials, such as RM-10857, RM-10360, RM-10211, RM-11172 and CMP-50757. The commercial prescription database only covers the ophthalmic brands, so I can't put a TRx figure on these.\n\n**Sources and definitions**\n- **Supply side:** the ratified Supply Network data product in the supply warehouse. Tables used: the bill of materials (`dbo.BOM`), qualified suppliers per material (`dbo.SUPPLIER_MATERIAL`), the material master (`dbo.MATERIAL`) and the material-to-NDC crosswalk (`dbo.MATERIAL_NDC_XREF`).\n- **Demand side:** the ratified Commercial Demand data product in the commercial database. Tables used: weekly prescriptions (`PHARMA_DEMO.RAW_3P.RXT_WKLY`) and the product master (`PHARMA_DEMO.CORE.PRODUCT`).\n- **Linking the two:** the approved join path \"Material to PackagedProduct (cross-platform)\", which strips the dashes from NDCs.\n- **Single-source material:** a material with exactly one qualified supplier (qualified flag = 'Y'). 24 materials qualify, and every purchased material has at least one qualified supplier.\n- **Bill of materials:** only current formulations (in effect on 2026-09-30); superseded ones are excluded. I walked all levels up to the finished goods, and nothing ran deeper than the levels checked. I cross-checked the Lacrivia/Cyclosporine OS and Oculon results with the knowledge layer's supply-exposure trace, and they matched.\n- **TRx:** the sum of weekly TRx over the 13 most recent weeks in the data. The legacy bill-of-materials table was not used because it is deprecated.\n- **Policy:** the access check allowed this query for the SUPPLY_PLANNER role with no masking. The decision trace is logged as 87451222-6317-4b59-94b4-0ecc6d251e9b.\n\n**Assumptions**\n- \"At risk\" means all 13-week TRx for any pack whose supply chain includes a single-source material. It is a measure of exposure, not a forecast of lost volume. It doesn't account for inventory on hand or supplier reliability.\n- A product exposed through two single-source materials (like Lacrivia) is counted once.",
+  "stop_reason": "end_turn",
+  "model_turns": 13,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_concept",
+    "get_metric",
+    "get_business_rules",
+    "get_join_path",
+    "get_data_product",
+    "get_concept",
+    "get_business_rules",
+    "list_deprecated_tables",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "trace_supply_exposure",
+    "trace_supply_exposure",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "WITH q AS (SELECT MATERIAL_ID, COUNT(DISTINCT SUPPLIER_ID) nq FROM dbo.SUPPLIER_MATERIAL WHERE QUALIFIED_FLG='Y' GROUP BY MATERIAL_ID),\na AS (SELECT MATERIAL_ID, COUNT(DISTINCT SUPPLIER_ID) na FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID)\nSELECT (SELECT COUNT(*) FROM a) mats_with_suppliers,\n (SELECT COUNT(*) FROM q WHERE nq=1) single_qualified,\n (SELECT COUNT(*) FROM a LEFT JOIN q ON a.MATERIAL_ID=q.MATERIAL_ID WHERE q.MATERIAL_ID IS NULL) zero_qualified,\n (SELECT COUNT(*) FROM a WHERE na=1) single_any,\n (SELECT COUNT(*) FROM dbo.BOM WHERE EFF_TO >= '2026-09-30') cur_edges,\n (SELECT COUNT(*) FROM dbo.BOM) all_edges",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.8
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH cur AS (SELECT DISTINCT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_TO >= '2026-09-30' AND EFF_FROM <= '2026-09-30'),\nss AS (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL WHERE QUALIFIED_FLG='Y' GROUP BY MATERIAL_ID HAVING COUNT(DISTINCT SUPPLIER_ID)=1),\nL0 AS (SELECT MATERIAL_ID src, MATERIAL_ID node FROM ss),\nL1 AS (SELECT DISTINCT l.src, b.p node FROM L0 l JOIN cur b ON b.c=l.node),\nL2 AS (SELECT DISTINCT l.src, b.p node FROM L1 l JOIN cur b ON b.c=l.node),\nL3 AS (SELECT DISTINCT l.src, b.p node FROM L2 l JOIN cur b ON b.c=l.node),\nL4 AS (SELECT DISTINCT l.src, b.p node FROM L3 l JOIN cur b ON b.c=l.node),\nL5 AS (SELECT DISTINCT l.src, b.p node FROM L4 l JOIN cur b ON b.c=l.node),\nL6 AS (SELECT DISTINCT l.src, b.p node FROM L5 l JOIN cur b ON b.c=l.node),\nL7 AS (SELECT DISTINCT l.src, b.p node FROM L6 l JOIN cur b ON b.c=l.node),\nL8 AS (SELECT DISTINCT l.src, b.p node FROM L7 l JOIN cur b ON b.c=l.node),\nL9 AS (SELECT DISTINCT l.src, b.p node FROM L8 l JOIN cur b ON b.c=l.node),\nL10 AS (SELECT DISTINCT l.src, b.p node FROM L9 l JOIN cur b ON b.c=l.node),\nL11 AS (SELECT DISTINCT l.src, b.p node FROM L10 l JOIN cur b ON b.c=l.node),\nL12 AS (SELECT DISTINCT l.src, b.p node FROM L11 l JOIN cur b ON b.c=l.node),\nL13 AS (SELECT DISTINCT l.src, b.p node FROM L12 l JOIN cur b ON b.c=l.node),\nallr AS (SELECT * FROM L1 UNION SELECT * FROM L2 UNION SELECT * FROM L3 UNION SELECT * FROM L4 UNION SELECT * FROM L5 UNION SELECT * FROM L6 UNION SELECT * FROM L7 UNION SELECT * FROM L8 UNION SELECT * FROM L9 UNION SELECT * FROM L10 UNION SELECT * FROM L11 UNION SELECT * FROM L12 UNION SELECT * FROM L13)\nSELECT a.node fg, m.MATERIAL_DESC, x.NDC, COUNT(DISTINCT a.src) n_ss, STRING_AGG(a.src, ',') ss_materials,\n (SELECT COUNT(*) FROM L13) l13_rows\nFROM allr a JOIN dbo.MATERIAL m ON m.MATERIAL_ID=a.node LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=a.node\nWHERE m.MATERIAL_TYP='FG'\nGROUP BY a.node, m.MATERIAL_DESC, x.NDC ORDER BY a.node",
+      "ok": true,
+      "rows": 49,
+      "error": null,
+      "elapsed_s": 12.73
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP, MAX(CASE WHEN sm.QUALIFIED_FLG='Y' THEN sm.SUPPLIER_ID END) qual_supplier, COUNT(*) n_supplier_rows, SUM(CASE WHEN sm.QUALIFIED_FLG='N' THEN 1 ELSE 0 END) n_unqualified\nFROM dbo.SUPPLIER_MATERIAL sm JOIN dbo.MATERIAL m ON m.MATERIAL_ID=sm.MATERIAL_ID\nWHERE sm.MATERIAL_ID IN (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL WHERE QUALIFIED_FLG='Y' GROUP BY MATERIAL_ID HAVING COUNT(DISTINCT SUPPLIER_ID)=1)\nGROUP BY sm.MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP ORDER BY sm.MATERIAL_ID",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 1.57
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nndc AS (SELECT column1 AS ndc11 FROM VALUES ('99101010105'),('99101010110'),('99101020205'),('99101030325'),\n('99101400191'),('99101400282'),('99101400316'),('99101400438'),('99101400564'),('99101400678'),('99101400717'),('99101400810'),('99101400972'),('99101401080'),('99101401115'),\n('99101401221'),('99101401311'),('99101401488'),('99101401563'),('99101401694'),('99101401718'),('99101401874'),('99101401976'),('99101402115'),('99101402267'),('99101402490'),('99101403196'),\n('99101403432'),('99101403510'),('99101403655'),('99101403784'),('99101403816'),('99101403973'),('99101404035'),('99101404111'),('99101404250'),('99101404336'),('99101404496'),\n('99101404545'),('99101404658'),('99101404715'),('99101404839'),('99101404911'),('99101405067'),('99101405171'),('99101405249'),('99101405316'),('99101405482'),('99101405529'))\nSELECT p.PROD_NDC11, p.BRAND_NM, p.PACK_DESC, p.CO_FLG,\n SUM(CASE WHEN r.WK_END_DT IN (SELECT WK_END_DT FROM wk) THEN r.TRX_QTY END) trx_13wk,\n MIN(r.WK_END_DT) first_wk, MAX(r.WK_END_DT) last_wk,\n (SELECT MIN(WK_END_DT) FROM wk) wk_from, (SELECT MAX(WK_END_DT) FROM wk) wk_to\nFROM ndc n JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=n.ndc11\nLEFT JOIN PHARMA_DEMO.RAW_3P.RXT_WKLY r ON r.PROD_NDC11=p.PROD_NDC11\nGROUP BY 1,2,3,4 ORDER BY 1",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 20.67
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT p.CO_FLG, COUNT(DISTINCT p.PROD_NDC11) n_ndc, SUM(r.TRX_QTY) trx_13wk\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\nWHERE r.WK_END_DT IN (SELECT WK_END_DT FROM wk) GROUP BY 1",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 4.01
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT p.PROD_NDC11, p.BRAND_NM, p.PACK_DESC, SUM(r.TRX_QTY) trx_13wk\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\nWHERE r.WK_END_DT IN (SELECT WK_END_DT FROM wk) AND p.CO_FLG='Y' GROUP BY 1,2,3 ORDER BY 1",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 2.24
+    }
+  ],
+  "usage": {
+    "input": 28,
+    "output": 9653,
+    "cache_read": 227119,
+    "cache_write": 30327
+  },
+  "cost_usd": 0.3902,
+  "latency_s": 166.6,
+  "cypher_queries": 109
+}

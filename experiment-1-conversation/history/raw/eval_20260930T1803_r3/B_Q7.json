@@ -1,0 +1,115 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "B",
+  "qid": "Q7",
+  "question": "Is DC-EAST at risk of a Lacrivia stockout given the recent TRx demand trend?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Answer: Yes, the risk is critical, and DC-EAST has probably already run out of Lacrivia.** At the latest inventory count (2026-09-25), DC-EAST had about 1\u20132 days of stock left for both pack sizes. Its inventory fell about 95% over six weeks while prescriptions (TRx) in its region kept rising.\n\n**Stock at DC-EAST (latest count, 2026-09-25)**\n\n| Pack | On hand | Safety stock | Avg units shipped per day (last 28 days) | Days of supply | Likely out of stock |\n|---|---|---|---|---|---|\n| Lacrivia 5 mL (FG-1001) | **46** | 471 | 36.7 | **1.3 days** | about Sep 26\u201327 |\n| Lacrivia 10 mL (FG-1002) | **34** | 233 | 15.1 | **2.3 days** | about Sep 27\u201328 |\n\n- **Trend:** stock was steady and rising through mid-August (5 mL at 1,227 units, 10 mL at 572 on Aug 14). It then fell every week: 5 mL went 1,121 \u2192 988 \u2192 841 \u2192 302 \u2192 177 \u2192 46. Both packs have been below safety stock since the Sep 11 count.\n- **Why stock fell so fast:** shipments out of DC-EAST stayed at about 240\u2013280 units a week (5 mL), so the drop means incoming supply largely stopped. The Sep 4\u201311 drop (539 units) is bigger than that week's shipments (about 280), so something beyond normal shipping took stock out, such as a quality hold, a write-off or a data correction. I didn't find the root cause.\n\n**Prescription demand in DC-EAST's states**\n\n| | Last 13 weeks | Prior 13 weeks | Change |\n|---|---|---|---|\n| Lacrivia TRx, both packs | 5,170 (398 a week) | 4,761 (366 a week) | **+8.6%** |\n| 5 mL | 3,473 | 3,201 | +8.5% |\n| 10 mL | 1,697 | 1,560 | +8.8% |\n\n- Demand is still speeding up. The last 4 weeks averaged 424 TRx a week, against 375 in the first 4 weeks of the 13-week window (+13%).\n- These states account for about 50% of national Lacrivia TRx (5,170 of 10,442 in the last 13 weeks).\n- For 5 mL, weekly TRx (about 287) is already higher than weekly shipments out of the DC (about 257).\n\n**Other DCs are healthy, so this is a DC-EAST problem**\n- DC-CENTRAL holds 677 units of 5 mL (safety stock 314) and 351 of 10 mL (safety stock 155).\n- DC-WEST holds 593 units of 5 mL (safety stock 261) and 324 of 10 mL (safety stock 129).\n- Together they hold about 695 units of 5 mL and 391 of 10 mL above safety stock. That covers roughly 2\u20133 weeks of DC-EAST demand, but moving stock between DCs needs Supply Planning approval.\n\n**What to do next**\n1. Ask Supply Planning to approve moving the surplus stock from CENTRAL and WEST to DC-EAST.\n2. Until stock arrives, allocate what DC-EAST has in this order: health systems with a Tier A supply contract, then Tier B, then all other accounts in proportion to their last-13-week TRx. Clinics get their health system's tier.\n3. New production can't fix this quickly. Supply only recovers after supplier transit, making and testing at each production stage, and a 14-day sterility test for eye products. Plan for weeks, not days.\n4. Find out why incoming supply to DC-EAST stopped in mid-August. I checked late purchase orders, but nothing clearly tied to Lacrivia stood out without tracing each supplier through the bill of materials.\n\n**Sources and definitions**\n- **Days of supply:** latest on-hand units divided by average daily units shipped from the DC over the last 28 days (the official definition, set by Supply Planning). Inventory and shipment data come from `dbo.DC_INV` and `dbo.WHSLR_SHIP`.\n- **Demand:** TRx from `PHARMA_DEMO.RAW_3P.RXT_WKLY`, the official demand source. Each prescription is assigned to the state of the prescriber's account.\n- **DC-EAST states:** NY, NJ, PA, MA, FL, GA, NC and OH, from the official list of which states each DC serves.\n- **Products:** Lacrivia 5 mL is 99101-0101-05 (99101010105 in the prescription data) and 10 mL is 99101-0101-10 (99101010110), from the product crosswalk.\n- **Allocation, transfer and recovery rules:** from the knowledge layer's business rules (BR-ALLOC-01 and BR-LEAD-01).\n- The policy check allowed the SUPPLY_PLANNER role with no masking, and no deprecated or sandbox tables were used. The decision trace is logged (id 6ca8eadc\u2026).\n\n**Assumptions**\n- The latest inventory count is Sep 25, so the stockout dates are projections. They assume nothing arrived between Sep 25 and Sep 30.\n- I compared TRx to shipped units as if one prescription used about one unit.\n- All TRx were matched to a state; none were left unassigned.",
+  "stop_reason": "end_turn",
+  "model_turns": 12,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_concept",
+    "get_business_rules",
+    "get_metric",
+    "get_reference",
+    "get_join_path",
+    "get_data_product",
+    "list_deprecated_tables",
+    "get_reference",
+    "get_join_path",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "list_tables",
+    "check_policy",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT >= '2026-06-01' ORDER BY MATERIAL_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 34,
+      "error": null,
+      "elapsed_s": 1.85
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, DATEADD(week, DATEDIFF(week, 0, SHIP_DT), 0) AS wk, SUM(UNITS) units, COUNT(*) n FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT >= '2026-05-01' GROUP BY MATERIAL_ID, DATEADD(week, DATEDIFF(week, 0, SHIP_DT), 0) ORDER BY MATERIAL_ID, wk",
+      "ok": true,
+      "rows": 42,
+      "error": null,
+      "elapsed_s": 0.66
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH inv AS (SELECT MATERIAL_ID, ON_HAND_UNITS, SAFETY_STOCK_UNITS, SNAPSHOT_DT, ROW_NUMBER() OVER (PARTITION BY MATERIAL_ID ORDER BY SNAPSHOT_DT DESC) rn FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002')),\nsh AS (SELECT MATERIAL_ID, SUM(UNITS) u28, MIN(SHIP_DT) mn, MAX(SHIP_DT) mx FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT > DATEADD(day,-28,'2026-09-30') AND SHIP_DT <= '2026-09-30' GROUP BY MATERIAL_ID),\nsh13 AS (SELECT MATERIAL_ID, SUM(UNITS) u91 FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT > DATEADD(day,-91,'2026-09-30') GROUP BY MATERIAL_ID)\nSELECT i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS, s.u28, s.mn, s.mx, s.u28/28.0 daily, i.ON_HAND_UNITS/(s.u28/28.0) dos, s13.u91/91.0 daily91 FROM inv i JOIN sh s ON s.MATERIAL_ID=i.MATERIAL_ID JOIN sh13 s13 ON s13.MATERIAL_ID=i.MATERIAL_ID WHERE rn=1",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.39
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 26)\nSELECT r.WK_END_DT,\n SUM(CASE WHEN a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH') THEN r.TRX_QTY ELSE 0 END) east_trx,\n SUM(CASE WHEN a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH') AND r.PROD_NDC11='99101010105' THEN r.TRX_QTY ELSE 0 END) east_5ml,\n SUM(CASE WHEN a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH') AND r.PROD_NDC11='99101010110' THEN r.TRX_QTY ELSE 0 END) east_10ml,\n SUM(CASE WHEN a.STATE IS NULL THEN r.TRX_QTY ELSE 0 END) unmapped_trx,\n SUM(r.TRX_QTY) total_trx\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\nJOIN wks w ON w.WK_END_DT=r.WK_END_DT\nLEFT JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME=r.PRSCRBR_ME\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT a ON a.ACCOUNT_ID=p.ACCOUNT_ID\nWHERE r.PROD_NDC11 IN ('99101010105','99101010110')\nGROUP BY r.WK_END_DT ORDER BY r.WK_END_DT",
+      "ok": true,
+      "rows": 26,
+      "error": null,
+      "elapsed_s": 4.55
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE STATUS <> 'CLOSED' OR (ACTUAL_SHIP_DT IS NULL AND PROMISED_SHIP_DT < '2026-09-30') OR ACTUAL_SHIP_DT > PROMISED_SHIP_DT ORDER BY PROMISED_SHIP_DT DESC",
+      "ok": true,
+      "rows": 200,
+      "error": null,
+      "elapsed_s": 2.16
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, ON_HAND_UNITS, SAFETY_STOCK_UNITS, SNAPSHOT_DT FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT = (SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) ORDER BY MATERIAL_ID, DC_ID",
+      "ok": false,
+      "rows": null,
+      "error": "('HY000', '[HY000] [Microsoft][ODBC Driver 18 for SQL Server]Connection is busy with results for another command (0) (SQLExecDirectW)')",
+      "elapsed_s": 0.6
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, ON_HAND_UNITS, SAFETY_STOCK_UNITS, SNAPSHOT_DT FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT = (SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) ORDER BY MATERIAL_ID, DC_ID",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 2.0
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS, DATEDIFF(day, PROMISED_SHIP_DT, COALESCE(ACTUAL_SHIP_DT,'2026-09-30')) days_late FROM dbo.PURCH_ORD WHERE ORDER_DT >= '2026-06-01' AND ORDER_DT <= '2026-09-30' AND DATEDIFF(day, PROMISED_SHIP_DT, COALESCE(ACTUAL_SHIP_DT,'2026-09-30')) > 14 ORDER BY days_late DESC",
+      "ok": true,
+      "rows": 21,
+      "error": null,
+      "elapsed_s": 1.81
+    }
+  ],
+  "usage": {
+    "input": 26,
+    "output": 10354,
+    "cache_read": 221494,
+    "cache_write": 38009
+  },
+  "cost_usd": 0.4415,
+  "latency_s": 150.9,
+  "cypher_queries": 78
+}

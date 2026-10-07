@@ -1,0 +1,130 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "A",
+  "qid": "Q1",
+  "question": "What is Lacrivia's market share by payer channel over the last 13 weeks, and how is it trending?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Lacrivia held **23.75% TRx share** of the Dry Eye market over the last 13 weeks (10,442 of 43,975 TRx). That's up from 21.88% in the prior 13 weeks, and the gain is almost entirely in Commercial. Medicare Part D is going the other way.\n\n**Share by payer channel, last 13 weeks (weeks ending 3 Jul \u2013 25 Sep 2026)**\n\n| Channel | Lacrivia TRx | Market TRx | 13-week share | Prior 13 weeks | First 4 weeks \u2192 last 4 weeks | Trend |\n|---|---|---|---|---|---|---|\n| Commercial | 5,649 | 21,530 | **26.24%** | 22.18% | 23.58% \u2192 28.78% | \u25b2 Strong, steady rise |\n| Medicare Part D | 2,184 | 11,055 | **19.76%** | 21.76% | 22.25% \u2192 18.27% | \u25bc Steady decline |\n| Managed Medicaid | 999 | 4,412 | **22.64%** | 21.76% | 22.44% \u2192 21.58% | Flat |\n| Health Exchange | 589 | 2,679 | **21.99%** | 19.57% | 21.73% \u2192 22.50% | Slightly up, noisy |\n| Cash / Discount | 585 | 2,414 | **24.23%** | 22.50% | 22.10% \u2192 25.32% | Up, noisy |\n| Medicaid FFS | 436 | 1,885 | **23.13%** | 21.80% | 20.36% \u2192 24.37% | Up, noisy |\n| **Total** | **10,442** | **43,975** | **23.75%** | **21.88%** | **22.81% \u2192 24.60%** | \u25b2 Up about 1.8\u20131.9 points |\n\n**How it's trending**\n- **Commercial is driving the growth.** Weekly share rose from about 23% in early July to about 29% by late September (29.28% in the latest week). The gain has held since mid-August. It came mostly from generic cyclosporine (down 2.0 points) and Tearsol (down 1.8 points). Commercial is about half of market volume, so this one channel lifts the total.\n- **Medicare Part D is the concern.** Share fell from about 22% to about 18% (17\u201319% every week since mid-August), and the drop started around mid-July. Cyclomist (+1.3), generic cyclosporine (+1.2) and Tearsol (+1.1) all took share. A steady, Part D-only drop like this often points to a coverage or formulary change for 2026. It's worth checking Part D formulary status and claim rejects.\n- **Smaller channels** (Managed Medicaid, Health Exchange, Medicaid FFS, Cash) have only about 150\u2013340 market TRx a week. Their weekly share swings 5\u201310 points, so treat their direction as a signal, not a firm trend. Managed Medicaid is essentially flat.\n\n**Sources and definitions**\n- **Source:** `PHARMA_DEMO.MART.PYR_SHR_WK`, market `DRY_EYE`, brand `LACRIVIA`. Channel codes were decoded with `REF.CHNL`.\n- **Check against raw data:** I rebuilt the mart from the prescription feed (`RAW_3P.RXT_WKLY`), product list (`CORE.PRODUCT`) and market definition file (`BIZ.MKT_DEF_DRIVER`, v7). It matched exactly on all 312 week-by-channel rows. The feed has clean product codes, no duplicates, and channel codes that agree with the plan-to-channel map (`CORE.PAYER_SPINE`).\n- **Share:** Lacrivia TRx divided by total TRx for the six Dry Eye brands (Lacrivia, Tearsol, Cyclomist, Hydrova, Cyclosporine OS, generic cyclosporine). Multi-week shares are total brand TRx over total market TRx, not an average of weekly shares.\n- **Last 13 weeks:** the 13 most recent weekly periods, ending 3 Jul through 25 Sep 2026 (latest data week ends 25 Sep). The prior period is the 13 weeks ending 3 Apr through 26 Jun 2026.\n\n**Assumptions and exclusions**\n- \"Market share\" means TRx share, not NRx.\n- I did not use `MART.PYR_SHR_WK_OLD`. It counts the same Lacrivia TRx against a bigger market total that doesn't match the Dry Eye definition, so its share comes out lower (e.g. 17.95% vs 23.61% for Commercial in the week ending 3 Oct 2025).\n- I also excluded the unmanaged table `SANDBOX.LACRIVIA_SHR_SCRATCH`.\n- The analysis uses only aggregated prescription counts: no patient-level data, and nothing identifies individual prescribers.",
+  "stop_reason": "end_turn",
+  "model_turns": 9,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT p.*, d.MKT_DEF, d.EFF_FROM, d.EFF_TO, d.SRC_FILE FROM PHARMA_DEMO.CORE.PRODUCT p LEFT JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER d ON p.PROD_NDC11=d.PROD_NDC11 ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.48
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.REF.CHNL",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.29
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT MKT_DEF, CHNL_CD, COUNT(DISTINCT WK_END_DT) wks, MIN(WK_END_DT), MAX(WK_END_DT), COUNT(DISTINCT BRAND_NM) brands, LISTAGG(DISTINCT BRAND_NM, ',') FROM PHARMA_DEMO.MART.PYR_SHR_WK GROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.31
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT WK_END_DT, COUNT(*) rows_, SUM(TRX_QTY) trx, COUNT(DISTINCT CHNL_CD) ch FROM PHARMA_DEMO.RAW_3P.RXT_WKLY GROUP BY 1 ORDER BY 1 DESC LIMIT 20",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 1.43
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT r.PROD_NDC11, p.BRAND_NM, LENGTH(r.PROD_NDC11) len, COUNT(*) n, SUM(TRX_QTY) trx, MIN(TRX_QTY), MAX(TRX_QTY) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r LEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON r.PROD_NDC11=p.PROD_NDC11 GROUP BY 1,2,3 ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.22
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT r.CHNL_CD raw_ch, s.CHNL_CD spine_ch, COUNT(*) n, SUM(TRX_QTY) trx, SUM(IFF(s.PLAN_ID IS NULL,1,0)) no_plan FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r LEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON r.PLAN_ID=s.PLAN_ID GROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 3.42
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) n, COUNT(DISTINCT WK_END_DT||PRSCRBR_ME||PROD_NDC11||PLAN_ID||CHNL_CD) dist_keys FROM PHARMA_DEMO.RAW_3P.RXT_WKLY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.26
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH raw AS (\n SELECT r.WK_END_DT, r.CHNL_CD, SUM(IFF(p.BRAND_NM='LACRIVIA',r.TRX_QTY,0)) brand_trx, SUM(r.TRX_QTY) mkt_trx\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN PHARMA_DEMO.CORE.PRODUCT p ON r.PROD_NDC11=p.PROD_NDC11\n JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER d ON r.PROD_NDC11=d.PROD_NDC11 AND r.WK_END_DT BETWEEN d.EFF_FROM AND d.EFF_TO\n WHERE d.MKT_DEF='DRY_EYE' GROUP BY 1,2),\nm AS (SELECT WK_END_DT, CHNL_CD, BRAND_TRX, MKT_TRX, SHR_PCT FROM PHARMA_DEMO.MART.PYR_SHR_WK WHERE BRAND_NM='LACRIVIA' AND MKT_DEF='DRY_EYE')\nSELECT COUNT(*) n, SUM(IFF(raw.brand_trx<>m.BRAND_TRX,1,0)) brand_diff, SUM(IFF(raw.mkt_trx<>m.MKT_TRX,1,0)) mkt_diff,\n MAX(ABS(ROUND(100*raw.brand_trx/raw.mkt_trx,2)-m.SHR_PCT)) max_shr_diff\nFROM raw FULL JOIN m ON raw.WK_END_DT=m.WK_END_DT AND raw.CHNL_CD=m.CHNL_CD",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.37
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH w AS (SELECT WK_END_DT, DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) rk FROM (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.MART.PYR_SHR_WK)),\nb AS (SELECT s.CHNL_CD, w.rk, s.BRAND_TRX, s.MKT_TRX FROM PHARMA_DEMO.MART.PYR_SHR_WK s JOIN w ON s.WK_END_DT=w.WK_END_DT WHERE s.BRAND_NM='LACRIVIA' AND s.MKT_DEF='DRY_EYE' AND w.rk<=26)\nSELECT COALESCE(c.CHNL_NM,'TOTAL') chnl,\n SUM(IFF(rk<=13,BRAND_TRX,0)) l13_brand, SUM(IFF(rk<=13,MKT_TRX,0)) l13_mkt, ROUND(100*l13_brand/l13_mkt,2) l13_shr,\n ROUND(100*SUM(IFF(rk BETWEEN 14 AND 26,BRAND_TRX,0))/SUM(IFF(rk BETWEEN 14 AND 26,MKT_TRX,0)),2) p13_shr,\n ROUND(100*SUM(IFF(rk BETWEEN 8 AND 13,BRAND_TRX,0))/SUM(IFF(rk BETWEEN 8 AND 13,MKT_TRX,0)),2) first6_shr,\n ROUND(100*SUM(IFF(rk<=4,BRAND_TRX,0))/SUM(IFF(rk<=4,MKT_TRX,0)),2) last4_shr,\n ROUND(100*SUM(IFF(rk BETWEEN 10 AND 13,BRAND_TRX,0))/SUM(IFF(rk BETWEEN 10 AND 13,MKT_TRX,0)),2) first4_shr\nFROM b LEFT JOIN PHARMA_DEMO.REF.CHNL c ON b.CHNL_CD=c.CHNL_CD\nGROUP BY ROLLUP(c.CHNL_NM) ORDER BY l13_mkt DESC",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 11.2
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT WK_END_DT,\n MAX(IFF(CHNL_CD='C',SHR_PCT,NULL)) C, MAX(IFF(CHNL_CD='D',SHR_PCT,NULL)) D, MAX(IFF(CHNL_CD='MM',SHR_PCT,NULL)) MM,\n MAX(IFF(CHNL_CD='H',SHR_PCT,NULL)) H, MAX(IFF(CHNL_CD='M',SHR_PCT,NULL)) M, MAX(IFF(CHNL_CD='X',SHR_PCT,NULL)) X,\n ROUND(100*SUM(BRAND_TRX)/SUM(MKT_TRX),2) total, SUM(BRAND_TRX) brand_trx, SUM(MKT_TRX) mkt_trx\nFROM PHARMA_DEMO.MART.PYR_SHR_WK WHERE BRAND_NM='LACRIVIA' AND MKT_DEF='DRY_EYE' AND WK_END_DT>='2026-04-03'\nGROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 26,
+      "error": null,
+      "elapsed_s": 1.32
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH w AS (SELECT WK_END_DT, DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) rk FROM (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.MART.PYR_SHR_WK))\nSELECT s.CHNL_CD, s.BRAND_NM,\n ROUND(100*SUM(IFF(rk BETWEEN 10 AND 13,BRAND_TRX,0))/SUM(IFF(rk BETWEEN 10 AND 13,MKT_TRX,0)),2) first4,\n ROUND(100*SUM(IFF(rk<=4,BRAND_TRX,0))/SUM(IFF(rk<=4,MKT_TRX,0)),2) last4,\n ROUND(last4-first4,2) chg\nFROM PHARMA_DEMO.MART.PYR_SHR_WK s JOIN w ON s.WK_END_DT=w.WK_END_DT\nWHERE s.MKT_DEF='DRY_EYE' AND s.CHNL_CD IN ('C','D') AND rk<=13 GROUP BY 1,2 ORDER BY 1, chg",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.64
+    }
+  ],
+  "usage": {
+    "input": 20,
+    "output": 7210,
+    "cache_read": 84007,
+    "cache_write": 19973
+  },
+  "cost_usd": 0.2609,
+  "latency_s": 135.9
+}

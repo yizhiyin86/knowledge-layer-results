@@ -1,0 +1,43 @@
+{
+  "run_id": "eval_20261001T2144_r1",
+  "agent": "B",
+  "qid": "Q9",
+  "question": "Which sources feed \"paid rate\", and is it defined the same way in the Payer Report and the Rep Report?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "**No, the two reports define paid rate differently.** Both use the same source data. The only difference is how they treat reversed claims, and that makes the Rep Report about 2 points lower.\n\n**Source:** Both versions are calculated from one table and one field: **`PHARMA_DEMO.RAW_3P.CLMLNS_ADJ.ADJ_STAT`** (P = paid, R = rejected, V = reversed). To break it out by payer or channel, join `CORE.PAYER_SPINE` (on PLAN_ID) and then `REF.CHNL` (on CHNL_CD). Don't use `RAW_3P.CLMLNS_ADJ_BKP_2025`; it's deprecated and replaced by `CLMLNS_ADJ`.\n\n**How each report defines it:**\n\n| | Payer Report: `paid_rate` (ratified) | Rep Report: `paid_rate_rep_v1` (not ratified, legacy) |\n|---|---|---|\n| Formula | paid / (paid + rejected) | paid / all claim lines |\n| Reversals (V) | Left out of the denominator | Counted in the denominator, so they act as \"not paid\" |\n| Owner / status | Ratified by Market Access | Not ratified |\n\n**What the difference looks like in the data** (all claims, 2025-09-27 to 2026-09-30: 287,395 lines; 244,448 paid, 36,258 rejected, 6,689 reversed):\n\n- Payer Report definition: **87.08%**\n- Rep Report definition: **85.06%**, which is **2.0 points lower**\n\n| Channel | Payer Report | Rep Report | Gap (points) |\n|---|---|---|---|\n| Commercial | 86.38% | 84.42% | 1.96 |\n| Medicare Part D | 85.96% | 84.00% | 1.96 |\n| Managed Medicaid | 88.34% | 86.23% | 2.11 |\n| Health Exchange | 83.99% | 82.07% | 1.92 |\n| Medicaid FFS | 89.45% | 87.25% | 2.20 |\n| Cash / Discount | 100.00% | 96.95% | 3.05 |\n\nThe gap is about 2 points in every insured channel. It's largest for Cash / Discount, which has no rejections, so reversals are the only thing pulling its Rep Report number below 100%. Because of this, the two reports can't be compared directly. I'd use the ratified `paid_rate` as the standard and either move the Rep Report onto it or clearly label its figure as \"paid / all claim lines\".\n\n**Sources and assumptions**\n- Knowledge layer: metric definitions `paid_rate` (ratified, Payer Report) and `paid_rate_rep_v1` (not ratified, Rep Report); the Market Access data product; the deprecated-table note for `CLMLNS_ADJ_BKP_2025`.\n- Tables: `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ`, `CORE.PAYER_SPINE`, `REF.CHNL`.\n- The figures cover all claim history in the data, with no time window applied, and include every product (not limited to one market).\n- Policy: no restrictions applied to these tables for the MARKET_ACCESS role, and none of the columns used were masked.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) AS total_lines,\n SUM(IFF(ADJ_STAT='P',1,0)) AS paid, SUM(IFF(ADJ_STAT='R',1,0)) AS rejected, SUM(IFF(ADJ_STAT='V',1,0)) AS reversed,\n SUM(IFF(ADJ_STAT NOT IN ('P','R','V') OR ADJ_STAT IS NULL,1,0)) AS other,\n ROUND(SUM(IFF(ADJ_STAT='P',1,0))/NULLIF(SUM(IFF(ADJ_STAT IN ('P','R'),1,0)),0)*100,2) AS paid_rate_ratified_pct,\n ROUND(SUM(IFF(ADJ_STAT='P',1,0))/COUNT(*)*100,2) AS paid_rate_rep_v1_pct,\n MIN(CLM_DT) AS min_dt, MAX(CLM_DT) AS max_dt\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.31
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT r.CHNL_NM,\n COUNT(*) AS total_lines,\n SUM(IFF(c.ADJ_STAT='V',1,0)) AS reversed,\n ROUND(SUM(IFF(c.ADJ_STAT='P',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),0)*100,2) AS paid_rate_ratified_pct,\n ROUND(SUM(IFF(c.ADJ_STAT='P',1,0))/COUNT(*)*100,2) AS paid_rate_rep_v1_pct\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\nJOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON c.PLAN_ID = s.PLAN_ID\nJOIN PHARMA_DEMO.REF.CHNL r ON s.CHNL_CD = r.CHNL_CD\nGROUP BY r.CHNL_NM ORDER BY total_lines DESC",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 18.45
+    }
+  ],
+  "cypher_queries": 5,
+  "usage": {
+    "input": 8,
+    "output": 2190,
+    "cache_read": 11622,
+    "cache_write": 10272
+  },
+  "cost_usd": 0.0975,
+  "latency_s": 46.7
+}

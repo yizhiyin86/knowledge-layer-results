@@ -1,0 +1,52 @@
+{
+  "run_id": "eval_20261002T0046_r2",
+  "agent": "B",
+  "qid": "Q14",
+  "question": "What did we conclude last time about exposure to supplier S-104, and has its next ship date changed since?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**The next ship date has not changed.** S-104 (Delmar Specialty Chemicals, a tier-2 supplier) is still due to ship PO005791 on **2026-10-07**: 4,200 units of RM-221 (Polysorbate 80 NF), status still open. The risk picture from last time also still holds.\n\n**What we concluded last time**\n- **Exposed products:** a slip on S-104 puts the cyclosporine eye-emulsion line at risk. That's Lacrivia 0.1% 5 mL and 10 mL plus the cyclosporine 0.05% 5 mL generic: **13,986 prescriptions in the last 13 weeks**. Eight health systems account for about 77% of that volume, led by Oak Hollow, Riverbend and Northfield (all Tier A contracts).\n- **No backup:**\n  - S-104 is the only qualified supplier of RM-221.\n  - RM-221 then goes into an emulsifier premix (CMP-310) that only S-201 makes.\n  - The approved substitute for Lacrivia is the cyclosporine generic, which depends on the same supply chain, so there is no usable substitute.\n- **Recovery time:** about **50 days** from RM-221 arriving until Lacrivia 5 mL reaches the distribution centre. That includes a 14-day sterility test. Every day the supplier is late pushes availability back by a day.\n- **Oculon** (fed by RM-222) was judged lower risk because RM-222 has a qualified backup supplier, S-130.\n\n**What I re-checked today (data as of 2026-09-30)**\n\n| Item | Last time | Now |\n|---|---|---|\n| Next RM-221 order (PO005791) | Promised 2026-10-07, open | **Promised 2026-10-07, open \u2014 unchanged** |\n| Share of S-104 orders shipped late (closed orders) | 32.3% | **32.3%** (31 of 96) \u2014 unchanged |\n| Qualified suppliers of RM-221 | S-104 only (S-131 not qualified) | Unchanged |\n| Next RM-222 order (Oculon) | PO000430, 2026-10-26 | Unchanged; S-130 still qualified as backup |\n\n**Two things to watch**\n- **S-104 was 8 days late on a recent RM-221 order.** PO000363 was promised for 2026-09-16 and shipped 2026-09-24. Its other three recent RM-221 orders shipped a day early.\n- **Two open orders are dated after the data cut-off.** RM-222 PO000430 and RM-221 PO000369 (3,300 units, promised 2026-10-29) both show an order date of 2026-10-02. That's after the 2026-09-30 as-of date, so it's probably a data-entry or timing quirk. Worth confirming with purchasing. If PO005791 slips, PO000369 is the next RM-221 order.\n\n**Sources and definitions**\n- Starting point: the past answer saved in the knowledge layer, \"Which customers are exposed if supplier S-104 misses its next ship date\u2026\", found through get_context.\n- Fabric tables: `dbo.PURCH_ORD`, `dbo.SUPPLIER` and `dbo.SUPPLIER_MATERIAL`.\n- Late-shipment rate uses the Supply Planning definition: closed orders shipped after the promised date, divided by all closed orders.\n- Qualified supplier count only counts suppliers flagged as qualified; a count of 1 means single-source risk.\n- I did not use the deprecated archive table `PURCH_ORD_ARCHIVE`.\n- I didn't re-run the prescription volumes, customer rankings or BOM trace. They come from the earlier answer, and nothing in the supply data suggests they've changed.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT p.PO_ID, p.MATERIAL_ID, p.ORDER_DT, p.PROMISED_SHIP_DT, p.ACTUAL_SHIP_DT, p.QTY, p.STATUS, s.SUPPLIER_NM, s.TIER\nFROM dbo.PURCH_ORD p JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=p.SUPPLIER_ID\nWHERE p.SUPPLIER_ID='S-104' AND (p.STATUS='OPEN' OR p.PO_ID='PO005791' OR p.PROMISED_SHIP_DT >= '2026-09-01') ORDER BY p.PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 1.53
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT COUNT(*) closed_pos, AVG(CASE WHEN ACTUAL_SHIP_DT>PROMISED_SHIP_DT THEN 1.0 ELSE 0 END) late_ship_rate, MAX(ACTUAL_SHIP_DT) last_actual_ship\nFROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND STATUS='CLOSED'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.58
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.SUPPLIER_ID, sm.MATERIAL_ID, sm.QUALIFIED_FLG, sm.PRIMARY_FLG FROM dbo.SUPPLIER_MATERIAL sm WHERE sm.MATERIAL_ID IN (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL WHERE SUPPLIER_ID='S-104') ORDER BY 2,1",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.51
+    }
+  ],
+  "cypher_queries": 6,
+  "usage": {
+    "input": 8,
+    "output": 2279,
+    "cache_read": 17519,
+    "cache_write": 11026
+  },
+  "cost_usd": 0.1042,
+  "latency_s": 30.6
+}

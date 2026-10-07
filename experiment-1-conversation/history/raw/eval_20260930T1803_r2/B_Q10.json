@@ -1,0 +1,112 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "B",
+  "qid": "Q10",
+  "question": "Which of our products depend on a single-source material anywhere in their bill of materials, and how much TRx volume is at risk?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Four of our five commercial products depend on a single-source material somewhere in their bill of materials. That puts 16,554 TRx at risk over the last 13 weeks, which is 94.4% of our 17,540 company TRx.** Oculon 5 mL is the only one with no single-source dependency.\n\n**TRx at risk (13 weeks, 2026\u201107\u201103 to 2026\u201109\u201125)**\n\n| Product (NDC) | 13\u2011wk TRx | Single-source material \u2192 only qualified supplier | BOM depth |\n|---|---|---|---|\n| Lacrivia 0.1% 5 mL (99101010105) | 7,017 | RM\u2011221 Polysorbate 80 NF, low-peroxide \u2192 S\u2011104 Delmar Specialty Chemicals (India, tier 2); CMP\u2011310 Emulsifier premix \u2192 S\u2011201 Larchmont Contract Manufacturing (US, tier 1) | 4\u20135 |\n| Lacrivia 0.1% 10 mL (99101010110) | 3,425 | Same as above | 4\u20135 |\n| Cyclosporine OS 0.05% 5 mL (99101020205) | 3,544 | Same as above | 4\u20135 |\n| Oculon 0.005% 2.5 mL (99101030325) | 2,568 | CMP\u2011505 LDPE 2.5 mL dropper bottle \u2192 S\u2011150 Quarry Hill Containers (Italy) | 2 |\n| **Total at risk** | **16,554** | | |\n| *Oculon 0.005% 5 mL (not at risk)* | *986* | *none* | |\n\n**What this means for planning**\n- **Lacrivia and Cyclosporine OS are the biggest risk.** They account for 13,986 TRx, and both depend on the same two materials. Polysorbate 80 has a second supplier (S\u2011131), but it isn't qualified. The emulsifier premix has no alternate at all.\n- **There's no company substitute for Lacrivia.** Cyclosporine OS is normally the approved substitute (business rule BR\u2011SUB\u201101), but it relies on the same materials. If they're disrupted, Medical Affairs guides the therapeutic alternatives instead.\n- **Oculon 2.5 mL relies on one supplier for its bottle, and Oculon has no approved company substitute.** The 5 mL pack isn't exposed.\n- **Our other product lines are exposed too.** Another 45 finished goods also depend on single-source materials: 11 lens care, 10 surgical viscoelastic, 2 eye-health supplement, 11 diagnostic drop and 11 ophthalmic antibiotic. They aren't in the Snowflake commercial database, so there's no TRx for them. In total, 49 of our 60 finished goods are exposed.\n- **The supply-side numbers:** 24 purchased materials have exactly one qualified supplier. 16 of them reach a finished good through the current BOM, 7 aren't in the current BOM at all, and 1 doesn't lead to any finished good.\n\n**Sources and definitions**\n- **Single source:** a material with exactly one qualified supplier (`qualified_supplier_count` = 1 in `dbo.SUPPLIER_MATERIAL`), per the ratified metric.\n- **BOM walk:** approved join path \"Supplier to finished goods (multi-level BOM)\". I used only current BOM edges (`EFF_TO` \u2265 2026\u201109\u201130), tracing up to 10 levels to finished goods (the deepest link found was 9). I didn't use the deprecated `BOM_FLAT_LEGACY` table. I cross-checked RM\u2011221, CMP\u2011310 and CMP\u2011505 with `trace_supply_exposure` and the results matched. That check also showed one old RM\u2011221 link that ended in 2025 and isn't counted.\n- **Matching products to NDCs:** join path \"Material to PackagedProduct (cross-platform)\", using `MATERIAL_NDC_XREF` with the dashes removed to match `CORE.PRODUCT.PROD_NDC11`.\n- **TRx:** summed `TRX_QTY` from `PHARMA_DEMO.RAW_3P.RXT_WKLY` (Commercial Demand data product) for company products only, over the 13 most recent weeks.\n- **Policy:** checked for the SUPPLY_PLANNER role, and all tables were allowed with no masking.\n- **Assumptions:**\n  - \"At risk\" means the product's full TRx. I didn't weight by inventory on hand, safety stock or how likely each supplier is to fail.\n  - A product with several single-source materials is counted once.\n- **Logged:** decision trace d3ce4f27. It overstated the number of single-source materials that reach a finished good as 21, so I logged a correction in e894165d; the right figure is 16.",
+  "stop_reason": "end_turn",
+  "model_turns": 16,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_concept",
+    "get_business_rules",
+    "get_data_product",
+    "get_join_path",
+    "get_metric",
+    "list_deprecated_tables",
+    "get_concept",
+    "get_concept",
+    "get_business_rules",
+    "get_metric",
+    "get_join_path",
+    "get_data_product",
+    "check_policy",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "trace_supply_exposure",
+    "trace_supply_exposure",
+    "trace_supply_exposure",
+    "run_sql",
+    "log_trace",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "WITH q AS (SELECT MATERIAL_ID, SUM(CASE WHEN QUALIFIED_FLG='Y' THEN 1 ELSE 0 END) AS qsc, COUNT(*) AS n FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID)\nSELECT qsc, COUNT(*) AS materials FROM q GROUP BY qsc ORDER BY qsc",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_TYP, COUNT(*) n FROM dbo.MATERIAL GROUP BY MATERIAL_TYP; ",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 1.18
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH ss AS (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID HAVING SUM(CASE WHEN QUALIFIED_FLG='Y' THEN 1 ELSE 0 END)=1),\nb AS (SELECT DISTINCT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_TO >= '2026-09-30'),\npaths AS (\nSELECT ss.MATERIAL_ID ssm, b1.p a1, b2.p a2, b3.p a3, b4.p a4, b5.p a5, b6.p a6, b7.p a7, b8.p a8, b9.p a9, b10.p a10\nFROM ss\nJOIN b b1 ON b1.c=ss.MATERIAL_ID\nLEFT JOIN b b2 ON b2.c=b1.p\nLEFT JOIN b b3 ON b3.c=b2.p\nLEFT JOIN b b4 ON b4.c=b3.p\nLEFT JOIN b b5 ON b5.c=b4.p\nLEFT JOIN b b6 ON b6.c=b5.p\nLEFT JOIN b b7 ON b7.c=b6.p\nLEFT JOIN b b8 ON b8.c=b7.p\nLEFT JOIN b b9 ON b9.c=b8.p\nLEFT JOIN b b10 ON b10.c=b9.p),\nanc AS (\nSELECT ssm, a1 anc, 1 d FROM paths UNION SELECT ssm,a2,2 FROM paths UNION SELECT ssm,a3,3 FROM paths UNION SELECT ssm,a4,4 FROM paths UNION SELECT ssm,a5,5 FROM paths\nUNION SELECT ssm,a6,6 FROM paths UNION SELECT ssm,a7,7 FROM paths UNION SELECT ssm,a8,8 FROM paths UNION SELECT ssm,a9,9 FROM paths UNION SELECT ssm,a10,10 FROM paths)\nSELECT m.MATERIAL_ID fg, m.MATERIAL_DESC, x.NDC, COUNT(DISTINCT anc.ssm) n_ss, STRING_AGG(anc.ssm, ',') WITHIN GROUP (ORDER BY anc.ssm) ss_list, MIN(anc.d) min_depth, MAX(anc.d) max_depth\nFROM (SELECT DISTINCT ssm, anc, d FROM anc WHERE anc IS NOT NULL) anc\nJOIN dbo.MATERIAL m ON m.MATERIAL_ID=anc.anc AND m.MATERIAL_TYP='FG'\nLEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=m.MATERIAL_ID\nGROUP BY m.MATERIAL_ID, m.MATERIAL_DESC, x.NDC ORDER BY m.MATERIAL_ID",
+      "ok": true,
+      "rows": 49,
+      "error": null,
+      "elapsed_s": 6.96
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT PROD_NDC11, BRAND_NM, * FROM PHARMA_DEMO.CORE.PRODUCT ORDER BY PROD_NDC11",
+      "ok": false,
+      "rows": null,
+      "error": "002028 (42601): SQL compilation error:\nambiguous column name 'PROD_NDC11'",
+      "elapsed_s": 1.59
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PRODUCT ORDER BY PROD_NDC11",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.72
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH ss AS (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID HAVING SUM(CASE WHEN QUALIFIED_FLG='Y' THEN 1 ELSE 0 END)=1)\nSELECT ss.MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP, sm.SUPPLIER_ID, s.*,\n (SELECT COUNT(*) FROM dbo.BOM b WHERE b.CHILD_MATERIAL_ID=ss.MATERIAL_ID AND b.EFF_TO>='2026-09-30') cur_edges,\n (SELECT COUNT(*) FROM dbo.BOM b WHERE b.CHILD_MATERIAL_ID=ss.MATERIAL_ID AND b.EFF_TO<'2026-09-30') old_edges\nFROM ss JOIN dbo.MATERIAL m ON m.MATERIAL_ID=ss.MATERIAL_ID\nJOIN dbo.SUPPLIER_MATERIAL sm ON sm.MATERIAL_ID=ss.MATERIAL_ID AND sm.QUALIFIED_FLG='Y'\nLEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID ORDER BY ss.MATERIAL_ID",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 2.39
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT r.PROD_NDC11, p.BRAND_NM, p.PACK_DESC, SUM(r.TRX_QTY) trx_13w, MIN(r.WK_END_DT) first_wk, MAX(r.WK_END_DT) last_wk, COUNT(DISTINCT r.WK_END_DT) n_wk\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT=wk.WK_END_DT\nJOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\nWHERE p.CO_FLG='Y'\nGROUP BY 1,2,3 ORDER BY 1",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 2.17
+    }
+  ],
+  "usage": {
+    "input": 34,
+    "output": 9570,
+    "cache_read": 311551,
+    "cache_write": 35263
+  },
+  "cost_usd": 0.4302,
+  "latency_s": 147.5,
+  "cypher_queries": 107
+}

@@ -1,0 +1,61 @@
+{
+  "run_id": "eval_20261001T2144_r3",
+  "agent": "B",
+  "qid": "Q5",
+  "question": "When Lacrivia claims are rejected, which products are patients switched to?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Over the past year, about 36% of rejected Lacrivia claims ended in a switch to another product, and every one of those switches went to a competitor. Tearsol (lifitegrast) took half of them. None went to our own Cyclosporine OS.\n\n**Where the 9,199 rejected Lacrivia claims went (claims dated 27 Sep 2025 \u2013 25 Sep 2026, both Lacrivia packs)**\n\n| Outcome | Claims | % of rejections | % of switches |\n|---|---|---|---|\n| **Tearsol** (lifitegrast, competitor) | 1,630 | 17.7% | 49.6% |\n| **Generic cyclosporine** 0.05% (competitor) | 820 | 8.9% | 24.9% |\n| **Cyclomist** (cyclosporine 0.09%, competitor) | 497 | 5.4% | 15.1% |\n| **Hydrova** (perfluorohexyloctane, competitor) | 340 | 3.7% | 10.3% |\n| **Switched, total** | **3,287** | **35.7%** | 100% |\n| Abandoned, no switch | 2,231 | 24.3% | \u2013 |\n| No switch and not abandoned | 3,681 | 40.0% | \u2013 |\n\n**Last 13 weeks (claims after 26 Jun 2026):** 878 of 2,367 rejections (37.1%) were switched. The mix hasn't changed much: Tearsol 48.7%, generic cyclosporine 23.2%, Cyclomist 17.0%, Hydrova 11.0%.\n\n**By rejection reason:** the pattern is about the same for every reason, at roughly 32\u201339% switched.\n- **Prior authorisation:** largest reason, with 5,376 rejections (58%); 1,892 switched (35%), and 952 of those went to Tearsol.\n- **Not covered:** 1,925 rejections; 36% switched.\n- **Plan limit:** 563 rejections; highest switch rate at 39%.\n- **Distribution limit:** 192 rejections; lowest switch rate at 32%, but abandonment without a switch is high at 30%.\n\n**What this means for market access:** prior-authorisation rejections account for the most patients lost to competitors, mostly to Tearsol. Our own Cyclosporine OS 0.05% (approved as a substitute only during a Lacrivia shortage) currently gets none of these switches. Patients who move to a cyclosporine are going to the generic or to Cyclomist instead.\n\n**Sources and definitions**\n- **Claims:** `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ` (ratified). A rejected claim has `ADJ_STAT = 'R'`. The switched-to product is in `SUBST_NDC11` (empty means no switch). Abandonment is from `ABNDN_FLG`.\n- **Products:** Lacrivia NDCs (99101010105 and 99101010110) and the switched-to brands come from `CORE.PRODUCT`.\n- **Rejection reasons:** decoded through `REF.REJ_CODE` into the 7 reject groups, using the knowledge layer's approved \"Claim to ClaimRejection group\" join path.\n- **Knowledge layer:** I used the abandonment-after-rejection metric definition and business rule BR-SUB-01 (approved substitutes). I avoided the deprecated table `CLMLNS_ADJ_BKP_2025`. The policy check found no restrictions for the MARKET_ACCESS role on these tables.\n\n**Assumptions**\n- You didn't give a time period, so the main figures cover all claims available (one year), with the last 13 weeks shown separately.\n- \"No switch and not abandoned\" claims may have been resubmitted and paid, or the switch may not have been recorded. The data can't tell these apart, so the 36% switch rate is a minimum.\n- The claims data is de-identified, so the counts are claim lines, not unique patients.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "WITH lac AS (SELECT PROD_NDC11 FROM PHARMA_DEMO.CORE.PRODUCT WHERE BRAND_NM='LACRIVIA'),\nr AS (SELECT c.* FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN lac ON c.PROD_NDC11=lac.PROD_NDC11 WHERE c.ADJ_STAT='R')\nSELECT COALESCE(p.BRAND_NM, CASE WHEN r.SUBST_NDC11 IS NULL THEN '(no switch)' ELSE 'UNMAPPED:'||r.SUBST_NDC11 END) AS subst_brand,\n p.MOLECULE, p.CO_FLG, COUNT(*) n, ROUND(COUNT(*)/SUM(COUNT(*)) OVER (),4) share,\n SUM(CASE WHEN r.ABNDN_FLG='Y' THEN 1 ELSE 0 END) abandoned, MIN(r.CLM_DT) mn, MAX(r.CLM_DT) mx\nFROM r LEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON r.SUBST_NDC11=p.PROD_NDC11\nGROUP BY 1,2,3 ORDER BY n DESC",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 3.5
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT BRAND_NM, PROD_NDC11, PACK_DESC, MOLECULE, CO_FLG FROM PHARMA_DEMO.CORE.PRODUCT ORDER BY BRAND_NM",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.91
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH r AS (SELECT c.*, COALESCE(g.REJ_GRP,'UNMAPPED') grp FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\n  JOIN PHARMA_DEMO.CORE.PRODUCT lp ON c.PROD_NDC11=lp.PROD_NDC11 AND lp.BRAND_NM='LACRIVIA'\n  LEFT JOIN PHARMA_DEMO.REF.REJ_CODE g ON c.REJ_RSN_CD=g.REJ_RSN_CD WHERE c.ADJ_STAT='R')\nSELECT grp, COUNT(*) rejected,\n SUM(IFF(p.BRAND_NM='TEARSOL',1,0)) tearsol, SUM(IFF(p.BRAND_NM='CYCLOSPORINE GENERIC',1,0)) cyclo_gen,\n SUM(IFF(p.BRAND_NM='CYCLOMIST',1,0)) cyclomist, SUM(IFF(p.BRAND_NM='HYDROVA',1,0)) hydrova,\n SUM(IFF(r.SUBST_NDC11 IS NOT NULL,1,0)) switched,\n SUM(IFF(r.SUBST_NDC11 IS NULL AND r.ABNDN_FLG='Y',1,0)) abandoned_no_switch,\n SUM(IFF(r.SUBST_NDC11 IS NULL AND COALESCE(r.ABNDN_FLG,'N')<>'Y',1,0)) no_switch_not_abandoned,\n SUM(IFF(r.CLM_DT > '2026-06-26',1,0)) last13w_rej, SUM(IFF(r.CLM_DT > '2026-06-26' AND r.SUBST_NDC11 IS NOT NULL,1,0)) last13w_switched\nFROM r LEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON r.SUBST_NDC11=p.PROD_NDC11\nGROUP BY ROLLUP(grp) ORDER BY rejected DESC",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 19.73
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT p.BRAND_NM, COUNT(*) n, ROUND(COUNT(*)/SUM(COUNT(*)) OVER (),3) shr_of_switches\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\nJOIN PHARMA_DEMO.CORE.PRODUCT lp ON c.PROD_NDC11=lp.PROD_NDC11 AND lp.BRAND_NM='LACRIVIA'\nJOIN PHARMA_DEMO.CORE.PRODUCT p ON c.SUBST_NDC11=p.PROD_NDC11\nWHERE c.ADJ_STAT='R' AND c.CLM_DT > '2026-06-26' GROUP BY 1 ORDER BY n DESC",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.73
+    }
+  ],
+  "cypher_queries": 7,
+  "usage": {
+    "input": 12,
+    "output": 3962,
+    "cache_read": 37132,
+    "cache_write": 13594
+  },
+  "cost_usd": 0.1547,
+  "latency_s": 71.5
+}

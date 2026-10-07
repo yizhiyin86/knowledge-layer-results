@@ -1,0 +1,72 @@
+{
+  "run_id": "eval_20261001T2144_r3",
+  "agent": "B",
+  "qid": "Q10",
+  "question": "Which of our products depend on a single-source material anywhere in their bill of materials, and how much TRx volume is at risk?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Answer:** 49 finished goods depend on at least one single-source material somewhere in their bill of materials. Only 4 of them are prescription packs we track TRx for, and they account for **16,554 TRx over the last 13 weeks (weeks ending 3 Jul to 25 Sep 2026). That is about 94% of our 17,540 company TRx.** Oculon 5 mL is the only company Rx pack with no single-source material in its BOM.\n\n**TRx at risk by pack (last 13 weeks)**\n\n| Pack (NDC) | Finished good | Single-source material(s) \u2192 qualified supplier | TRx 13w | NRx 13w |\n|---|---|---|---|---|\n| Lacrivia 0.1% 5 mL (99101-0101-05) | FG-1001 | RM-221 Polysorbate 80 \u2192 S-104 Delmar (India, tier 2); CMP-310 emulsifier premix \u2192 S-201 Larchmont (US, tier 1) | 7,017 | 2,139 |\n| Lacrivia 0.1% 10 mL (99101-0101-10) | FG-1002 | same two | 3,425 | 981 |\n| Cyclosporine OS 0.05% 5 mL (99101-0202-05) | FG-1003 | same two | 3,544 | 1,058 |\n| Oculon 0.005% 2.5 mL (99101-0303-25) | FG-2001 | CMP-505 2.5 mL dropper bottle \u2192 S-150 Quarry Hill (Italy, tier 1) | 2,568 | 780 |\n| **Total at risk** | | | **16,554** | **4,958** |\n| *Not exposed:* Oculon 5 mL (99101-0303-50) | FG-2002 | none | 986 | 329 |\n\n**What this means**\n- **The biggest exposure is the dry-eye range: 13,986 TRx through a single chain.** RM-221 feeds CMP-310, which feeds the cyclosporine bulk, so Lacrivia and its approved substitute Cyclosporine OS fail together. Under rule BR-SUB-01, a disruption at S-104 or S-201 leaves no approved company substitute for Lacrivia. RM-221 has a second supplier on file (S-131), but it isn't qualified. Qualifying S-131 is the most valuable fix. CMP-310 has no second supplier at all.\n- **Oculon 2.5 mL (2,568 TRx)** depends only on the S-150 dropper bottle. The 5 mL pack (986 TRx) is a partial buffer, but Oculon has no approved company substitute.\n- **The other 45 exposed finished goods have no TRx data,** so I couldn't size them in TRx. They aren't in the commercial database (no NDC match in Snowflake). They are 11 lens care solutions, 10 surgical viscoelastics, 2 eye-health supplements, 11 diagnostic drops and 11 ophthalmic antibiotics. The single-source materials driving them include RM-10857 and CMP-50203 (both from S-312, tier 2, Switzerland), RM-10211 (S-344), RM-11172 and RM-11056 (both from S-504), RM-10360, RM-10288, RM-10372, CMP-50757, RM-11149, CMP-50077, RM-10054 and RM-10991. Several diagnostic and antibiotic products depend on 4\u20135 single-source materials each.\n\n**How I got there**\n- There are 24 single-source materials, each with exactly one qualified supplier (ratified metric `qualified_supplier_count` = 1, from `SUPPLY_DEMO.dbo.SUPPLIER_MATERIAL`, QUALIFIED_FLG = 'Y'). 2,093 materials have two or three. Ten of the 24 don't feed any current finished good.\n- I followed each one up the bill of materials, using only current BOM entries (effective as of 30 Sep 2026) and up to 10 levels, until I reached a finished good. This follows the KL's approved \"Supplier to finished goods\" join path. I used `dbo.BOM` instead of the deprecated `BOM_FLAT_LEGACY`.\n- `trace_supply_exposure` (S-104 / RM-221) independently confirmed the Lacrivia and Cyclosporine paths (5 BOM levels deep) and excluded an expired BOM entry (RM-221 \u2192 CMP-320, ended 30 Jun 2025).\n- I matched finished goods to NDCs through `dbo.MATERIAL_NDC_XREF`, removing the dashes to join to `PHARMA_DEMO.CORE.PRODUCT`.\n- TRx comes from `PHARMA_DEMO.RAW_3P.RXT_WKLY` (the ratified demand source), summed over the 13 most recent weekly periods.\n- Policy: as a supply planner you have no restrictions on these tables. I didn't use the incentive-comp goals table (`CORE.IC_GOAL`), which is restricted.\n\n**Assumptions**\n- \"Single-source\" means one qualified supplier. Unqualified alternates on file don't count as backup.\n- \"TRx at risk\" is the full 13-week TRx of each exposed pack, not a modelled loss. It ignores inventory on hand and recovery lead times, which `get_lead_times` can add if you need them.\n- Single-sourced in-house manufacturing steps, such as a plant that is the only one making a bulk, are out of scope. This analysis covers purchased materials only.",
+  "stop_reason": "end_turn",
+  "model_turns": 7,
+  "tool_calls": [
+    "get_context",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "trace_supply_exposure",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "WITH q AS (SELECT MATERIAL_ID, SUM(CASE WHEN QUALIFIED_FLG='Y' THEN 1 ELSE 0 END) qc, COUNT(*) n FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID)\nSELECT qc, COUNT(*) mats, SUM(n) rows_ FROM q GROUP BY qc ORDER BY qc",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.22
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH ss AS (SELECT MATERIAL_ID src FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID HAVING SUM(CASE WHEN QUALIFIED_FLG='Y' THEN 1 ELSE 0 END)=1),\ne AS (SELECT DISTINCT CHILD_MATERIAL_ID c, PARENT_MATERIAL_ID p FROM dbo.BOM WHERE EFF_TO >= '2026-09-30' AND EFF_FROM <= '2026-09-30'),\nl1 AS (SELECT DISTINCT ss.src, e.p a FROM ss JOIN e ON e.c=ss.src),\nl2 AS (SELECT DISTINCT l.src, e.p a FROM l1 l JOIN e ON e.c=l.a),\nl3 AS (SELECT DISTINCT l.src, e.p a FROM l2 l JOIN e ON e.c=l.a),\nl4 AS (SELECT DISTINCT l.src, e.p a FROM l3 l JOIN e ON e.c=l.a),\nl5 AS (SELECT DISTINCT l.src, e.p a FROM l4 l JOIN e ON e.c=l.a),\nl6 AS (SELECT DISTINCT l.src, e.p a FROM l5 l JOIN e ON e.c=l.a),\nl7 AS (SELECT DISTINCT l.src, e.p a FROM l6 l JOIN e ON e.c=l.a),\nl8 AS (SELECT DISTINCT l.src, e.p a FROM l7 l JOIN e ON e.c=l.a),\nl9 AS (SELECT DISTINCT l.src, e.p a FROM l8 l JOIN e ON e.c=l.a),\nl10 AS (SELECT DISTINCT l.src, e.p a FROM l9 l JOIN e ON e.c=l.a),\nallp AS (SELECT src,a FROM l1 UNION SELECT src,a FROM l2 UNION SELECT src,a FROM l3 UNION SELECT src,a FROM l4 UNION SELECT src,a FROM l5 UNION SELECT src,a FROM l6 UNION SELECT src,a FROM l7 UNION SELECT src,a FROM l8 UNION SELECT src,a FROM l9 UNION SELECT src,a FROM l10)\nSELECT m.MATERIAL_ID fg, m.MATERIAL_DESC, x.NDC, STRING_AGG(allp.src, ',') ss_materials, COUNT(*) n_ss\nFROM allp JOIN dbo.MATERIAL m ON m.MATERIAL_ID=allp.a AND m.MATERIAL_TYP='FG'\nLEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=m.MATERIAL_ID\nGROUP BY m.MATERIAL_ID, m.MATERIAL_DESC, x.NDC ORDER BY m.MATERIAL_ID",
+      "ok": true,
+      "rows": 49,
+      "error": null,
+      "elapsed_s": 3.77
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH ss AS (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID HAVING SUM(CASE WHEN QUALIFIED_FLG='Y' THEN 1 ELSE 0 END)=1)\nSELECT sm.MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP, sm.SUPPLIER_ID, s.SUPPLIER_NM, s.TIER, s.COUNTRY,\n (SELECT COUNT(*) FROM dbo.SUPPLIER_MATERIAL x WHERE x.MATERIAL_ID=sm.MATERIAL_ID AND x.QUALIFIED_FLG<>'Y') unqualified_alts\nFROM ss JOIN dbo.SUPPLIER_MATERIAL sm ON sm.MATERIAL_ID=ss.MATERIAL_ID AND sm.QUALIFIED_FLG='Y'\nJOIN dbo.MATERIAL m ON m.MATERIAL_ID=sm.MATERIAL_ID JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID ORDER BY sm.MATERIAL_ID",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 1.27
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH w AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY QUALIFY DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) <= 13)\nSELECT p.PROD_NDC11, p.BRAND_NM, p.PACK_DESC, p.CO_FLG, MIN(w.WK_END_DT) first_wk, MAX(w.WK_END_DT) last_wk, SUM(r.TRX_QTY) trx_13w, SUM(r.NRX_QTY) nrx_13w\nFROM PHARMA_DEMO.CORE.PRODUCT p\nLEFT JOIN PHARMA_DEMO.RAW_3P.RXT_WKLY r ON r.PROD_NDC11=p.PROD_NDC11 AND r.WK_END_DT IN (SELECT WK_END_DT FROM w)\nLEFT JOIN w ON w.WK_END_DT=r.WK_END_DT\nWHERE p.PROD_NDC11 LIKE '99101%'\nGROUP BY 1,2,3,4 ORDER BY 1",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 3.7
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT x.MATERIAL_ID, x.NDC, m.MATERIAL_DESC FROM dbo.MATERIAL_NDC_XREF x JOIN dbo.MATERIAL m ON m.MATERIAL_ID=x.MATERIAL_ID WHERE x.NDC LIKE '99101-0%'",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.55
+    }
+  ],
+  "cypher_queries": 10,
+  "usage": {
+    "input": 16,
+    "output": 5803,
+    "cache_read": 76195,
+    "cache_write": 21549
+  },
+  "cost_usd": 0.2391,
+  "latency_s": 76.9
+}

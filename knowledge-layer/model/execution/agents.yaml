@@ -1,0 +1,23 @@
+# Agent registration ("badges", workshop six-layer schema, layer 6). Set by the owning team; enforced by the harness
+# through the knowledge layer before every tool call (never only in the prompt).
+# maxDataSensitivity: Public < Internal < Confidential < Restricted. minTrust: knowledge assets below it are not returned
+# (unless the agent asks in discovery mode, where they come back flagged LOW).
+agents:
+  - name: Supply Response Agent
+    ownerTeam: Supply Planning
+    riskProfile: HIGH
+    maxDataSensitivity: Confidential
+    minTrust: 0.7
+    may_run: [Supply Disruption Response]
+    may_use: [list_tables, describe_table, run_sql, get_supplier_status, get_wholesaler_inventory,
+              create_purchase_requisition, create_allocation, request_approval, get_approval_status,
+              notify_account_team, send_wholesaler_edi, create_escalation_case,
+              get_context, trace_supply_exposure, get_lead_times, get_reference, check_policy, get_process, find_playbooks]
+  - name: Commercial Insights Agent
+    ownerTeam: Commercial Analytics
+    riskProfile: LOW
+    maxDataSensitivity: Internal
+    minTrust: 0.85
+    may_run: []
+    may_use: [list_tables, describe_table, run_sql, get_supplier_status, get_wholesaler_inventory, get_approval_status,
+              get_context, trace_supply_exposure, get_lead_times, get_reference, check_policy, get_process, find_playbooks]

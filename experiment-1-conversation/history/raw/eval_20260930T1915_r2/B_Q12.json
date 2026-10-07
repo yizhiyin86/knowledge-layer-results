@@ -1,0 +1,93 @@
+{
+  "run_id": "eval_20260930T1915_r2",
+  "agent": "B",
+  "qid": "Q12",
+  "question": "If S-104's next RM-221 shipment ships two weeks late, when will DC-EAST run out of Lacrivia, when will supply recover there, and which customers get supply first under our allocation rules?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "DC-EAST is effectively out of Lacrivia already, around 26\u201327 Sep 2026, before the delay matters. If S-104's next RM-221 shipment ships two weeks late, supply at DC-EAST recovers on about **10 Dec 2026**, 14 days later than planned. Tier A health systems get supply first, then Tier B, then everyone else in proportion to their Lacrivia prescriptions (TRx) over the last 13 weeks.\n\n**1. The delayed shipment**\n- S-104's next RM-221 order is **PO005791**: 4,200 units, promised to ship 2026-10-07, still open.\n- Two weeks late means it ships on **2026-10-21**.\n- RM-221 comes only from S-104. The other listed supplier, S-131, isn't qualified, so no one can cover the gap.\n- The previous late order (PO000360, shipped 2026-09-10, 14 days late) likely explains why stock is running down now.\n\n**2. When DC-EAST runs out**\n\n| Pack | On hand 2026-09-25 | Safety stock | Units shipped per day (last 28 days) | Days of supply | Out of stock |\n|---|---|---|---|---|---|\n| Lacrivia 5 mL (FG-1001) | 46 | 471 | 36.7 | 1.3 | ~2026-09-26 |\n| Lacrivia 10 mL (FG-1002) | 34 | 233 | 15.1 | 2.3 | ~2026-09-27 |\n\nBoth packs have been below safety stock since 2026-09-11.\n\n**3. When supply recovers**\n- It takes **50 days** from S-104 shipping to finished product reaching the DC:\n  - 6 days transit to the premix supplier (S-201)\n  - 10 days to make and test the premix, including transit to plant PL-01\n  - 12 days for the bulk emulsion stages\n  - 3 days to fill\n  - 15 days to release, including the 14-day sterility test\n  - 4 days transit to the DC\n- 2026-10-21 + 50 days = **2026-12-10** for both packs. On time, it would have been 2026-11-26.\n- DC-EAST would be out of stock for about **74 days**.\n\n**4. Who gets supply first**\nCustomers are the top-level health system, or an independent clinic. Sites are assigned to DC-EAST by their state.\n\n1. **Tier A contracts:**\n   - Riverbend Health System: 836 TRx (13 weeks)\n   - Oak Hollow Health System: 708\n   - Northfield Health System: 533\n2. **Tier B contracts:**\n   - Clearview Health System: 530 (contract expires 2026-12-31, still valid through recovery)\n   - Sunridge Health System: 428\n3. **Everyone else, split by TRx (2,135 in total):**\n   - Brightwater Health System: 414 (19.4%)\n   - Stonegate Health System: 321 (15.0%)\n   - Sunridge Vision Associates 20: 198 (9.3%)\n   - Willow Creek Health System: 188 (8.8%)\n   - Harbor Point Vision Associates 2: 139 (6.5%)\n   - Highland Vision Associates 26: 133 (6.2%)\n   - Clearview Vision Associates 13: 111 (5.2%)\n   - Riverbend Vision Associates 16: 103 (4.8%)\n   - Northfield Vision Associates 19: 87 (4.1%)\n   - Eastgate Vision Associates 29: 74 (3.5%)\n   - Highland Vision Associates 6: 73 (3.4%)\n   - Summerfield Vision Associates 11: 61 (2.9%)\n   - Maple Grove Vision Associates 1: 58 (2.7%)\n   - Lakemont Vision Associates 4: 49 (2.3%)\n   - Brightwater Vision Associates 14: 46 (2.2%)\n   - Eastgate Vision Associates 9: 31 (1.5%)\n   - Pine Valley Vision Associates 8: 28 (1.3%)\n   - Silver Lake Vision Associates 27: 21 (1.0%)\n\n   Some \"Vision Associates\" clinics share a name with a contracted system (e.g. Sunridge Vision Associates 20). They are independent in the account hierarchy, so they don't get that system's tier.\n\n**What to do next**\n- **Don't offer the substitute.** The approved substitute, Cyclosporine OS (615 units at DC-EAST), is made with the same RM-221, so the substitution rule rules it out.\n- **Moving stock from other DCs needs Supply Planning approval.**\n\n**Sources and definitions**\n- **Knowledge layer:** the supply trace from S-104/RM-221 and the MES stage times for both Lacrivia packs; the business rules for recovery lead time, allocation, what counts as a customer, DC regions and substitutes; the DC region and supply contract lists; and the ratified days-of-supply definition.\n- **Supply data (Fabric):** purchase orders, weekly DC inventory and shipments to wholesalers.\n- **Commercial data (Snowflake):** weekly prescriptions for NDCs 99101010105 and 99101010110, linked to accounts through prescribers. The 13 weeks run from 2026-07-03 to 2026-09-25.\n- **Policy:** checked and allowed for SUPPLY_PLANNER. Decision trace 34661456 is logged.\n\n**Assumptions and caveats**\n- \"Next shipment\" means the open order with the earliest promised date. Its ID (PO005791) is out of sequence with the other orders, which is worth checking.\n- Out-of-stock dates assume demand stays at the last 28 days' shipment rate.\n- Recovery follows the lead-time rule: the delayed shipment plus standard times. S-104 shipped RM-221 orders in September (PO000360 to PO000364) that are still in production. Their progress isn't in the data. If those batches pass testing they could give partial relief from about late October to mid-November, but falling stock suggests they aren't reaching DC-EAST yet.\n- A site belongs to DC-EAST if its own state is NY, NJ, PA, MA, FL, GA, NC or OH. TRx counts only those sites. Clinics take their tier from the top of their account hierarchy.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "similar_past_decisions",
+    "trace_supply_exposure",
+    "get_business_rules",
+    "get_business_rules",
+    "get_lead_times",
+    "get_lead_times",
+    "get_reference",
+    "get_reference",
+    "get_business_rules",
+    "get_concept",
+    "get_data_product",
+    "list_deprecated_tables",
+    "list_tables",
+    "get_join_path",
+    "get_metric",
+    "get_metric",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND MATERIAL_ID='RM-221' AND (STATUS<>'CLOSED' OR PROMISED_SHIP_DT >= '2026-07-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 14,
+      "error": null,
+      "elapsed_s": 1.22
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS FROM dbo.DC_INV i WHERE i.DC_ID='DC-EAST' AND i.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003') AND i.SNAPSHOT_DT >= '2026-08-01' ORDER BY i.MATERIAL_ID, i.SNAPSHOT_DT",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 0.61
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, MAX(SHIP_DT) AS last_ship, SUM(CASE WHEN SHIP_DT > DATEADD(day,-28,'2026-09-30') THEN UNITS ELSE 0 END) AS units_28d, SUM(CASE WHEN SHIP_DT > DATEADD(day,-91,'2026-09-30') THEN UNITS ELSE 0 END) AS units_91d FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003') GROUP BY MATERIAL_ID",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 2.25
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SUPPLIER_ID, STATUS, COUNT(*) n, MIN(PROMISED_SHIP_DT) min_prom, MAX(PROMISED_SHIP_DT) max_prom FROM dbo.PURCH_ORD WHERE MATERIAL_ID='RM-221' GROUP BY SUPPLIER_ID, STATUS",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.26
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH RECURSIVE h AS (\n  SELECT ACCOUNT_ID, ACCOUNT_ID AS TOP_ID, 0 AS lvl FROM PHARMA_DEMO.CORE.ACCOUNT WHERE PARENT_ACCOUNT_ID IS NULL\n  UNION ALL\n  SELECT a.ACCOUNT_ID, h.TOP_ID, h.lvl+1 FROM PHARMA_DEMO.CORE.ACCOUNT a JOIN h ON a.PARENT_ACCOUNT_ID = h.ACCOUNT_ID WHERE h.lvl < 10\n), wk AS (\n  SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13\n), rx AS (\n  SELECT p.ACCOUNT_ID, SUM(r.TRX_QTY) trx\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON r.WK_END_DT = wk.WK_END_DT\n  JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME = r.PRSCRBR_ME\n  WHERE r.PROD_NDC11 IN ('99101010105','99101010110')\n  GROUP BY p.ACCOUNT_ID\n)\nSELECT h.TOP_ID, t.ACCOUNT_NM TOP_NM, t.ACCT_TYP TOP_TYP, COUNT(DISTINCT a.ACCOUNT_ID) east_sites, SUM(rx.trx) trx13, (SELECT MIN(WK_END_DT)||' to '||MAX(WK_END_DT) FROM wk) wks\nFROM rx JOIN PHARMA_DEMO.CORE.ACCOUNT a ON a.ACCOUNT_ID = rx.ACCOUNT_ID\nJOIN h ON h.ACCOUNT_ID = a.ACCOUNT_ID\nJOIN PHARMA_DEMO.CORE.ACCOUNT t ON t.ACCOUNT_ID = h.TOP_ID\nWHERE a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH')\nGROUP BY 1,2,3 ORDER BY trx13 DESC",
+      "ok": true,
+      "rows": 23,
+      "error": null,
+      "elapsed_s": 10.09
+    }
+  ],
+  "usage": {
+    "input": 22,
+    "output": 10392,
+    "cache_read": 188394,
+    "cache_write": 28530
+  },
+  "cost_usd": 0.3883,
+  "latency_s": 160.4,
+  "cypher_queries": 81
+}

@@ -1,0 +1,204 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "A",
+  "qid": "Q10",
+  "question": "Which of our products depend on a single-source material anywhere in their bill of materials, and how much TRx volume is at risk?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Answer:** 4 of our 5 commercial NDCs rely on at least one single-source material somewhere in their current bill of materials. Together they account for **16,554 TRx in the last 13 weeks (Jul 3 \u2013 Sep 25, 2026). That is 94.4% of our 17,540 TRx.** Only Oculon 5 mL (986 TRx) has a qualified backup supplier for every material.\n\n| Product (NDC) | Single-source material(s), with BOM level | Only qualified supplier | 13-wk TRx |\n|---|---|---|---|\n| Lacrivia 0.1% 5 mL (99101-0101-05) | Emulsifier premix (polysorbate 80/castor oil) CMP-310 (level 4); Polysorbate 80 NF low-peroxide RM-221 (level 5) | S-201 Larchmont Contract Mfg (US); S-104 Delmar Specialty Chemicals (IN) | 7,017 |\n| Lacrivia 0.1% 10 mL (99101-0101-10) | Same two materials | Same | 3,425 |\n| Cyclosporine OS 0.05% 5 mL (99101-0202-05) | Same two materials | Same | 3,544 |\n| Oculon 0.005% 2.5 mL (99101-0303-25) | 2.5 mL LDPE dropper bottle CMP-505 (level 2) | S-150 Quarry Hill Containers (IT) | 2,568 |\n| **Total at risk** | | | **16,554** |\n| Oculon 0.005% 5 mL (99101-0303-50), not at risk | None | \u2014 | 986 |\n\n**Where the risk is concentrated:**\n- **Cyclosporine line (13,986 TRx, 84% of the at-risk volume):** all three packs come from the same cyclosporine emulsion concentrate (SEMI-031). That concentrate needs both the emulsifier premix, which has no other supplier listed at all, and Polysorbate 80. Polysorbate 80 has a second supplier on file (S-131), but S-131 is not qualified. So one supplier failure stops all three packs. Qualifying S-131 would remove one of the two exposures.\n- **Oculon 2.5 mL (2,568 TRx):** the risk is packaging only. The 5 mL pack uses a different bottle with two qualified suppliers, which is why it isn't at risk.\n- **Everything else is dual-qualified**, including the active ingredients (cyclosporine and latanoprost), the shared pack kit (label, carton, leaflet), caps and the buffer concentrate.\n\n**Other finished goods:** 45 of the other 55 finished goods (the FG-30xx lens care, surgical, supplement, diagnostic and antibiotic lines) also depend on a single-source material. Their NDCs aren't in the commercial product master and have no prescription data, so I couldn't put a TRx figure on them. Their exposures include raw materials RM-10857, RM-10211, RM-11149 and RM-10360, plus Polysorbate 80 again.\n\n**Sources and definitions**\n- Fabric SUPPLY_DEMO:\n  - `dbo.BOM` was broken down through every level. The hierarchy goes 9 levels deep with no circular links. Fabric doesn't support recursive queries, so I stepped through the levels one join at a time.\n  - `dbo.SUPPLIER_MATERIAL`, `dbo.SUPPLIER` and `dbo.MATERIAL` for suppliers and material descriptions.\n  - `dbo.MATERIAL_NDC_XREF` to link finished goods to NDCs. Its dashed NDCs were matched to the 11-digit NDCs without dashes on the Snowflake side.\n- Snowflake PHARMA_DEMO: `CORE.PRODUCT` (our products are those with CO_FLG = 'Y') and `RAW_3P.RXT_WKLY` (TRX_QTY summed over the 13 most recent week-ending dates). I checked for duplicate, negative and missing rows and found none.\n- **Single-source** means exactly one qualified supplier (QUALIFIED_FLG = 'Y'). Suppliers on file but not qualified don't count as a backup.\n- **At-risk TRx** is the full 13-week TRx of any NDC with at least one single-source dependency. It isn't split by quantity or weighted by probability.\n\n**Assumptions**\n- I used only BOM links in effect on 2026-09-30. This left out an old link from the buffer concentrate to Polysorbate 80 that ended 2025-06-30; including it would have wrongly flagged both Oculon packs.\n- I didn't use the old flat BOM table (`BOM_FLAT_LEGACY`, last updated 2024-11-30).\n- Materials made in-house (bulk, filled and intermediate materials, and the pack kit) have no supplier records, so I didn't treat them as single-source. Their risk shows up through the purchased materials underneath them.",
+  "stop_reason": "end_turn",
+  "model_turns": 15,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT x.MATERIAL_ID, x.NDC, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ FROM dbo.MATERIAL_NDC_XREF x LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=x.MATERIAL_ID ORDER BY 1",
+      "ok": true,
+      "rows": 60,
+      "error": null,
+      "elapsed_s": 1.66
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_TYP, COUNT(*) n, MIN(MATERIAL_ID) mn, MAX(MATERIAL_ID) mx FROM dbo.MATERIAL GROUP BY MATERIAL_TYP",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 0.39
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PRODUCT ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.16
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT QUALIFIED_FLG, PRIMARY_FLG, COUNT(*) n, COUNT(DISTINCT MATERIAL_ID) mats FROM dbo.SUPPLIER_MATERIAL GROUP BY QUALIFIED_FLG, PRIMARY_FLG",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.93
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT COUNT(*) n, SUM(CASE WHEN EFF_TO < '2026-09-30' THEN 1 ELSE 0 END) expired, SUM(CASE WHEN EFF_FROM > '2026-09-30' THEN 1 ELSE 0 END) future, COUNT(DISTINCT PARENT_MATERIAL_ID) parents, COUNT(DISTINCT CHILD_MATERIAL_ID) children, SUM(CASE WHEN PARENT_MATERIAL_ID=CHILD_MATERIAL_ID THEN 1 ELSE 0 END) selfloop FROM dbo.BOM",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.34
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.MATERIAL_TYP, COUNT(*) mats, SUM(CASE WHEN s.q IS NULL THEN 1 ELSE 0 END) no_supp_rows, SUM(CASE WHEN s.q=0 THEN 1 ELSE 0 END) zero_qual, SUM(CASE WHEN s.q=1 THEN 1 ELSE 0 END) one_qual, SUM(CASE WHEN s.q>=2 THEN 1 ELSE 0 END) multi_qual\nFROM dbo.MATERIAL m LEFT JOIN (SELECT MATERIAL_ID, COUNT(DISTINCT CASE WHEN UPPER(LTRIM(RTRIM(QUALIFIED_FLG)))='Y' THEN SUPPLIER_ID END) q FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID) s ON s.MATERIAL_ID=m.MATERIAL_ID GROUP BY m.MATERIAL_TYP",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DISTINCT QUALIFIED_FLG, PRIMARY_FLG, LEN(QUALIFIED_FLG) l FROM dbo.SUPPLIER_MATERIAL; ",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.32
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT COUNT(*) sm_rows, SUM(CASE WHEN m.MATERIAL_ID IS NULL THEN 1 ELSE 0 END) orphan_mat, SUM(CASE WHEN s.SUPPLIER_ID IS NULL THEN 1 ELSE 0 END) orphan_supp FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=sm.MATERIAL_ID LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.35
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH act AS (SELECT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\nx AS (\n SELECT m.MATERIAL_ID fg, a.c mat, 1 lvl, CAST('/'+m.MATERIAL_ID+'/'+a.c+'/' AS varchar(4000)) path\n FROM dbo.MATERIAL m JOIN act a ON a.p=m.MATERIAL_ID WHERE m.MATERIAL_TYP='FG'\n UNION ALL\n SELECT x.fg, a.c, x.lvl+1, CAST(x.path+a.c+'/' AS varchar(4000))\n FROM x JOIN act a ON a.p=x.mat WHERE x.lvl<25 AND CHARINDEX('/'+a.c+'/', x.path)=0\n)\nSELECT MAX(lvl) maxlvl, COUNT(*) paths, COUNT(DISTINCT fg) fgs, COUNT(DISTINCT fg+'|'+mat) fg_mat FROM x OPTION (MAXRECURSION 100)",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', \"[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Query hint 'unknown hint' is not allowed. (15874) (SQLExecDirectW)\")",
+      "elapsed_s": 1.14
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH act AS (SELECT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\nx AS (\n SELECT m.MATERIAL_ID fg, a.c mat, 1 lvl, CAST('/'+m.MATERIAL_ID+'/'+a.c+'/' AS varchar(4000)) path\n FROM dbo.MATERIAL m JOIN act a ON a.p=m.MATERIAL_ID WHERE m.MATERIAL_TYP='FG'\n UNION ALL\n SELECT x.fg, a.c, x.lvl+1, CAST(x.path+a.c+'/' AS varchar(4000))\n FROM x JOIN act a ON a.p=x.mat WHERE x.lvl<25 AND CHARINDEX('/'+a.c+'/', x.path)=0\n)\nSELECT MAX(lvl) maxlvl, COUNT(*) paths, COUNT(DISTINCT fg) fgs, COUNT(DISTINCT fg+'|'+mat) fg_mat FROM x",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 0.28
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH act AS (SELECT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\nfg AS (SELECT MATERIAL_ID FROM dbo.MATERIAL WHERE MATERIAL_TYP='FG')\nSELECT COUNT(a1.c) l1, COUNT(a2.c) l2, COUNT(a3.c) l3, COUNT(a4.c) l4, COUNT(a5.c) l5, COUNT(a6.c) l6, COUNT(a7.c) l7, COUNT(a8.c) l8\nFROM fg JOIN act a1 ON a1.p=fg.MATERIAL_ID\nLEFT JOIN act a2 ON a2.p=a1.c LEFT JOIN act a3 ON a3.p=a2.c LEFT JOIN act a4 ON a4.p=a3.c\nLEFT JOIN act a5 ON a5.p=a4.c LEFT JOIN act a6 ON a6.p=a5.c LEFT JOIN act a7 ON a7.p=a6.c LEFT JOIN act a8 ON a8.p=a7.c",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.61
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH act AS (SELECT DISTINCT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\nl1 AS (SELECT DISTINCT m.MATERIAL_ID fg, a.c mat FROM dbo.MATERIAL m JOIN act a ON a.p=m.MATERIAL_ID WHERE m.MATERIAL_TYP='FG'),\nl2 AS (SELECT DISTINCT l.fg, a.c mat FROM l1 l JOIN act a ON a.p=l.mat),\nl3 AS (SELECT DISTINCT l.fg, a.c mat FROM l2 l JOIN act a ON a.p=l.mat),\nl4 AS (SELECT DISTINCT l.fg, a.c mat FROM l3 l JOIN act a ON a.p=l.mat),\nl5 AS (SELECT DISTINCT l.fg, a.c mat FROM l4 l JOIN act a ON a.p=l.mat),\nl6 AS (SELECT DISTINCT l.fg, a.c mat FROM l5 l JOIN act a ON a.p=l.mat),\nl7 AS (SELECT DISTINCT l.fg, a.c mat FROM l6 l JOIN act a ON a.p=l.mat),\nl8 AS (SELECT DISTINCT l.fg, a.c mat FROM l7 l JOIN act a ON a.p=l.mat),\nl9 AS (SELECT DISTINCT l.fg, a.c mat FROM l8 l JOIN act a ON a.p=l.mat),\nl10 AS (SELECT DISTINCT l.fg, a.c mat FROM l9 l JOIN act a ON a.p=l.mat),\nl11 AS (SELECT DISTINCT l.fg, a.c mat FROM l10 l JOIN act a ON a.p=l.mat),\nl12 AS (SELECT DISTINCT l.fg, a.c mat FROM l11 l JOIN act a ON a.p=l.mat)\nSELECT (SELECT COUNT(*) FROM l1) c1,(SELECT COUNT(*) FROM l2) c2,(SELECT COUNT(*) FROM l3) c3,(SELECT COUNT(*) FROM l4) c4,(SELECT COUNT(*) FROM l5) c5,(SELECT COUNT(*) FROM l6) c6,(SELECT COUNT(*) FROM l7) c7,(SELECT COUNT(*) FROM l8) c8,(SELECT COUNT(*) FROM l9) c9,(SELECT COUNT(*) FROM l10) c10,(SELECT COUNT(*) FROM l11) c11,(SELECT COUNT(*) FROM l12) c12",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 3.55
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH act AS (SELECT DISTINCT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\nl1 AS (SELECT DISTINCT m.MATERIAL_ID fg, a.c mat, 1 lvl FROM dbo.MATERIAL m JOIN act a ON a.p=m.MATERIAL_ID WHERE m.MATERIAL_TYP='FG'),\nl2 AS (SELECT DISTINCT l.fg, a.c mat, 2 lvl FROM l1 l JOIN act a ON a.p=l.mat),\nl3 AS (SELECT DISTINCT l.fg, a.c mat, 3 lvl FROM l2 l JOIN act a ON a.p=l.mat),\nl4 AS (SELECT DISTINCT l.fg, a.c mat, 4 lvl FROM l3 l JOIN act a ON a.p=l.mat),\nl5 AS (SELECT DISTINCT l.fg, a.c mat, 5 lvl FROM l4 l JOIN act a ON a.p=l.mat),\nl6 AS (SELECT DISTINCT l.fg, a.c mat, 6 lvl FROM l5 l JOIN act a ON a.p=l.mat),\nl7 AS (SELECT DISTINCT l.fg, a.c mat, 7 lvl FROM l6 l JOIN act a ON a.p=l.mat),\nl8 AS (SELECT DISTINCT l.fg, a.c mat, 8 lvl FROM l7 l JOIN act a ON a.p=l.mat),\nl9 AS (SELECT DISTINCT l.fg, a.c mat, 9 lvl FROM l8 l JOIN act a ON a.p=l.mat),\nallx AS (SELECT * FROM l1 UNION ALL SELECT * FROM l2 UNION ALL SELECT * FROM l3 UNION ALL SELECT * FROM l4 UNION ALL SELECT * FROM l5 UNION ALL SELECT * FROM l6 UNION ALL SELECT * FROM l7 UNION ALL SELECT * FROM l8 UNION ALL SELECT * FROM l9),\nss AS (SELECT MATERIAL_ID, MAX(CASE WHEN QUALIFIED_FLG='Y' THEN SUPPLIER_ID END) supp, COUNT(DISTINCT CASE WHEN QUALIFIED_FLG='Y' THEN SUPPLIER_ID END) q, COUNT(DISTINCT SUPPLIER_ID) tot FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID HAVING COUNT(DISTINCT CASE WHEN QUALIFIED_FLG='Y' THEN SUPPLIER_ID END)=1)\nSELECT a.fg, x.NDC, a.mat, m.MATERIAL_TYP, m.MATERIAL_DESC, MIN(a.lvl) min_lvl, ss.supp, s.SUPPLIER_NM, s.COUNTRY, ss.tot total_supp_rows\nFROM allx a JOIN ss ON ss.MATERIAL_ID=a.mat JOIN dbo.MATERIAL m ON m.MATERIAL_ID=a.mat LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=ss.supp LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=a.fg\nGROUP BY a.fg, x.NDC, a.mat, m.MATERIAL_TYP, m.MATERIAL_DESC, ss.supp, s.SUPPLIER_NM, s.COUNTRY, ss.tot\nORDER BY a.fg, a.mat",
+      "ok": true,
+      "rows": 139,
+      "error": null,
+      "elapsed_s": 4.05
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH act AS (SELECT DISTINCT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\nl1 AS (SELECT DISTINCT m.MATERIAL_ID fg, a.c mat, 1 lvl FROM dbo.MATERIAL m JOIN act a ON a.p=m.MATERIAL_ID WHERE m.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002')),\nl2 AS (SELECT DISTINCT l.fg, a.c mat, 2 lvl FROM l1 l JOIN act a ON a.p=l.mat),\nl3 AS (SELECT DISTINCT l.fg, a.c mat, 3 lvl FROM l2 l JOIN act a ON a.p=l.mat),\nl4 AS (SELECT DISTINCT l.fg, a.c mat, 4 lvl FROM l3 l JOIN act a ON a.p=l.mat),\nl5 AS (SELECT DISTINCT l.fg, a.c mat, 5 lvl FROM l4 l JOIN act a ON a.p=l.mat),\nl6 AS (SELECT DISTINCT l.fg, a.c mat, 6 lvl FROM l5 l JOIN act a ON a.p=l.mat),\nl7 AS (SELECT DISTINCT l.fg, a.c mat, 7 lvl FROM l6 l JOIN act a ON a.p=l.mat),\nl8 AS (SELECT DISTINCT l.fg, a.c mat, 8 lvl FROM l7 l JOIN act a ON a.p=l.mat),\nl9 AS (SELECT DISTINCT l.fg, a.c mat, 9 lvl FROM l8 l JOIN act a ON a.p=l.mat),\nallx AS (SELECT * FROM l1 UNION ALL SELECT * FROM l2 UNION ALL SELECT * FROM l3 UNION ALL SELECT * FROM l4 UNION ALL SELECT * FROM l5 UNION ALL SELECT * FROM l6 UNION ALL SELECT * FROM l7 UNION ALL SELECT * FROM l8 UNION ALL SELECT * FROM l9)\nSELECT a.fg, a.mat, m.MATERIAL_TYP, m.MATERIAL_DESC, MIN(a.lvl) lvl,\n (SELECT STRING_AGG(sm.SUPPLIER_ID+':'+sm.QUALIFIED_FLG+sm.PRIMARY_FLG,',') FROM dbo.SUPPLIER_MATERIAL sm WHERE sm.MATERIAL_ID=a.mat) supp\nFROM allx a JOIN dbo.MATERIAL m ON m.MATERIAL_ID=a.mat\nGROUP BY a.fg, a.mat, m.MATERIAL_TYP, m.MATERIAL_DESC ORDER BY a.fg, MIN(a.lvl), a.mat",
+      "ok": true,
+      "rows": 70,
+      "error": null,
+      "elapsed_s": 2.13
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b.*, m.MATERIAL_DESC FROM dbo.BOM b LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=b.CHILD_MATERIAL_ID WHERE (b.EFF_TO < '2026-09-30') AND (b.PARENT_MATERIAL_ID LIKE 'FG-1%' OR b.PARENT_MATERIAL_ID LIKE 'FG-2%' OR b.PARENT_MATERIAL_ID LIKE 'FILL%' OR b.PARENT_MATERIAL_ID LIKE 'SEMI%' OR b.PARENT_MATERIAL_ID IN ('KIT-100','CMP-310','CMP-320'))",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.76
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT MIN(WK_END_DT), MAX(WK_END_DT), COUNT(DISTINCT WK_END_DT), COUNT(DISTINCT PROD_NDC11), SUM(IFF(PROD_NDC11 LIKE '991014%',1,0)) fg30_rows FROM PHARMA_DEMO.RAW_3P.RXT_WKLY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 8.1
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT r.PROD_NDC11, p.BRAND_NM, p.PACK_DESC, p.CO_FLG, MIN(r.WK_END_DT) first_wk, MAX(r.WK_END_DT) last_wk, COUNT(DISTINCT r.WK_END_DT) wks, SUM(r.TRX_QTY) trx_13w, SUM(r.NRX_QTY) nrx_13w, COUNT(*) rows_\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON wk.WK_END_DT=r.WK_END_DT LEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\nGROUP BY 1,2,3,4 ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.54
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) n, COUNT(DISTINCT WK_END_DT||PRSCRBR_ME||PROD_NDC11||PLAN_ID||CHNL_CD) uniq, SUM(IFF(TRX_QTY<0,1,0)) neg, SUM(IFF(TRX_QTY IS NULL,1,0)) nulls FROM PHARMA_DEMO.RAW_3P.RXT_WKLY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.36
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH act AS (SELECT DISTINCT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\nl1 AS (SELECT DISTINCT m.MATERIAL_ID fg, a.c mat FROM dbo.MATERIAL m JOIN act a ON a.p=m.MATERIAL_ID WHERE m.MATERIAL_TYP='FG'),\nl2 AS (SELECT DISTINCT l.fg, a.c mat FROM l1 l JOIN act a ON a.p=l.mat),\nl3 AS (SELECT DISTINCT l.fg, a.c mat FROM l2 l JOIN act a ON a.p=l.mat),\nl4 AS (SELECT DISTINCT l.fg, a.c mat FROM l3 l JOIN act a ON a.p=l.mat),\nl5 AS (SELECT DISTINCT l.fg, a.c mat FROM l4 l JOIN act a ON a.p=l.mat),\nl6 AS (SELECT DISTINCT l.fg, a.c mat FROM l5 l JOIN act a ON a.p=l.mat),\nl7 AS (SELECT DISTINCT l.fg, a.c mat FROM l6 l JOIN act a ON a.p=l.mat),\nl8 AS (SELECT DISTINCT l.fg, a.c mat FROM l7 l JOIN act a ON a.p=l.mat),\nl9 AS (SELECT DISTINCT l.fg, a.c mat FROM l8 l JOIN act a ON a.p=l.mat),\nallx AS (SELECT * FROM l1 UNION SELECT * FROM l2 UNION SELECT * FROM l3 UNION SELECT * FROM l4 UNION SELECT * FROM l5 UNION SELECT * FROM l6 UNION SELECT * FROM l7 UNION SELECT * FROM l8 UNION SELECT * FROM l9),\nss AS (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL GROUP BY MATERIAL_ID HAVING COUNT(DISTINCT CASE WHEN QUALIFIED_FLG='Y' THEN SUPPLIER_ID END)=1),\nf AS (SELECT a.fg, COUNT(DISTINCT CASE WHEN ss.MATERIAL_ID IS NOT NULL THEN a.mat END) ss_mats FROM allx a LEFT JOIN ss ON ss.MATERIAL_ID=a.mat GROUP BY a.fg)\nSELECT CASE WHEN fg LIKE 'FG-30%' THEN 'FG-30xx' ELSE 'FG-1xxx/2xxx' END grp, COUNT(*) fgs, SUM(CASE WHEN ss_mats>0 THEN 1 ELSE 0 END) fgs_at_risk FROM f GROUP BY CASE WHEN fg LIKE 'FG-30%' THEN 'FG-30xx' ELSE 'FG-1xxx/2xxx' END",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 3.64
+    }
+  ],
+  "usage": {
+    "input": 32,
+    "output": 13940,
+    "cache_read": 251489,
+    "cache_write": 37056
+  },
+  "cost_usd": 0.5145,
+  "latency_s": 186.7
+}

@@ -1,0 +1,30 @@
+# Tool registry (workshop six-layer schema, layer 5): every tool an agent can call, as a node.
+# kind read|write; status available|no_api|pending_feed; risk low|medium|high; exposes = data products it returns
+# (used by the badge clearance check). Descriptions agents see come from the tool definitions, not from here.
+tools:
+  # warehouse tools (both agents)
+  - {name: list_tables, kind: read, status: available, risk: low, wraps: [Commercial data warehouse, Supply data warehouse], mcpEndpoint: "harness://warehouse/list_tables", ownerTeam: Commercial Analytics}
+  - {name: describe_table, kind: read, status: available, risk: low, wraps: [Commercial data warehouse, Supply data warehouse], mcpEndpoint: "harness://warehouse/describe_table", ownerTeam: Commercial Analytics}
+  - {name: run_sql, kind: read, status: available, risk: low, wraps: [Commercial data warehouse, Supply data warehouse], mcpEndpoint: "harness://warehouse/run_sql", ownerTeam: Commercial Analytics}
+  # operational tools (both agents; sandbox ops store)
+  - {name: get_supplier_status, kind: read, status: available, risk: low, wraps: [Supplier portal], mcpEndpoint: "sandbox://supplier-portal/status", ownerTeam: Quality}
+  - {name: get_wholesaler_inventory, kind: read, status: pending_feed, risk: low, wraps: [Wholesaler inventory feed], mcpEndpoint: null, ownerTeam: Supply Planning, etaNote: "852 feed ingestion scheduled 2026-Q4; no wholesaler inventory until then"}
+  - {name: create_purchase_requisition, kind: write, status: available, risk: medium, wraps: [ERP], mcpEndpoint: "sandbox://erp/purchase-requisitions", ownerTeam: Supply Planning}
+  - {name: create_allocation, kind: write, status: available, risk: high, wraps: [ERP], mcpEndpoint: "sandbox://erp/allocations", ownerTeam: Supply Planning}
+  - {name: request_approval, kind: write, status: available, risk: low, wraps: [Approval workflow], mcpEndpoint: "sandbox://workflow/approvals", ownerTeam: Supply Planning}
+  - {name: get_approval_status, kind: read, status: available, risk: low, wraps: [Approval workflow], mcpEndpoint: "sandbox://workflow/approvals/{id}", ownerTeam: Supply Planning}
+  - {name: notify_account_team, kind: write, status: available, risk: low, wraps: [CRM], mcpEndpoint: "sandbox://crm/tasks", ownerTeam: Field Operations}
+  - {name: send_wholesaler_edi, kind: write, status: no_api, risk: medium, wraps: [Wholesaler EDI gateway], mcpEndpoint: null, ownerTeam: Supply Planning, etaNote: "No EDI integration; escalate to Trade Relations (create_escalation_case)"}
+  - {name: create_escalation_case, kind: write, status: available, risk: low, wraps: [Ops case management], mcpEndpoint: "sandbox://cases", ownerTeam: Supply Planning}
+  # knowledge-layer tools (Agent B)
+  - {name: get_context, kind: read, status: available, risk: low, wraps: [Knowledge layer], mcpEndpoint: "mcp://kl-ext/get_context", ownerTeam: Commercial Analytics}
+  - {name: trace_supply_exposure, kind: read, status: available, risk: low, wraps: [Knowledge layer], mcpEndpoint: "mcp://kl-ext/trace_supply_exposure", ownerTeam: Supply Planning, exposes: [Supply Network]}
+  - {name: get_lead_times, kind: read, status: available, risk: low, wraps: [Knowledge layer], mcpEndpoint: "mcp://kl-ext/get_lead_times", ownerTeam: Supply Planning, exposes: [Supply Network]}
+  - {name: get_reference, kind: read, status: available, risk: low, wraps: [Knowledge layer], mcpEndpoint: "mcp://kl-ext/get_reference", ownerTeam: Market Access, exposes: [Reference]}
+  - {name: check_policy, kind: read, status: available, risk: low, wraps: [Knowledge layer], mcpEndpoint: "mcp://kl-ext/check_policy", ownerTeam: Compliance}
+  - {name: get_process, kind: read, status: available, risk: low, wraps: [Knowledge layer], mcpEndpoint: "mcp://kl-ext/get_process", ownerTeam: Supply Planning}
+  - {name: find_playbooks, kind: read, status: available, risk: low, wraps: [Knowledge layer], mcpEndpoint: "mcp://kl-ext/find_playbooks", ownerTeam: Supply Planning}
+
+# get_reference sets that expose a data product other than Reference (clearance check per set)
+reference_set_products:
+  supply_contracts: Supply Contracts

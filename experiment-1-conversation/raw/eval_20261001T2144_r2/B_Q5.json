@@ -1,0 +1,43 @@
+{
+  "run_id": "eval_20261001T2144_r2",
+  "agent": "B",
+  "qid": "Q5",
+  "question": "When Lacrivia claims are rejected, which products are patients switched to?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Over the past 12 months, about 36% of rejected Lacrivia claims ended with the patient switched to another product. Every switch went to a competitor. Lifitegrast (Tearsol) took about half of them, and cyclosporine products (the generic plus Cyclomist) took about 40%.\n\n**Lacrivia rejected claims, 27 Sep 2025 to 25 Sep 2026 (9,199 rejections)**\n\n| Outcome after rejection | Claims | % of all rejections | % of switches |\n|---|---|---|---|\n| **Switched to Tearsol** (lifitegrast) | 1,630 | 17.7% | 49.6% |\n| **Switched to generic cyclosporine** | 820 | 8.9% | 24.9% |\n| **Switched to Cyclomist** (cyclosporine) | 497 | 5.4% | 15.1% |\n| **Switched to Hydrova** (perfluorohexyloctane) | 340 | 3.7% | 10.3% |\n| **All switches** | **3,287** | **35.7%** | 100% |\n| No switch, prescription abandoned | 2,231 | 24.3% | \u2013 |\n| No switch, not abandoned | 3,681 | 40.0% | \u2013 |\n\n**What stands out**\n- **No switches went to our own products.** All four products patients moved to are competitors. Not one rejected Lacrivia claim was switched to our own Cyclosporine OS 0.05%.\n- **The switch pattern is about the same whatever the rejection reason.** Between 32% and 39% of rejections end in a switch in every reason group, and Tearsol is always the top destination:\n\n| Rejection reason | Rejections | Switched | Switch rate |\n|---|---|---|---|\n| Prior authorization | 5,376 | 1,892 | 35.2% |\n| Not covered | 1,925 | 701 | 36.4% |\n| Refill | 695 | 263 | 37.8% |\n| Plan limit | 563 | 220 | 39.1% |\n| Other | 448 | 150 | 33.5% |\n| Distribution limit | 192 | 61 | 31.8% |\n\n- **Prior authorization is where most patients are lost.** It accounts for 58% of rejections and 58% of switches (1,892), so making prior authorization easier at the biggest plans would recover the most patients.\n- **Losses go beyond switches.** About 60% of rejected claims ended with no Lacrivia fill: 36% switched and 24% abandoned the prescription. No claims were rejected for step therapy in this period.\n\n**Sources and definitions**\n- Claims table: `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ`. I counted claims with `ADJ_STAT='R'` (rejected), and the product switched to comes from `SUBST_NDC11`.\n- Lacrivia's codes and each product's name and company flag come from the product master, `PHARMA_DEMO.CORE.PRODUCT` (`BRAND_NM='LACRIVIA'`).\n- Rejection reasons come from `PHARMA_DEMO.REF.REJ_CODE`, using the knowledge layer's approved \"Claim to ClaimRejection group\" join.\n- The abandonment figure is the ratified metric `abandonment_after_rejection`.\n- I used the current claims table, not the deprecated `CLMLNS_ADJ_BKP_2025`. No data-use restrictions applied to these tables for the Market Access role.\n\n**Assumptions**\n- The period is all available claims, about 12 months.\n- A rejection counts as a switch only if a switch was recorded on it. Rejections with no switch and no abandonment may have been resolved later (for example, approved on appeal). This data can't tell us that.\n- Counts are claim lines, not individual patients, because the data has no patient IDs.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "WITH lac AS (SELECT PROD_NDC11 FROM PHARMA_DEMO.CORE.PRODUCT WHERE BRAND_NM='LACRIVIA'),\nr AS (SELECT c.* FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN lac ON c.PROD_NDC11=lac.PROD_NDC11 WHERE c.ADJ_STAT='R')\nSELECT CASE WHEN r.SUBST_NDC11 IS NULL THEN '(no substitution)' ELSE COALESCE(p.BRAND_NM,'UNKNOWN NDC '||r.SUBST_NDC11) END AS subst_brand,\n p.MOLECULE, p.CO_FLG, COUNT(*) AS rej_claims,\n SUM(CASE WHEN r.ABNDN_FLG='Y' THEN 1 ELSE 0 END) AS abandoned,\n ROUND(COUNT(*)/SUM(COUNT(*)) OVER (),4) AS share_all_rej\nFROM r LEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON r.SUBST_NDC11=p.PROD_NDC11\nGROUP BY 1,2,3 ORDER BY rej_claims DESC",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 13.65
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH lac AS (SELECT PROD_NDC11 FROM PHARMA_DEMO.CORE.PRODUCT WHERE BRAND_NM='LACRIVIA')\nSELECT COALESCE(rc.REJ_GRP,'UNMAPPED') AS rej_grp, COALESCE(p.BRAND_NM, CASE WHEN c.SUBST_NDC11 IS NULL THEN '(none)' ELSE 'UNKNOWN' END) AS subst_brand, COUNT(*) n,\n MIN(c.CLM_DT) mn, MAX(c.CLM_DT) mx\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN lac ON c.PROD_NDC11=lac.PROD_NDC11\nLEFT JOIN PHARMA_DEMO.REF.REJ_CODE rc ON c.REJ_RSN_CD=rc.REJ_RSN_CD\nLEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.SUBST_NDC11=p.PROD_NDC11\nWHERE c.ADJ_STAT='R' GROUP BY 1,2 ORDER BY 1, n DESC",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 3.88
+    }
+  ],
+  "cypher_queries": 5,
+  "usage": {
+    "input": 8,
+    "output": 2903,
+    "cache_read": 12617,
+    "cache_write": 12587
+  },
+  "cost_usd": 0.1236,
+  "latency_s": 50.0
+}

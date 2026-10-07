@@ -1,0 +1,68 @@
+{
+  "run_id": "eval_20260930T1915_r1",
+  "agent": "B",
+  "qid": "Q4",
+  "question": "Which high-decile dry-eye prescribers have had no call from any team in the last 90 days?",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "**25 of the 61 high-decile dry-eye prescribers have had no call from any team in the last 90 days** (2026-07-03 to 2026-09-30). None of them is new: every one was called before, most recently 90 to 113 days ago, and 20 of those last calls were from TEAL.\n\n- **By decile:** 17 are decile 10, 2 are decile 9 and 6 are decile 8.\n- **Volume:** together they wrote about 26.4K dry-eye TRx over the last 52 weeks, and about 6.5K in the last 13 weeks.\n- **By district:** D-01 has 6, D-02 has 5, D-03 and D-05 have 4 each, and D-04 and D-06 have 3 each.\n- **Cut-off:** 5 of them (marked *) were last called on 2026-07-02, exactly 90 days ago. If you count that day as inside the window, the list drops to 20.\n\n| Prescriber | Specialty | Decile | Territory / District | Dry-eye TRx, 52 weeks | Dry-eye TRx, 13 weeks | LACRIVIA TRx, 52 weeks | Last call (team) | Days since |\n|---|---|---|---|---|---|---|---|---|\n| Jordan Stroud | Optometry | 10 | T011 / D-01 | 1,155 | 307 | 243 | 2026-07-01 (CORAL) | 91 |\n| Sage Kendall | Optometry | 10 | T033 / D-03 | 1,142 | 292 | 268 | 2026-06-29 (TEAL) | 93 |\n| Jordan Mercer | Optometry | 10 | T024 / D-02 | 1,139 | 291 | 248 | 2026-06-18 (TEAL) | 104 |\n| Parker Whitlock | Optometry | 10 | T052 / D-05 | 1,136 | 282 | 250 | 2026-06-19 (TEAL) | 103 |\n| Indy Pruitt | Optometry | 10 | T044 / D-04 | 1,124 | 283 | 252 | 2026-06-26 (TEAL) | 96 |\n| Reese Pruitt* | Optometry | 10 | T023 / D-02 | 1,121 | 277 | 243 | 2026-07-02 (TEAL) | 90 |\n| Tatum Brandt | Ophthalmology | 10 | T044 / D-04 | 1,118 | 250 | 258 | 2026-06-28 (TEAL) | 94 |\n| Dana Iverson | Optometry | 10 | T021 / D-02 | 1,115 | 246 | 268 | 2026-06-24 (TEAL) | 98 |\n| Casey Lowry | Ophthalmology | 10 | T053 / D-05 | 1,114 | 253 | 217 | 2026-06-19 (TEAL) | 103 |\n| Yael Brandt | Optometry | 10 | T033 / D-03 | 1,114 | 290 | 229 | 2026-06-15 (TEAL) | 107 |\n| Avery Dunmore | Optometry | 10 | T011 / D-01 | 1,111 | 270 | 264 | 2026-06-21 (TEAL) | 101 |\n| Avery Abbott | Optometry | 10 | T043 / D-04 | 1,107 | 288 | 254 | 2026-06-23 (CORAL) | 99 |\n| Taylor Mercer | Optometry | 10 | T031 / D-03 | 1,105 | 246 | 243 | 2026-07-01 (INDIGO) | 91 |\n| Gray Brandt* | Optometry | 10 | T052 / D-05 | 1,104 | 259 | 255 | 2026-07-02 (TEAL) | 90 |\n| Quinn Lowry | Ophthalmology | 10 | T032 / D-03 | 1,085 | 268 | 245 | 2026-06-19 (TEAL) | 103 |\n| Blake Orwell* | Optometry | 10 | T023 / D-02 | 1,070 | 262 | 223 | 2026-07-02 (TEAL) | 90 |\n| Kai Iverson | Ophthalmology | 10 | T023 / D-02 | 1,068 | 252 | 247 | 2026-06-16 (TEAL) | 106 |\n| Zion Fairley | Optometry | 9 | T063 / D-06 | 1,057 | 247 | 236 | 2026-06-29 (TEAL) | 93 |\n| Tatum Ellery* | Optometry | 9 | T011 / D-01 | 1,037 | 260 | 217 | 2026-07-02 (TEAL) | 90 |\n| Tatum Bishop | Optometry | 8 | T014 / D-01 | 922 | 229 | 209 | 2026-06-15 (CORAL) | 107 |\n| Taylor Calder | Optometry | 8 | T013 / D-01 | 905 | 244 | 189 | 2026-06-09 (TEAL) | 113 |\n| Avery Vance | Optometry | 8 | T054 / D-05 | 903 | 208 | 206 | 2026-06-25 (TEAL) | 97 |\n| Wren Zeller* | Optometry | 8 | T061 / D-06 | 892 | 217 | 197 | 2026-07-02 (CORAL) | 90 |\n| Wren Rourke | Optometry | 8 | T012 / D-01 | 890 | 240 | 194 | 2026-06-28 (TEAL) | 94 |\n| Harper Iverson | Optometry | 8 | T064 / D-06 | 874 | 226 | 189 | 2026-06-26 (TEAL) | 96 |\n\n**Sources and definitions:**\n- **\"High-decile dry-eye prescriber\":** I used the ratified Prescriber definition from the knowledge layer. High-decile means decile 8\u201310 in `CORE.PRESCRIBER`. A dry-eye prescriber is anyone with any dry-eye prescriptions in all 52 weeks of data, not just recent weeks.\n- **Dry-eye market:** prescriptions came from `RAW_3P.RXT_WKLY`, matched to the dry-eye market through `BIZ.MKT_DEF_DRIVER` within its effective dates (the approved \"Prescription to TherapeuticMarket\" join path). The 7 products in that table match the governed `market_definition` reference list. LACRIVIA is the company's own brand (both pack sizes).\n- **\"Call from any team\":** I used the ratified Call concept and `CORE.CALL_ACT`, which holds CRM calls from all three teams (TEAL, CORAL and INDIGO). The team shown is from `CORE.REP_ROSTER`, and the district is from `CORE.TERRITORY`. All of these are ratified tables in the Field Force data product. No deprecated or sandbox tables were used.\n- **Access:** the policy check allowed the FIELD_SALES role to query these tables, with no columns masked.\n\n**Assumptions:**\n- \"Last 90 days\" means calls dated after 2026-07-02, counting back from the data date of 2026-09-30. Call data runs to 2026-09-29.\n- Every call type (detail, lunch, sample drop) counts as a call.\n\nThe decision was logged (trace 83f85197). One correction to that log: its answer says D-02 has the most prescribers on the list (6). The correct figure is D-01 with 6, and D-02 has 5.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_concept",
+    "get_concept",
+    "get_reference",
+    "get_data_product",
+    "list_deprecated_tables",
+    "get_business_rules",
+    "get_concept",
+    "get_join_path",
+    "get_join_path",
+    "check_policy",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT 'mkt' src, MKT_DEF k, COUNT(*) n, LISTAGG(PROD_NDC11||':'||EFF_FROM||'-'||EFF_TO, ', ') info FROM PHARMA_DEMO.BIZ.MKT_DEF_DRIVER GROUP BY MKT_DEF\nUNION ALL SELECT 'calls', NULL, COUNT(*), MIN(CALL_DT)||' to '||MAX(CALL_DT) FROM PHARMA_DEMO.CORE.CALL_ACT\nUNION ALL SELECT 'rx', NULL, COUNT(DISTINCT WK_END_DT), MIN(WK_END_DT)||' to '||MAX(WK_END_DT) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 3.6
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH de AS (\n  SELECT r.PRSCRBR_ME, SUM(r.TRX_QTY) de_trx_52w\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n  JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11 = r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\n  GROUP BY 1 HAVING SUM(r.TRX_QTY) > 0),\nhd AS (SELECT p.* , de.de_trx_52w FROM PHARMA_DEMO.CORE.PRESCRIBER p JOIN de ON de.PRSCRBR_ME = p.PRSCRBR_ME WHERE p.DECILE BETWEEN 8 AND 10),\nlastcall AS (SELECT PRSCRBR_ME, MAX(CALL_DT) last_call FROM PHARMA_DEMO.CORE.CALL_ACT GROUP BY 1),\nrc AS (SELECT DISTINCT PRSCRBR_ME FROM PHARMA_DEMO.CORE.CALL_ACT WHERE CALL_DT > DATEADD(day,-90,'2026-09-30'::date) AND CALL_DT <= '2026-09-30')\nSELECT COUNT(*) hd_de, COUNT_IF(rc.PRSCRBR_ME IS NULL) uncalled, COUNT_IF(rc.PRSCRBR_ME IS NULL AND lc.PRSCRBR_ME IS NULL) never_called,\n (SELECT COUNT(DISTINCT c.PRSCRBR_ME) FROM PHARMA_DEMO.CORE.CALL_ACT c LEFT JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME=c.PRSCRBR_ME WHERE p.PRSCRBR_ME IS NULL) orphan_call_me\nFROM hd LEFT JOIN rc ON rc.PRSCRBR_ME = hd.PRSCRBR_ME LEFT JOIN lastcall lc ON lc.PRSCRBR_ME=hd.PRSCRBR_ME",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 3.34
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH de AS (\n  SELECT r.PRSCRBR_ME, SUM(r.TRX_QTY) de_trx_52w,\n         SUM(CASE WHEN r.WK_END_DT > DATEADD(week,-13,(SELECT MAX(WK_END_DT) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY)) THEN r.TRX_QTY ELSE 0 END) de_trx_13w,\n         SUM(CASE WHEN r.PROD_NDC11 IN ('99101010105','99101010110') THEN r.TRX_QTY ELSE 0 END) lacrivia_trx_52w\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n  JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11 = r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\n  GROUP BY 1 HAVING SUM(r.TRX_QTY) > 0),\nlc AS (SELECT c.PRSCRBR_ME, MAX(c.CALL_DT) last_call, MAX_BY(rr.TEAM, c.CALL_DT) last_team FROM PHARMA_DEMO.CORE.CALL_ACT c LEFT JOIN PHARMA_DEMO.CORE.REP_ROSTER rr ON rr.REP_ID=c.REP_ID GROUP BY 1)\nSELECT p.PRSCRBR_ME, p.PRSCRBR_NM, p.SPCLTY, p.DECILE, p.TERR_ID, t.DISTRICT_ID, de.de_trx_52w, de.de_trx_13w, de.lacrivia_trx_52w,\n       lc.last_call, lc.last_team, DATEDIFF(day, lc.last_call, '2026-09-30'::date) days_since\nFROM PHARMA_DEMO.CORE.PRESCRIBER p\nJOIN de ON de.PRSCRBR_ME=p.PRSCRBR_ME\nLEFT JOIN lc ON lc.PRSCRBR_ME=p.PRSCRBR_ME\nLEFT JOIN PHARMA_DEMO.CORE.TERRITORY t ON t.TERR_ID=p.TERR_ID\nWHERE p.DECILE BETWEEN 8 AND 10\n  AND NOT EXISTS (SELECT 1 FROM PHARMA_DEMO.CORE.CALL_ACT c WHERE c.PRSCRBR_ME=p.PRSCRBR_ME AND c.CALL_DT > DATEADD(day,-90,'2026-09-30'::date) AND c.CALL_DT <= '2026-09-30')\nORDER BY p.DECILE DESC, de.de_trx_52w DESC",
+      "ok": true,
+      "rows": 25,
+      "error": null,
+      "elapsed_s": 6.01
+    }
+  ],
+  "usage": {
+    "input": 22,
+    "output": 9339,
+    "cache_read": 138566,
+    "cache_write": 25223
+  },
+  "cost_usd": 0.3407,
+  "latency_s": 129.0,
+  "cypher_queries": 75
+}

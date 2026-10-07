@@ -1,0 +1,173 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "A",
+  "qid": "Q2",
+  "question": "Which company product had the highest claim rejection rate in the last 13 weeks, and what is driving the rejections?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "**LACRIVIA (cyclosporine 0.1%, dry eye) had the highest rejection rate of our products: 18.5% of claims in the last 13 weeks (2,367 rejected out of 12,809 paid or rejected). Prior-authorization rejections drive most of it, and they come from a small group of payers.**\n\n**Our products, last 13 weeks (weeks ending 3 Jul \u2013 25 Sep 2026)**\n| Brand | Paid | Rejected | Rejection rate |\n|---|---|---|---|\n| **LACRIVIA** | 10,442 | 2,367 | **18.5%** (10 mL pack 20.6%, 5 mL pack 17.4%) |\n| OCULON | 3,554 | 594 | 14.3% |\n| CYCLOSPORINE OS | 3,544 | 223 | 5.9% |\n\nFor comparison, TEARSOL, its main competitor in dry eye, runs at 18.2%. The rate isn't new: LACRIVIA was at 18.1% in the 13 weeks before.\n\n**What's driving LACRIVIA's rejections**\n1. **Prior authorization: 58% of rejections (1,372 claims, about 10.7% of all claims)**\n   - PA expired and can't be renewed: 500 (21%), the largest single reason. It is rising, from 3.5 to 3.9 per 100 claims compared with the prior 13 weeks. This points to problems at renewal, not just first approval.\n   - PA required: 439 (18.5%)\n   - PA denied: 433 (18.3%)\n2. **Not covered or not on formulary: 22% of rejections (513 claims)**, also rising, from 3.5 to 4.0 per 100 claims. These are concentrated in a few payers (see the next section).\n3. **Everything else: about 20%**, spread thinly. It includes refill-too-soon and drug-review rejections (7%), days-supply and plan limits (6%), other administrative reasons (5%) and pharmacy-network restrictions (2%).\n\n**Where the rejections come from**\n- **By channel:** Health Exchange 27.6%, Managed Medicaid 23.6%, Medicare Part D 19.9%, Commercial 17.7%. Commercial still has the most rejections by volume (1,216).\n- **By PBM:** Vantage PBM has the highest rate (25.1%) and 272 of the 513 coverage rejections. OptiScript has the most PA rejections (496).\n- **Payers to prioritize:**\n  - **Coverage gaps:** Evergreen Health Plans Part D (59.8% rejected, 100 coverage rejections); Harborview Health exchange (50.5%) and commercial (23.2%, 94 coverage rejections); Granite Plains Health Managed Medicaid (54.4%).\n  - **PA burden:** Northstar Health commercial (25.9%, 230 PA rejections); Bluecrest Mutual commercial (133); Redwood Benefit Trust (119).\n\n**What this means for market access:** LACRIVIA has two separate problems that need different fixes.\n- **PA:** easier renewals or longer approval periods at OptiScript and Northstar, plus hub and field support for resubmitting expired PAs.\n- **Coverage:** formulary negotiations with Vantage (Harborview, Redwood), Evergreen and Granite Plains.\n\n**Sources and definitions**\n- **Data:** the claims file, the product list (our products are the three brands flagged as company products), the rejection-code reference table and the plan-to-payer/PBM mapping (all Snowflake). I didn't need the supply-chain data.\n- **Rejection rate:** rejected claims divided by paid plus rejected claims. Reversed claims are left out of the denominator; including them changes rates by less than 0.4 points and doesn't change the ranking.\n- **Time window:** weeks run Saturday to Friday, matching the weekly prescription data, so the last 13 weeks are 27 Jun \u2013 25 Sep 2026. I left out 26\u201330 Sep because only paid claims had arrived for those days, which would make rejection rates look too low.\n- **Other assumptions:** results are at brand level with NDC packs rolled up. Cash/discount claims have no payer, so they have no rejections. The data is aggregated to product and payer level, with no patient- or prescriber-level detail, which fits market-access use.",
+  "stop_reason": "end_turn",
+  "model_turns": 11,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PRODUCT ORDER BY PROD_NDC11",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.16
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.REF.REJ_CODE ORDER BY REJ_GRP",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.0
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT ADJ_STAT, COUNT(*), MIN(CLM_DT), MAX(CLM_DT), COUNT(DISTINCT CLM_ID), SUM(IFF(REJ_RSN_CD IS NULL,1,0)) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ GROUP BY 1",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.41
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT PROD_NDC11, LENGTH(PROD_NDC11) L, COUNT(*) n, SUM(IFF(ADJ_STAT='R',1,0)) r FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ GROUP BY 1,2 ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.12
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*), COUNT(DISTINCT CLM_ID) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 2.08
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT WK_END_DT, DAYNAME(WK_END_DT), COUNT(*) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY GROUP BY 1,2 ORDER BY 1 DESC LIMIT 16",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.13
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CLM_DT, ADJ_STAT, COUNT(*) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ WHERE CLM_DT >= '2026-09-19' GROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 26,
+      "error": null,
+      "elapsed_s": 1.23
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.REF.CHNL",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.03
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.BIZ.MKT_DEF_DRIVER",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.2
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT p.BRAND_NM, p.CO_FLG,\n SUM(IFF(c.ADJ_STAT='P',1,0)) paid, SUM(IFF(c.ADJ_STAT='R',1,0)) rej, SUM(IFF(c.ADJ_STAT='V',1,0)) rev,\n ROUND(SUM(IFF(c.ADJ_STAT='R',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),0)*100,2) rej_rate_pct,\n ROUND(SUM(IFF(c.ADJ_STAT='R',1,0))/COUNT(*)*100,2) rej_rate_incl_v\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.PROD_NDC11=p.PROD_NDC11\nWHERE c.CLM_DT BETWEEN '2026-06-27' AND '2026-09-25'\nGROUP BY 1,2 ORDER BY 2 DESC, rej_rate_pct DESC",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.17
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT p.BRAND_NM, p.PACK_DESC,\n SUM(IFF(c.ADJ_STAT='P',1,0)) paid, SUM(IFF(c.ADJ_STAT='R',1,0)) rej,\n ROUND(SUM(IFF(c.ADJ_STAT='R',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),0)*100,2) rej_rate_pct\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.PROD_NDC11=p.PROD_NDC11\nWHERE c.CLM_DT BETWEEN '2026-06-27' AND '2026-09-25' AND p.CO_FLG='Y'\nGROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 2.04
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COALESCE(r.REJ_GRP,'UNMAPPED') grp, c.REJ_RSN_CD, r.REJ_DESC, COUNT(*) n,\n ROUND(COUNT(*)/SUM(COUNT(*)) OVER()*100,1) pct_of_rej\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.PROD_NDC11=p.PROD_NDC11\nLEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON TRIM(c.REJ_RSN_CD)=r.REJ_RSN_CD\nWHERE c.CLM_DT BETWEEN '2026-06-27' AND '2026-09-25' AND p.BRAND_NM='LACRIVIA' AND c.ADJ_STAT='R'\nGROUP BY 1,2,3 ORDER BY n DESC",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 13.46
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COALESCE(s.CHNL_CD,'UNMAPPED') chnl,\n SUM(IFF(c.ADJ_STAT='P',1,0)) paid, SUM(IFF(c.ADJ_STAT='R',1,0)) rej,\n ROUND(SUM(IFF(c.ADJ_STAT='R',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),0)*100,2) rej_rate\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.PROD_NDC11=p.PROD_NDC11\nLEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON c.PLAN_ID=s.PLAN_ID\nWHERE c.CLM_DT BETWEEN '2026-06-27' AND '2026-09-25' AND p.BRAND_NM='LACRIVIA'\nGROUP BY 1 ORDER BY rej DESC",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.33
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT IFF(c.CLM_DT>='2026-06-27','L13','P13') per,\n SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)) adj,\n SUM(IFF(c.ADJ_STAT='R',1,0)) rej,\n ROUND(SUM(IFF(c.ADJ_STAT='R',1,0))/SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0))*100,2) rej_rate,\n ROUND(SUM(IFF(r.REJ_GRP='PRIOR_AUTH',1,0))/SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0))*100,2) pa_rate,\n ROUND(SUM(IFF(c.REJ_RSN_CD='PA',1,0))/SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0))*100,2) pa_exh_rate,\n ROUND(SUM(IFF(c.REJ_RSN_CD='75',1,0))/SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0))*100,2) pa_req_rate,\n ROUND(SUM(IFF(c.REJ_RSN_CD='3N',1,0))/SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0))*100,2) pa_den_rate,\n ROUND(SUM(IFF(r.REJ_GRP='NOT_COVERED',1,0))/SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0))*100,2) nc_rate,\n ROUND(SUM(IFF(r.REJ_GRP NOT IN ('PRIOR_AUTH','NOT_COVERED'),1,0))/SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0))*100,2) oth_rate\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.PROD_NDC11=p.PROD_NDC11\nLEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON c.REJ_RSN_CD=r.REJ_RSN_CD\nWHERE c.CLM_DT BETWEEN '2026-03-28' AND '2026-09-25' AND p.BRAND_NM='LACRIVIA'\nGROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 3.25
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT s.PAYER_NM, s.PBM_NM, s.CHNL_CD,\n SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)) adj, SUM(IFF(c.ADJ_STAT='R',1,0)) rej,\n ROUND(SUM(IFF(c.ADJ_STAT='R',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),0)*100,1) rej_rate,\n SUM(IFF(r.REJ_GRP='PRIOR_AUTH',1,0)) pa_rej, SUM(IFF(r.REJ_GRP='NOT_COVERED',1,0)) nc_rej\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.PROD_NDC11=p.PROD_NDC11\nJOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON c.PLAN_ID=s.PLAN_ID\nLEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON c.REJ_RSN_CD=r.REJ_RSN_CD\nWHERE c.CLM_DT BETWEEN '2026-06-27' AND '2026-09-25' AND p.BRAND_NM='LACRIVIA'\nGROUP BY 1,2,3 ORDER BY rej DESC LIMIT 15",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.56
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT s.PBM_NM,\n SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)) adj, SUM(IFF(c.ADJ_STAT='R',1,0)) rej,\n ROUND(SUM(IFF(c.ADJ_STAT='R',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),0)*100,1) rej_rate,\n SUM(IFF(r.REJ_GRP='PRIOR_AUTH',1,0)) pa_rej, SUM(IFF(r.REJ_GRP='NOT_COVERED',1,0)) nc_rej\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.PROD_NDC11=p.PROD_NDC11\nJOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON c.PLAN_ID=s.PLAN_ID\nLEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON c.REJ_RSN_CD=r.REJ_RSN_CD\nWHERE c.CLM_DT BETWEEN '2026-06-27' AND '2026-09-25' AND p.BRAND_NM='LACRIVIA'\nGROUP BY 1 ORDER BY rej DESC",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.3
+    }
+  ],
+  "usage": {
+    "input": 24,
+    "output": 8486,
+    "cache_read": 104659,
+    "cache_write": 20781
+  },
+  "cost_usd": 0.2947,
+  "latency_s": 151.5
+}

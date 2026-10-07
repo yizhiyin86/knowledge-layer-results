@@ -1,0 +1,130 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "A",
+  "qid": "Q14",
+  "question": "What did we conclude last time about exposure to supplier S-104, and has its next ship date changed since?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "I don't have any record of what was concluded last time. I have no memory of earlier conversations, and neither warehouse stores past analyses, so I can't tell you what the conclusion was. For the same reason I can't say for sure whether the next ship date has moved: the order table only holds each order's current promised date, and the archive table has no earlier versions of today's open orders. If you share the earlier conclusion or the ship date you had then, I can compare it directly.\n\n**Where S\u2011104 stands as of 2026\u201109\u201130**\n\n**Next ship date:** PO005791 for RM\u2011221 (Polysorbate 80 NF, low\u2011peroxide), 4,200 units, is promised to ship on **2026\u201110\u201107**.\n- One sign it may have slipped: this order was placed on 2026\u201109\u201102, which puts about 35 days between order and promised ship date. S\u2011104's other RM\u2011221 orders run about 27 days, which would have meant roughly 09\u201129.\n- Its ID (PO005791) is also out of sequence with S\u2011104's other RM\u2011221 orders (PO000361\u2013PO000369), so it may have been re\u2011issued.\n- Both points are only hints of a change, not proof.\n\n**All open orders with S\u2011104 (3 orders, 10,100 units):**\n\n| Order | Material | Ordered | Promised ship date | Qty |\n|---|---|---|---|---|\n| PO005791 | RM\u2011221 | 2026\u201109\u201102 | 2026\u201110\u201107 | 4,200 |\n| PO000430 | RM\u2011222 (Benzalkonium chloride 50%) | 2026\u201110\u201102 | 2026\u201110\u201126 | 2,600 |\n| PO000369 | RM\u2011221 | 2026\u201110\u201102 | 2026\u201110\u201129 | 3,300 |\n\nThe last two show order dates after 2026\u201109\u201130, so they look like planned orders rather than placed ones.\n\n**Recent delivery record:** S\u2011104 is a tier\u20112 supplier based in India (Delmar Specialty Chemicals). Of its 9 orders due between late August and September, 2 shipped late:\n- PO000423 (RM\u2011222) was 17 days late (promised 09\u201104, shipped 09\u201121).\n- PO000363 (RM\u2011221) was 8 days late (promised 09\u201116, shipped 09\u201124).\n\n**Exposure:**\n- **RM\u2011221 is effectively single\u2011sourced.** S\u2011104 is its only qualified and primary supplier. The other supplier listed, S\u2011131, is not qualified. It feeds 14 finished goods: FG\u20111001 to 1003 and FG\u20113001 to 3011.\n- **RM\u2011222 has a backup.** S\u2011104 is primary, and S\u2011130 is also qualified. It feeds 2 finished goods: FG\u20112001 and FG\u20112002.\n- In total, 16 finished goods depend on S\u2011104.\n\n**Sources and assumptions**\n- All data comes from the supply-chain warehouse (SUPPLY_DEMO). I used the supplier, supplier\u2011material, order and archived\u2011order tables, the material master, and the bill of materials.\n- Open orders are those with status OPEN and no actual ship date. \"Next ship date\" means the earliest promised ship date among them.\n- \"Qualified\" and \"primary\" come from the flags on the supplier\u2011material table.\n- To find the affected finished goods, I traced the bill of materials up to 12 levels using only entries in effect on 2026\u201109\u201130. The deepest path needed 7 levels, so the list is complete.\n- I didn't use any commercial data, since it wasn't needed for this question.",
+  "stop_reason": "end_turn",
+  "model_turns": 11,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "list_tables",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.*, (SELECT COUNT(*) FROM dbo.PURCH_ORD p WHERE p.SUPPLIER_ID='S-104') po_cnt, (SELECT COUNT(*) FROM dbo.PURCH_ORD_ARCHIVE p WHERE p.SUPPLIER_ID='S-104') arch_cnt FROM dbo.SUPPLIER s WHERE s.SUPPLIER_ID='S-104'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.24
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT STATUS, COUNT(*) n, MIN(ORDER_DT) min_ord, MAX(ORDER_DT) max_ord, MIN(PROMISED_SHIP_DT) min_prom, MAX(PROMISED_SHIP_DT) max_prom, MAX(ACTUAL_SHIP_DT) max_act, SUM(QTY) qty FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' GROUP BY STATUS",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.22
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND (ACTUAL_SHIP_DT IS NULL OR STATUS<>'CLOSED' OR ORDER_DT>='2026-08-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.MATERIAL_ID, sm.QUALIFIED_FLG, sm.PRIMARY_FLG, (SELECT COUNT(*) FROM dbo.SUPPLIER_MATERIAL x WHERE x.MATERIAL_ID=sm.MATERIAL_ID AND x.QUALIFIED_FLG='Y') qual_suppliers, (SELECT STRING_AGG(x.SUPPLIER_ID+':'+x.QUALIFIED_FLG+x.PRIMARY_FLG, ',') FROM dbo.SUPPLIER_MATERIAL x WHERE x.MATERIAL_ID=sm.MATERIAL_ID) all_sup FROM dbo.SUPPLIER_MATERIAL sm WHERE sm.SUPPLIER_ID='S-104'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD_ARCHIVE WHERE SUPPLIER_ID='S-104' OR PO_ID IN (SELECT PO_ID FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND STATUS='OPEN') ORDER BY ORDER_DT",
+      "ok": true,
+      "rows": 18,
+      "error": null,
+      "elapsed_s": 1.61
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE PO_ID IN ('PO005791','PO000365','PO000366','PO000367','PO000368','PO000427','PO000428','PO000429') OR PO_ID LIKE 'PO0057%' ORDER BY PO_ID",
+      "ok": true,
+      "rows": 80,
+      "error": null,
+      "elapsed_s": 1.35
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.MATERIAL WHERE MATERIAL_ID IN ('RM-221','RM-222')",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.98
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH x AS (\n SELECT CHILD_MATERIAL_ID AS root, PARENT_MATERIAL_ID AS mat, 1 AS lvl FROM dbo.BOM WHERE CHILD_MATERIAL_ID IN ('RM-221','RM-222') AND EFF_FROM<='2026-09-30' AND EFF_TO>'2026-09-30'\n UNION ALL\n SELECT x.root, b.PARENT_MATERIAL_ID, x.lvl+1 FROM x JOIN dbo.BOM b ON b.CHILD_MATERIAL_ID=x.mat AND b.EFF_FROM<='2026-09-30' AND b.EFF_TO>'2026-09-30' WHERE x.lvl<8)\nSELECT x.root, m.MATERIAL_TYP, COUNT(DISTINCT x.mat) n, STRING_AGG(CAST(x.mat AS varchar(max)), ',') mats FROM (SELECT DISTINCT root, mat FROM x) x JOIN dbo.MATERIAL m ON m.MATERIAL_ID=x.mat GROUP BY x.root, m.MATERIAL_TYP",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 1.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH c AS (SELECT * FROM dbo.BOM WHERE EFF_FROM<='2026-09-30' AND EFF_TO>'2026-09-30')\nSELECT DISTINCT b1.CHILD_MATERIAL_ID root, b1.PARENT_MATERIAL_ID l1, b2.PARENT_MATERIAL_ID l2, b3.PARENT_MATERIAL_ID l3, b4.PARENT_MATERIAL_ID l4\nFROM c b1 LEFT JOIN c b2 ON b2.CHILD_MATERIAL_ID=b1.PARENT_MATERIAL_ID LEFT JOIN c b3 ON b3.CHILD_MATERIAL_ID=b2.PARENT_MATERIAL_ID LEFT JOIN c b4 ON b4.CHILD_MATERIAL_ID=b3.PARENT_MATERIAL_ID\nWHERE b1.CHILD_MATERIAL_ID IN ('RM-221','RM-222')",
+      "ok": true,
+      "rows": 36,
+      "error": null,
+      "elapsed_s": 1.11
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH c AS (SELECT CHILD_MATERIAL_ID ch, PARENT_MATERIAL_ID pa FROM dbo.BOM WHERE EFF_FROM<='2026-09-30' AND EFF_TO>'2026-09-30'),\np AS (\nSELECT b1.ch root, v.m FROM c b1\nLEFT JOIN c b2 ON b2.ch=b1.pa LEFT JOIN c b3 ON b3.ch=b2.pa LEFT JOIN c b4 ON b4.ch=b3.pa LEFT JOIN c b5 ON b5.ch=b4.pa\nLEFT JOIN c b6 ON b6.ch=b5.pa LEFT JOIN c b7 ON b7.ch=b6.pa LEFT JOIN c b8 ON b8.ch=b7.pa\nCROSS APPLY (VALUES (b1.pa),(b2.pa),(b3.pa),(b4.pa),(b5.pa),(b6.pa),(b7.pa),(b8.pa)) v(m)\nWHERE b1.ch IN ('RM-221','RM-222') AND v.m IS NOT NULL)\nSELECT p.root, m.MATERIAL_TYP, COUNT(DISTINCT p.m) n, STRING_AGG(CAST(p.m AS varchar(max)),',') WITHIN GROUP (ORDER BY p.m) mats\nFROM (SELECT DISTINCT root, m FROM p) p JOIN dbo.MATERIAL m ON m.MATERIAL_ID=p.m\nWHERE m.MATERIAL_TYP NOT LIKE 'INT%' OR m.MATERIAL_TYP IS NULL OR 1=1\nGROUP BY p.root, m.MATERIAL_TYP",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.47
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH c AS (SELECT CHILD_MATERIAL_ID ch, PARENT_MATERIAL_ID pa FROM dbo.BOM WHERE EFF_FROM<='2026-09-30' AND EFF_TO>'2026-09-30'),\np AS (\nSELECT b1.ch root, v.m, v.l FROM c b1\nLEFT JOIN c b2 ON b2.ch=b1.pa LEFT JOIN c b3 ON b3.ch=b2.pa LEFT JOIN c b4 ON b4.ch=b3.pa LEFT JOIN c b5 ON b5.ch=b4.pa\nLEFT JOIN c b6 ON b6.ch=b5.pa LEFT JOIN c b7 ON b7.ch=b6.pa LEFT JOIN c b8 ON b8.ch=b7.pa LEFT JOIN c b9 ON b9.ch=b8.pa LEFT JOIN c b10 ON b10.ch=b9.pa LEFT JOIN c b11 ON b11.ch=b10.pa LEFT JOIN c b12 ON b12.ch=b11.pa\nCROSS APPLY (VALUES (b1.pa,1),(b2.pa,2),(b3.pa,3),(b4.pa,4),(b5.pa,5),(b6.pa,6),(b7.pa,7),(b8.pa,8),(b9.pa,9),(b10.pa,10),(b11.pa,11),(b12.pa,12)) v(m,l)\nWHERE b1.ch IN ('RM-221','RM-222') AND v.m IS NOT NULL)\nSELECT p.root, m.MATERIAL_TYP, COUNT(DISTINCT p.m) n, MAX(p.l) maxlvl\nFROM p JOIN dbo.MATERIAL m ON m.MATERIAL_ID=p.m\nGROUP BY p.root, m.MATERIAL_TYP",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.21
+    }
+  ],
+  "usage": {
+    "input": 24,
+    "output": 6722,
+    "cache_read": 115353,
+    "cache_write": 22925
+  },
+  "cost_usd": 0.2722,
+  "latency_s": 103.2
+}

@@ -1,0 +1,140 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "A",
+  "qid": "Q11",
+  "question": "If S-104 became unavailable, is there a qualified alternate supplier for each material it provides, and which products would remain exposed?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "No. S-104 (Delmar Specialty Chemicals, India, Tier 2) supplies two materials, and only one of them has a qualified backup. Losing S-104 would leave 14 finished products exposed through RM-221. RM-222 is covered.\n\n**What S-104 supplies**\n\n| Material | S-104's role | Other suppliers on file | Qualified backup? |\n|---|---|---|---|\n| RM-221 Polysorbate 80 NF, low-peroxide | Qualified, primary | S-131 Pinecrest Chemical Trading (China): **not qualified** | **No. S-104 is the only qualified source** |\n| RM-222 Benzalkonium chloride 50% | Qualified, primary | S-130 Oakridge Chemicals (US): **qualified**, backup | **Yes** |\n\nOrder history supports this. S-130 is already an active RM-222 supplier: 12 current orders for 49,400 units, plus 3 archived orders for 5,500. S-104 still carries most of the volume: about 160k units of RM-222 and 167k of RM-221 on current orders. S-131 has never had an order for RM-221.\n\n**Products still exposed: 14, all through RM-221**\n\nI traced RM-221 up the current bill of materials, counting only links in effect on 2026-09-30:\n- **Cyclosporine eye emulsions** (RM-221 \u2192 emulsifier premix CMP-310 \u2192 emulsion concentrate SEMI-031 \u2192 fill):\n  - FG-1001 Lacrivia 0.1% ophthalmic emulsion 5 mL (NDC 99101-0101-05)\n  - FG-1002 Lacrivia 0.1% ophthalmic emulsion 10 mL (NDC 99101-0101-10)\n  - FG-1003 Cyclosporine 0.05% ophthalmic emulsion 5 mL (NDC 99101-0202-05)\n- **Lens care solutions 1\u201311** (FG-3001 to FG-3011, NDCs 99101-4001 to 4011): RM-221 feeds two intermediates, INT-LC1011 and INT-LC1035, which pass through several more intermediate levels, seven steps up the bill of materials in total.\n\n**Covered, but capacity needs checking**\n- FG-2001 and FG-2002, Oculon (latanoprost) 0.005% ophthalmic solution 2.5 mL and 5 mL, use RM-222 through CMP-320 and SEMI-060. S-130 covers them on paper, but it now takes a small share of volume. It would need to handle roughly 3\u00d7 its current RM-222 volume (about 210k units over the past year versus 49k).\n- CMP-320 used to contain RM-221 too, but that link ended on 2025-06-30, so Oculon has no exposure to RM-221.\n\n**Recommended actions**\n1. Speed up qualifying a second RM-221 source, either by finishing S-131's qualification or finding another supplier.\n2. Until then, build safety stock of RM-221.\n3. Confirm S-130 can take on the full RM-222 volume.\n\n**Sources and definitions**\n- Fabric SUPPLY_DEMO tables:\n  - SUPPLIER and SUPPLIER_MATERIAL: supplier details and which suppliers are qualified or primary for each material.\n  - BOM: the multi-level bill of materials.\n  - MATERIAL and MATERIAL_NDC_XREF: product descriptions and NDC codes.\n  - PURCH_ORD and PURCH_ORD_ARCHIVE: order history.\n- A \"qualified alternate\" means a supplier other than S-104 marked as qualified for the same material.\n- I didn't use BOM_FLAT_LEGACY: it was last synced on 2024-11-30 and doesn't include RM-221 or RM-222, so it would have missed this exposure.\n\n**Assumptions**\n- The data doesn't hold approved substitute materials or regulatory filing constraints. Whether a newly qualified supplier can be used right away (for example, whether the product filings need changing) should be confirmed with Quality and Regulatory.\n- I didn't assess inventory on hand of RM-221, so I haven't estimated how long current stock would last.",
+  "stop_reason": "end_turn",
+  "model_turns": 12,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.*, (SELECT COUNT(*) FROM dbo.SUPPLIER x WHERE x.SUPPLIER_ID LIKE '%104%') n FROM dbo.SUPPLIER s WHERE s.SUPPLIER_ID LIKE '%104%' OR s.SUPPLIER_ID LIKE '%S104%';\nSELECT sm.*, m.MATERIAL_DESC, m.MATERIAL_TYP FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=sm.MATERIAL_ID WHERE UPPER(LTRIM(RTRIM(sm.SUPPLIER_ID))) LIKE '%104%';",
+      "ok": false,
+      "rows": null,
+      "error": "rejected: expected exactly one statement, got 2",
+      "elapsed_s": 0.0
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.SUPPLIER WHERE SUPPLIER_ID LIKE '%104%'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.66
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT '['+sm.SUPPLIER_ID+']' sid, '['+sm.MATERIAL_ID+']' mid, sm.QUALIFIED_FLG, sm.PRIMARY_FLG, m.MATERIAL_DESC, m.MATERIAL_TYP FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=sm.MATERIAL_ID WHERE UPPER(sm.SUPPLIER_ID) LIKE '%104%'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.47
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT '['+sm.SUPPLIER_ID+']' sid, '['+sm.MATERIAL_ID+']' mid, '['+sm.QUALIFIED_FLG+']' q, '['+sm.PRIMARY_FLG+']' p, s.SUPPLIER_NM, s.COUNTRY, s.TIER FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID LIKE '%RM-22%' ORDER BY sm.MATERIAL_ID, sm.SUPPLIER_ID",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.03
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT QUALIFIED_FLG, PRIMARY_FLG, COUNT(*) n FROM dbo.SUPPLIER_MATERIAL GROUP BY QUALIFIED_FLG, PRIMARY_FLG",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT src, SUPPLIER_ID, MATERIAL_ID, COUNT(*) n, MIN(ORDER_DT) mn, MAX(ORDER_DT) mx, SUM(QTY) qty FROM (SELECT 'PO' src, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, QTY FROM dbo.PURCH_ORD UNION ALL SELECT 'ARCH', SUPPLIER_ID, MATERIAL_ID, ORDER_DT, QTY FROM dbo.PURCH_ORD_ARCHIVE) x WHERE SUPPLIER_ID LIKE '%104%' OR MATERIAL_ID IN ('RM-221','RM-222') GROUP BY src, SUPPLIER_ID, MATERIAL_ID",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.55
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PARENT_MATERIAL_ID, CHILD_MATERIAL_ID, QTY_PER, EFF_FROM, EFF_TO FROM dbo.BOM WHERE CHILD_MATERIAL_ID IN ('RM-221','RM-222') ORDER BY CHILD_MATERIAL_ID, PARENT_MATERIAL_ID",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.01
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH b AS (SELECT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\nr AS (SELECT c AS rm, p AS item, CAST(c + '>' + p AS varchar(1000)) path, 1 lvl FROM b WHERE c IN ('RM-221','RM-222')\n UNION ALL SELECT r.rm, b.p, CAST(r.path + '>' + b.p AS varchar(1000)), r.lvl+1 FROM r JOIN b ON b.c = r.item WHERE r.lvl < 10)\nSELECT r.rm, r.item, r.lvl, r.path, m.MATERIAL_TYP, m.MATERIAL_DESC FROM r LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID = r.item ORDER BY r.rm, r.lvl, r.item",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 0.3
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH b AS (SELECT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30')\nSELECT b1.c rm, b1.p l1, b2.p l2, b3.p l3, b4.p l4, b5.p l5\nFROM b b1 LEFT JOIN b b2 ON b2.c=b1.p LEFT JOIN b b3 ON b3.c=b2.p LEFT JOIN b b4 ON b4.c=b3.p LEFT JOIN b b5 ON b5.c=b4.p\nWHERE b1.c IN ('RM-221','RM-222') ORDER BY 1,2,3,4",
+      "ok": true,
+      "rows": 79,
+      "error": null,
+      "elapsed_s": 1.09
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH b AS (SELECT DISTINCT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM <= '2026-09-30' AND EFF_TO >= '2026-09-30'),\nL1 AS (SELECT DISTINCT b.c rm, b.p i FROM b WHERE b.c IN ('RM-221','RM-222')),\nL2 AS (SELECT DISTINCT L1.rm, b.p i FROM L1 JOIN b ON b.c=L1.i),\nL3 AS (SELECT DISTINCT x.rm, b.p i FROM L2 x JOIN b ON b.c=x.i),\nL4 AS (SELECT DISTINCT x.rm, b.p i FROM L3 x JOIN b ON b.c=x.i),\nL5 AS (SELECT DISTINCT x.rm, b.p i FROM L4 x JOIN b ON b.c=x.i),\nL6 AS (SELECT DISTINCT x.rm, b.p i FROM L5 x JOIN b ON b.c=x.i),\nL7 AS (SELECT DISTINCT x.rm, b.p i FROM L6 x JOIN b ON b.c=x.i),\nL8 AS (SELECT DISTINCT x.rm, b.p i FROM L7 x JOIN b ON b.c=x.i),\nL9 AS (SELECT DISTINCT x.rm, b.p i FROM L8 x JOIN b ON b.c=x.i),\nL10 AS (SELECT DISTINCT x.rm, b.p i FROM L9 x JOIN b ON b.c=x.i),\nL11 AS (SELECT DISTINCT x.rm, b.p i FROM L10 x JOIN b ON b.c=x.i),\nL12 AS (SELECT DISTINCT x.rm, b.p i FROM L11 x JOIN b ON b.c=x.i),\nA AS (SELECT rm,i,1 lv FROM L1 UNION ALL SELECT rm,i,2 FROM L2 UNION ALL SELECT rm,i,3 FROM L3 UNION ALL SELECT rm,i,4 FROM L4 UNION ALL SELECT rm,i,5 FROM L5 UNION ALL SELECT rm,i,6 FROM L6 UNION ALL SELECT rm,i,7 FROM L7 UNION ALL SELECT rm,i,8 FROM L8 UNION ALL SELECT rm,i,9 FROM L9 UNION ALL SELECT rm,i,10 FROM L10 UNION ALL SELECT rm,i,11 FROM L11 UNION ALL SELECT rm,i,12 FROM L12)\nSELECT A.rm, A.lv, COUNT(DISTINCT A.i) n_items, SUM(CASE WHEN m.MATERIAL_TYP='FG' THEN 1 ELSE 0 END) n_fg_rows, STRING_AGG(CASE WHEN m.MATERIAL_TYP='FG' THEN A.i END, ',') fgs\nFROM A LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=A.i GROUP BY A.rm, A.lv ORDER BY A.rm, A.lv",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 4.49
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ, x.NDC FROM dbo.MATERIAL m LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=m.MATERIAL_ID WHERE m.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002','FG-3001','FG-3002','FG-3003','FG-3004','FG-3005','FG-3006','FG-3007','FG-3008','FG-3009','FG-3010','FG-3011','CMP-310','CMP-320','INT-LC1011','INT-LC1035','SEMI-031','SEMI-060') ORDER BY 1",
+      "ok": true,
+      "rows": 22,
+      "error": null,
+      "elapsed_s": 1.89
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SUPPLIER_ID, COMPONENT_MATERIAL_ID, COUNT(DISTINCT FG_MATERIAL_ID) n_fg, MAX(LAST_SYNC_DT) sync FROM dbo.BOM_FLAT_LEGACY WHERE SUPPLIER_ID='S-104' OR COMPONENT_MATERIAL_ID IN ('RM-221','RM-222') GROUP BY SUPPLIER_ID, COMPONENT_MATERIAL_ID",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.31
+    }
+  ],
+  "usage": {
+    "input": 26,
+    "output": 7381,
+    "cache_read": 96428,
+    "cache_write": 18944
+  },
+  "cost_usd": 0.2617,
+  "latency_s": 97.7
+}

@@ -1,0 +1,165 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "A",
+  "qid": "Q3",
+  "question": "For Northstar Health \u2013 Commercial, how do Lacrivia's paid rate and market share over the last 13 weeks compare with national?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Over the last 13 weeks, Northstar Health \u2013 Commercial paid 64.6% of Lacrivia claims, against 81.5% nationally. That is about 17 points lower. Lacrivia's market share in the plan is 23.7%, the same as its national share of 23.7%. It is about 2.5 points below the national commercial channel (26.2%).\n\n**Last 13 weeks (weeks ending 3 Jul \u2013 25 Sep 2026)**\n\n| Metric | Northstar \u2013 Commercial (PL1001) | National (all channels) | National commercial channel |\n|---|---|---|---|\n| Paid rate (paid \u00f7 (paid + rejected)) | **64.6%** (455 / 704) | **81.5%** (10,442 / 12,809) | 82.3% (5,649 / 6,865) |\n| Prior-auth rejections as a share of claims | 32.0% (225 / 704) | 10.7% (1,372 / 12,809) | 10.6% (728 / 6,865) |\n| Lacrivia share of dry-eye prescriptions | **23.7%** (455 / 1,916) | **23.7%** (10,442 / 43,975) | 26.2% (5,649 / 21,530) |\n\n**What this means**\n- **Prior authorization is the main barrier.** It caused 225 of the plan's 249 rejected Lacrivia claims (90%). Other reasons are minor: coverage 3, plan limits 2, early refill 15, pharmacy network 1, other 3.\n- **This has been going on all year.** The plan's weekly paid rate has stayed at about 60\u201365% since January. There's no sign of a recent policy change.\n- **Share is holding up despite the rejections.** Prescription counts are paid claims only (Lacrivia's prescriptions equal its paid claims in every plan and channel). So the plan matches national share even though a third of its claims are rejected for prior authorization. However, it still trails the national commercial average by about 2.5 points.\n- **The same payer's other commercial plan does much better.** Northstar Health \u2013 Commercial East (PL1039) is run by the same pharmacy benefit manager (OptiScript). There, 92.7% of Lacrivia claims were paid (332 / 358) and share was 27.5%. That suggests a plan-specific prior-authorization policy on PL1001 worth raising with Northstar or OptiScript.\n\n**Checks on the paid rate**\n- Counting reversed claims (claims paid then reversed, all flagged as abandoned) in the base: 64.4% for the plan vs 80.0% nationally.\n- Removing cash claims, which are never rejected, from the national figure: 80.6%.\n- The gap stays at about 16\u201317 points either way.\n\n**Sources and definitions**\n- **Plan:** Northstar Health \u2013 Commercial is plan PL1001 in the payer reference table (CORE.PAYER_SPINE). Commercial East (PL1039) is kept separate because it is a different plan.\n- **Lacrivia:** both of its product codes (NDCs) in the product master (CORE.PRODUCT).\n- **Paid rate:** from the claims table (RAW_3P.CLMLNS_ADJ). Status P = paid, R = rejected, V = reversed. Reject codes were grouped into reasons using REF.REJ_CODE. Claims are dated 27 Jun \u2013 25 Sep 2026. Claims from 26\u201330 Sep fall in an incomplete week and are left out.\n- **Market share:** Lacrivia prescriptions \u00f7 all prescriptions in the dry-eye market, as defined in BIZ.MKT_DEF_DRIVER. Data is the weekly prescription table (RAW_3P.RXT_WKLY). The 13 weeks run Saturday to Friday, ending 25 Sep 2026.\n- **Cross-check:** national share by channel matches the reporting table MART.PYR_SHR_WK exactly.\n- **\"National\"** means all plans and channels, including cash, unless labelled commercial channel.\n- **Data use:** I used only plan- and channel-level totals. No prescriber- or patient-level data or sandbox tables were used, which suits a market access request.",
+  "stop_reason": "end_turn",
+  "model_turns": 11,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT p.*, d.MKT_DEF, d.EFF_FROM, d.EFF_TO, d.SRC_FILE FROM PHARMA_DEMO.CORE.PRODUCT p FULL OUTER JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER d ON p.PROD_NDC11=d.PROD_NDC11 ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.31
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT 'CHNL' t, OBJECT_CONSTRUCT(*)::string v FROM PHARMA_DEMO.REF.CHNL UNION ALL SELECT 'REJ', OBJECT_CONSTRUCT(*)::string FROM PHARMA_DEMO.REF.REJ_CODE UNION ALL SELECT 'TIER', OBJECT_CONSTRUCT(*)::string FROM PHARMA_DEMO.REF.CVG_TIER",
+      "ok": true,
+      "rows": 27,
+      "error": null,
+      "elapsed_s": 1.37
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT ADJ_STAT, PAT_TYP, SEC_PYR_FLG, ABNDN_FLG, COUNT(*) n, COUNT(DISTINCT CLM_ID) dist, MIN(CLM_DT), MAX(CLM_DT), SUM(IFF(REJ_RSN_CD IS NULL,1,0)) null_rej, SUM(IFF(SUBST_NDC11 IS NOT NULL,1,0)) subst FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ GROUP BY 1,2,3,4 ORDER BY 1,2,3,4",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 2.34
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) n, COUNT(DISTINCT CLM_ID) d, COUNT(DISTINCT PROD_NDC11) ndcs, SUM(IFF(PLAN_ID NOT IN (SELECT PLAN_ID FROM PHARMA_DEMO.CORE.PAYER_SPINE),1,0)) unmapped_plan, SUM(IFF(PROD_NDC11 NOT IN (SELECT PROD_NDC11 FROM PHARMA_DEMO.CORE.PRODUCT),1,0)) unmapped_ndc FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.77
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT WK_END_DT, DAYNAME(WK_END_DT) dn, COUNT(*) n, SUM(TRX_QTY) trx, COUNT(DISTINCT PLAN_ID) plans FROM PHARMA_DEMO.RAW_3P.RXT_WKLY GROUP BY 1 ORDER BY 1 DESC LIMIT 20",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 10.48
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT r.CHNL_CD rx_ch, s.CHNL_CD spine_ch, COUNT(*) n, SUM(TRX_QTY) trx, SUM(IFF(TRX_QTY<0,1,0)) neg, SUM(IFF(r.PLAN_ID IS NULL,1,0)) nullplan FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r LEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON r.PLAN_ID=s.PLAN_ID GROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.36
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) n, COUNT(DISTINCT WK_END_DT, PRSCRBR_ME, PROD_NDC11, PLAN_ID, CHNL_CD) d FROM PHARMA_DEMO.RAW_3P.RXT_WKLY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.24
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PAYER_SPINE WHERE PLAN_NM ILIKE '%northstar%' OR PAYER_NM ILIKE '%northstar%' OR PAYER_ID='PY100'",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.27
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT PAYER_NM, COUNT(*) FROM PHARMA_DEMO.CORE.PAYER_SPINE GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.32
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CASE WHEN c.PLAN_ID='PL1001' THEN 'PL1001' WHEN c.PLAN_ID='PL1039' THEN 'PL1039' ELSE 'OTHER' END seg, s.CHNL_CD='C' is_comm,\n SUM(IFF(ADJ_STAT='P',1,0)) paid, SUM(IFF(ADJ_STAT='R',1,0)) rej, SUM(IFF(ADJ_STAT='V',1,0)) rev,\n SUM(IFF(ADJ_STAT='P' AND SEC_PYR_FLG='N',1,0)) paid_prim, SUM(IFF(ADJ_STAT='R' AND SEC_PYR_FLG='N',1,0)) rej_prim, SUM(IFF(ADJ_STAT='V' AND SEC_PYR_FLG='N',1,0)) rev_prim\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.PROD_NDC11=p.PROD_NDC11 JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON c.PLAN_ID=s.PLAN_ID\nWHERE p.BRAND_NM='LACRIVIA' AND c.CLM_DT BETWEEN '2026-06-27' AND '2026-09-25'\nGROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 3.74
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CASE WHEN r.PLAN_ID='PL1001' THEN 'PL1001' WHEN r.PLAN_ID='PL1039' THEN 'PL1039' ELSE 'OTHER' END seg, r.CHNL_CD,\n SUM(IFF(p.BRAND_NM='LACRIVIA',TRX_QTY,0)) lac_trx, SUM(TRX_QTY) mkt_trx, SUM(IFF(p.BRAND_NM='LACRIVIA',NRX_QTY,0)) lac_nrx, SUM(NRX_QTY) mkt_nrx\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN PHARMA_DEMO.CORE.PRODUCT p ON r.PROD_NDC11=p.PROD_NDC11\nJOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER d ON r.PROD_NDC11=d.PROD_NDC11 AND d.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN d.EFF_FROM AND d.EFF_TO\nWHERE r.WK_END_DT BETWEEN '2026-07-03' AND '2026-09-25'\nGROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 8,
+      "error": null,
+      "elapsed_s": 1.37
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT IFF(c.PLAN_ID='PL1001','PL1001','NATIONAL_ALL') seg, s.CHNL_CD, COALESCE(j.REJ_GRP, c.REJ_RSN_CD) grp, ADJ_STAT, COUNT(*) n\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.PROD_NDC11=p.PROD_NDC11 JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON c.PLAN_ID=s.PLAN_ID LEFT JOIN PHARMA_DEMO.REF.REJ_CODE j ON c.REJ_RSN_CD=j.REJ_RSN_CD\nWHERE p.BRAND_NM='LACRIVIA' AND c.CLM_DT BETWEEN '2026-06-27' AND '2026-09-25'\nGROUP BY 1,2,3,4 ORDER BY 1,2,3,4",
+      "ok": true,
+      "rows": 50,
+      "error": null,
+      "elapsed_s": 1.93
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT DATEADD(day, MOD(6 - DAYOFWEEKISO(CLM_DT) + 7 - 1, 7) , CLM_DT) wk_end_guess, DAYNAME(CLM_DT) dn,\n SUM(IFF(c.PLAN_ID='PL1001' AND ADJ_STAT='P',1,0)) nsc_p, SUM(IFF(c.PLAN_ID='PL1001' AND ADJ_STAT='R',1,0)) nsc_r,\n SUM(IFF(ADJ_STAT='P',1,0)) nat_p, SUM(IFF(ADJ_STAT='R',1,0)) nat_r\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.PROD_NDC11=p.PROD_NDC11\nWHERE p.BRAND_NM='LACRIVIA' AND c.CLM_DT >= '2026-03-28'\nGROUP BY 1,2 ORDER BY 1 LIMIT 5",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 3.21
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT DATEADD(day,4,DATE_TRUNC('week',DATEADD(day,2,CLM_DT))) wk_end,\n SUM(IFF(c.PLAN_ID='PL1001' AND ADJ_STAT='P',1,0)) nsc_p, SUM(IFF(c.PLAN_ID='PL1001' AND ADJ_STAT='R',1,0)) nsc_r,\n SUM(IFF(c.PLAN_ID='PL1001' AND ADJ_STAT='R' AND REJ_RSN_CD IN ('75','3N','PA'),1,0)) nsc_pa,\n SUM(IFF(ADJ_STAT='P',1,0)) nat_p, SUM(IFF(ADJ_STAT='R',1,0)) nat_r\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON c.PROD_NDC11=p.PROD_NDC11\nWHERE p.BRAND_NM='LACRIVIA' AND c.CLM_DT >= '2026-01-03'\nGROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 39,
+      "error": null,
+      "elapsed_s": 1.35
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CHNL_CD, MKT_DEF, SUM(BRAND_TRX) b, SUM(MKT_TRX) m, COUNT(DISTINCT WK_END_DT) wks FROM PHARMA_DEMO.MART.PYR_SHR_WK WHERE BRAND_NM='LACRIVIA' AND WK_END_DT BETWEEN '2026-07-03' AND '2026-09-25' GROUP BY 1,2 ORDER BY 1",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.25
+    }
+  ],
+  "usage": {
+    "input": 24,
+    "output": 9923,
+    "cache_read": 140059,
+    "cache_write": 25690
+  },
+  "cost_usd": 0.355,
+  "latency_s": 159.5
+}

@@ -1,0 +1,71 @@
+{
+  "run_id": "eval_20260930T1915_r3",
+  "agent": "B",
+  "qid": "Q13",
+  "question": "Show Lacrivia abandonment by territory over the last 13 weeks so district managers can plan rep coaching.",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "I can't give you Lacrivia abandonment broken out by territory. The claims data has no prescriber on it, so it can't be tied to a territory. The only data that could be, patient-level data, isn't allowed for coaching reps or territories. What I can give you is Lacrivia's overall abandonment rate, plus prescription trends by territory, which is the approved data for field coaching.\n\n**Why the territory cut isn't possible**\n- **Claims data:** The approved abandonment measure comes from pharmacy claims. That data has no patient or prescriber ID, so it can't be linked to territories.\n- **Patient-level data:** Using it to evaluate or coach reps or territories is prohibited by policy POL-DUA-01, which comes from the vendor's data-use agreement. Also, patient IDs can never appear in results for any role (POL-PHI-02).\n\n**1. Lacrivia abandonment, all territories combined**\n\n\"Abandonment\" here means the share of rejected claims where the patient never picked up the prescription.\n\n| Period | Rejected claims | Abandoned | Abandonment rate |\n|---|---|---|---|\n| Last 13 weeks (Jun 27 \u2013 Sep 25, 2026) | 2,367 | 601 | **25.4%** |\n| Prior 13 weeks | 2,145 | 488 | 22.8% |\n\nAbandonment rose about 2.6 points nationally, so the problem is getting worse across the board.\n\n**2. Lacrivia prescriptions by territory for coaching**\n\nLast 13 weeks (weeks ending Jul 3 \u2013 Sep 25, 2026) vs the prior 13 weeks. TRx is total prescriptions; NRx is new-to-brand prescriptions.\n\n| District | Territory | TRx | Change | NRx | Change |\n|---|---|---|---|---|---|\n| D-01 | T011 | 689 | +1.3% | 207 | +9.5% |\n| | T012 | 523 | +5.4% | 157 | +15.4% |\n| | T013 | 430 | +15.0% | 131 | +12.9% |\n| | T014 | 316 | +13.7% | 91 | +7.1% |\n| D-02 | T021 | 375 | +6.8% | 111 | +30.6% |\n| | T022 | 244 | +0.8% | 77 | **\u221211.5%** |\n| | T023 | 653 | +4.0% | 217 | +30.7% |\n| | T024 | 287 | +20.6% | 87 | +27.9% |\n| D-03 | T031 | 632 | +10.3% | 186 | +1.1% |\n| | T032 | 347 | +7.4% | 95 | **\u22124.0%** |\n| | T033 | 844 | +5.9% | 250 | \u22120.4% |\n| | T034 | 376 | +16.8% | 125 | +25.0% |\n| D-04 | T041 | 567 | +11.0% | 181 | +30.2% |\n| | T042 | 46 | +58.6% | 16 | small base |\n| | T043 | 559 | +7.3% | 153 | +1.3% |\n| | T044 | 410 | **\u22122.1%** | 131 | 0.0% |\n| D-05 | T051 | 297 | **\u22123.9%** | 83 | +5.1% |\n| | T052 | 738 | +9.8% | 220 | +17.6% |\n| | T053 | 347 | +14.5% | 88 | +2.3% |\n| | T054 | 290 | **\u22122.7%** | 92 | +8.2% |\n| D-06 | T061 | 485 | +10.2% | 141 | +3.7% |\n| | T062 | 422 | +15.0% | 128 | +25.5% |\n| | T063 | 354 | +1.4% | 100 | **\u22129.9%** |\n| | T064 | 211 | +20.6% | 53 | +3.9% |\n| **Total** | | **10,442** | **+7.7%** | **3,120** | **+10.2%** |\n\n**Where to focus coaching**\n- **Falling total prescriptions:** T051, T054 and T044.\n- **Falling new-to-brand prescriptions:** T022 and T063 especially, and T032.\n- **T042:** too few prescriptions to read the trend.\n\nEvery district grew total prescriptions, from +5.7% (D-05) to +10.6% (D-06).\n\n**Sources and assumptions**\n- **Abandonment measure:** Market Access's approved \"abandonment after rejection\" measure, computed from the pharmacy claims table (RAW_3P.CLMLNS_ADJ).\n- **Prescriptions:** Weekly prescription data (RAW_3P.RXT_WKLY), linked to territories through each prescriber's assigned territory (CORE.PRESCRIBER and CORE.TERRITORY). Lacrivia means both pack sizes (0.1%, 5 mL and 10 mL).\n- **Policy check:** I checked policy for the FIELD_SALES role before running anything. Claims, prescriber, territory and product data were allowed; patient-level data was denied under POL-DUA-01.\n- **Time periods:** The last 13 weeks are the 13 most recent weeks in the data (ending Jul 3 \u2013 Sep 25, 2026). For claims I matched those weeks by calendar date (Jun 27 \u2013 Sep 25), and the week ending Sep 25 is the latest complete one.\n- **Record:** This decision is logged as trace 582fe15e.",
+  "stop_reason": "end_turn",
+  "model_turns": 11,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_metric",
+    "get_concept",
+    "get_join_path",
+    "get_concept",
+    "get_business_rules",
+    "get_reference",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "get_data_product",
+    "get_join_path",
+    "get_business_rules",
+    "list_tables",
+    "list_deprecated_tables",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 26),\nr AS (SELECT WK_END_DT, ROW_NUMBER() OVER (ORDER BY WK_END_DT DESC) rn FROM wk)\nSELECT MIN(CASE WHEN rn<=13 THEN WK_END_DT END) cur_start_wk, MAX(WK_END_DT) cur_end_wk,\nMIN(CASE WHEN rn BETWEEN 14 AND 26 THEN WK_END_DT END) prior_start_wk, MAX(CASE WHEN rn BETWEEN 14 AND 26 THEN WK_END_DT END) prior_end_wk,\n(SELECT MAX(CLM_DT) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ) max_clm_dt\nFROM r",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 2.15
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT t.DISTRICT_ID, p.TERR_ID,\n SUM(CASE WHEN r.WK_END_DT BETWEEN '2026-07-03' AND '2026-09-25' THEN r.TRX_QTY ELSE 0 END) trx_l13,\n SUM(CASE WHEN r.WK_END_DT BETWEEN '2026-04-03' AND '2026-06-26' THEN r.TRX_QTY ELSE 0 END) trx_p13,\n SUM(CASE WHEN r.WK_END_DT BETWEEN '2026-07-03' AND '2026-09-25' THEN r.NRX_QTY ELSE 0 END) nrx_l13,\n SUM(CASE WHEN r.WK_END_DT BETWEEN '2026-04-03' AND '2026-06-26' THEN r.NRX_QTY ELSE 0 END) nrx_p13\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\nJOIN PHARMA_DEMO.CORE.PRODUCT pr ON pr.PROD_NDC11 = r.PROD_NDC11 AND pr.BRAND_NM = 'LACRIVIA'\nJOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME = r.PRSCRBR_ME\nLEFT JOIN PHARMA_DEMO.CORE.TERRITORY t ON t.TERR_ID = p.TERR_ID\nWHERE r.WK_END_DT BETWEEN '2026-04-03' AND '2026-09-25'\nGROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 2.76
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CASE WHEN c.CLM_DT BETWEEN '2026-06-27' AND '2026-09-25' THEN 'L13' ELSE 'P13' END period,\n SUM(CASE WHEN c.ADJ_STAT='R' THEN 1 ELSE 0 END) rejected,\n SUM(CASE WHEN c.ADJ_STAT='R' AND c.ABNDN_FLG='Y' THEN 1 ELSE 0 END) rejected_abandoned,\n SUM(CASE WHEN c.ADJ_STAT = 'R' AND c.ABNDN_FLG = 'Y' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN c.ADJ_STAT = 'R' THEN 1 ELSE 0 END), 0) abandonment_after_rejection\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\nJOIN PHARMA_DEMO.CORE.PRODUCT pr ON pr.PROD_NDC11 = c.PROD_NDC11 AND pr.BRAND_NM='LACRIVIA'\nWHERE c.CLM_DT BETWEEN '2026-03-28' AND '2026-09-25'\nGROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.79
+    }
+  ],
+  "usage": {
+    "input": 24,
+    "output": 8799,
+    "cache_read": 173549,
+    "cache_write": 22055
+  },
+  "cost_usd": 0.3211,
+  "latency_s": 134.5,
+  "cypher_queries": 65
+}

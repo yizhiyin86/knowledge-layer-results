@@ -1,0 +1,61 @@
+{
+  "run_id": "eval_20261002T0046_r3",
+  "agent": "B",
+  "qid": "Q14",
+  "question": "What did we conclude last time about exposure to supplier S-104, and has its next ship date changed since?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**No, the next ship date hasn't changed.** S-104's next open order is still PO005791: 4,200 units of RM-221 (Polysorbate 80), promised to ship **2026-10-07**, and it hasn't shipped yet.\n\n**What we concluded last time** (the saved answer on customer exposure to S-104)\n- S-104 is Delmar Specialty Chemicals, a tier-2 supplier in India. Its next ship date puts the **Lacrivia and cyclosporine dry-eye products at risk**:\n  - Lacrivia 0.1% 5 mL: 7,017 TRx over 13 weeks\n  - Lacrivia 0.1% 10 mL: 3,425 TRx\n  - Cyclosporine 0.05% 5 mL: 3,544 TRx\n  - Lens care solutions FG-3001 to 3011 are also fed by RM-221, but they aren't in the commercial data.\n- In total that's 13,986 TRx across 35 top-level customers. Eight health systems carry 77% of it. Oak Hollow, Riverbend and Northfield have Tier A supply contracts.\n- RM-221 has only one qualified supplier, S-104. It takes about 50 days from S-104 shipping until Lacrivia 5 mL reaches the DC, including the 14-day sterility test, so the earliest DC arrival is about 2026-11-26. Any slip moves that back day for day.\n- Cyclosporine shouldn't be offered as a Lacrivia substitute, because the same RM-221 supply feeds it (BR-SUB-01).\n- Oculon (FG-2001/2002) wasn't exposed. It uses S-104's other material, RM-222 (benzalkonium chloride), which has a qualified backup supplier, S-130.\n\n**Changes since then: none of significance**\n\n| Item | Last time | Now (data as of 2026-09-30) |\n|---|---|---|\n| Next RM-221 order (PO005791) | Promised 2026-10-07, open | Promised 2026-10-07, open, 4,200 units |\n| Next RM-222 order (PO000430) | Due 2026-10-26 | Promised 2026-10-26, open, 2,600 units |\n| Qualified suppliers for RM-221 | S-104 only (S-131 not qualified) | Same: still the only supplier |\n| Qualified suppliers for RM-222 | S-104 plus S-130 | Same |\n\nThere's also a later open RM-221 order, PO000369 (3,300 units, promised 2026-10-29). The earlier answer didn't mention it, so I can't tell whether it's new. Both PO000369 and PO000430 have an order date of 2026-10-02, after the data's as-of date, so they may be planned orders entered ahead of time.\n\n**Risk on PO005791:** S-104 has shipped RM-221 late on **25% of 48 closed orders**, averaging about **12 days late** when it slips. Two of its last five RM-221 orders were late: PO000360 by 14 days and PO000363 by 8 days. A typical 12-day slip would push DC recovery for Lacrivia 5 mL from about 2026-11-26 to about 2026-12-08. That date is my estimate using the 50-day lead time from last time; I didn't rerun the lead-time tool. RM-222 ships late more often (40%, about 13 days), but it has a backup supplier.\n\n**Sources and definitions**\n- The saved past answer from the knowledge layer, on customer exposure to S-104.\n- Supply data: `dbo.PURCH_ORD` (open orders and on-time history), `dbo.SUPPLIER`, `dbo.MATERIAL`, `dbo.SUPPLIER_MATERIAL`.\n- Late-ship rate is the ratified Supply Planning definition: closed orders shipped after the promised date, divided by all closed orders. I didn't use the deprecated archive table `PURCH_ORD_ARCHIVE`.\n- Supplier counts use the ratified qualified-supplier count (1 means a single source).\n- Rules applied: BR-LEAD-01 (recovery lead time) and BR-SUB-01 (approved substitutes).\n- I didn't rerun the products-affected walk or the customer TRx ranking. Neither the bill-of-materials path nor the ship date has changed, so the last answer's exposure numbers still apply.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT p.PO_ID, p.MATERIAL_ID, m.MATERIAL_NM, p.ORDER_DT, p.PROMISED_SHIP_DT, p.ACTUAL_SHIP_DT, p.QTY, p.STATUS, s.SUPPLIER_NM, s.TIER, s.COUNTRY FROM dbo.PURCH_ORD p JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=p.SUPPLIER_ID LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=p.MATERIAL_ID WHERE p.SUPPLIER_ID='S-104' AND (p.STATUS='OPEN' OR p.PROMISED_SHIP_DT >= '2026-09-01' OR p.ACTUAL_SHIP_DT >= '2026-09-01') ORDER BY p.PROMISED_SHIP_DT",
+      "ok": false,
+      "rows": null,
+      "error": "('42S22', \"[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'MATERIAL_NM'. (207) (SQLExecDirectW)\")",
+      "elapsed_s": 2.09
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT p.PO_ID, p.MATERIAL_ID, m.*, p.ORDER_DT, p.PROMISED_SHIP_DT, p.ACTUAL_SHIP_DT, p.QTY, p.STATUS, s.SUPPLIER_NM, s.TIER, s.COUNTRY FROM dbo.PURCH_ORD p JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=p.SUPPLIER_ID LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=p.MATERIAL_ID WHERE p.SUPPLIER_ID='S-104' AND (p.STATUS='OPEN' OR p.PROMISED_SHIP_DT >= '2026-09-01' OR p.ACTUAL_SHIP_DT >= '2026-09-01') ORDER BY p.PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 2.1
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, COUNT(*) n_closed, AVG(CASE WHEN ACTUAL_SHIP_DT > PROMISED_SHIP_DT THEN 1.0 ELSE 0 END) late_ship_rate, AVG(CASE WHEN ACTUAL_SHIP_DT > PROMISED_SHIP_DT THEN DATEDIFF(day, PROMISED_SHIP_DT, ACTUAL_SHIP_DT)*1.0 END) avg_days_late_when_late, MAX(ACTUAL_SHIP_DT) last_ship FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND STATUS='CLOSED' GROUP BY MATERIAL_ID",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.5
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SUPPLIER_ID, MATERIAL_ID, QUALIFIED_FLG, PRIMARY_FLG FROM dbo.SUPPLIER_MATERIAL WHERE MATERIAL_ID IN ('RM-221','RM-222') ORDER BY MATERIAL_ID, SUPPLIER_ID",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 2.09
+    }
+  ],
+  "cypher_queries": 7,
+  "usage": {
+    "input": 12,
+    "output": 3347,
+    "cache_read": 44469,
+    "cache_write": 12506
+  },
+  "cost_usd": 0.1384,
+  "latency_s": 44.8
+}

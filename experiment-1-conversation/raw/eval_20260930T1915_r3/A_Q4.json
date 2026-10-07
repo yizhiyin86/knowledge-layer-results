@@ -1,0 +1,126 @@
+{
+  "run_id": "eval_20260930T1915_r3",
+  "agent": "A",
+  "qid": "Q4",
+  "question": "Which high-decile dry-eye prescribers have had no call from any team in the last 90 days?",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "**20 high-decile (8\u201310) dry-eye prescribers have had no call from any team (TEAL, CORAL or INDIGO) in the last 90 days** (2 Jul \u2013 30 Sep 2026). That's 20 of the 65 high-decile prescribers, or 31%.\n\n- Decile 10: 14 of 37 uncalled\n- Decile 9: 1 of 10 uncalled\n- Decile 8: 5 of 18 uncalled\n\nAll 20 were called regularly until June (19\u201333 calls each in the past 12 months), and every one of them is on the 2026Q3 call plan. So these are planned targets that stopped getting calls, not prescribers who were never covered. The call data isn't missing: calls kept coming in through 29 Sep. But the number of high-decile prescribers called each month fell from 65 in June to 42 in July, 33 in August and 31 in September.\n\n| Decile | Prescriber | Specialty | Territory | Account (State) | Dry-eye TRx, last 13 wks | Last call | Q3 planned reps |\n|---|---|---|---|---|---|---|---|\n| 10 | Jordan Stroud | Optometry | T011 | Northfield Eye Clinic 2C (IL) | 307 | 2026-07-01* | R001, R002 |\n| 10 | Sage Kendall | Optometry | T033 | Riverbend Eye Clinic 2D (PA) | 292 | 2026-06-29 | R021, R022 |\n| 10 | Jordan Mercer | Optometry | T024 | Sunridge Eye Clinic 3D (GA) | 291 | 2026-06-18 | R015, R016 |\n| 10 | Yael Brandt | Optometry | T033 | Oak Hollow Eye Clinic 2D (FL) | 290 | 2026-06-15 | R021, R022 |\n| 10 | Avery Abbott | Optometry | T043 | Willow Creek Vision Assoc. 18 (AZ) | 288 | 2026-06-23 | R029, R030 |\n| 10 | Indy Pruitt | Optometry | T044 | Riverbend Eye Clinic 2B (CO) | 283 | 2026-06-26 | R031, R032 |\n| 10 | Parker Whitlock | Optometry | T052 | Sunridge Vision Assoc. 20 (PA) | 282 | 2026-06-19 | R035, R036 |\n| 10 | Avery Dunmore | Optometry | T011 | Sunridge Eye Clinic 3A (AZ) | 270 | 2026-06-21 | R001, R002 |\n| 10 | Quinn Lowry | Ophthalmology | T032 | Westbrook Vision Assoc. 10 (CO) | 268 | 2026-06-19 | R019, R020, R051 |\n| 10 | Casey Lowry | Ophthalmology | T053 | Oak Hollow Eye Clinic 2C (WA) | 253 | 2026-06-19 | R037, R038, R053 |\n| 10 | Kai Iverson | Ophthalmology | T023 | Highland Vision Assoc. 6 (FL) | 252 | 2026-06-16 | R013, R014, R050 |\n| 10 | Tatum Brandt | Ophthalmology | T044 | Riverbend Eye Clinic 2B (CO) | 250 | 2026-06-28 | R031, R032, R052 |\n| 10 | Dana Iverson | Optometry | T021 | Glenmoor Vision Assoc. 12 (CA) | 246 | 2026-06-24 | R009, R010 |\n| 10 | Taylor Mercer | Optometry | T031 | Sunridge Eye Clinic 4D (GA) | 246 | 2026-07-01* | R017, R018, R051 |\n| 9 | Zion Fairley | Optometry | T063 | Northfield Eye Clinic 4A (NY) | 247 | 2026-06-29 | R045, R046 |\n| 8 | Taylor Calder | Optometry | T013 | Clearview Eye Clinic 3D (NY) | 244 | 2026-06-09 | R005, R006 |\n| 8 | Wren Rourke | Optometry | T012 | Northfield Eye Clinic 2B (OH) | 240 | 2026-06-28 | R003, R004 |\n| 8 | Tatum Bishop | Optometry | T014 | Riverbend Eye Clinic 4B (NC) | 229 | 2026-06-15 | R007, R008 |\n| 8 | Harper Iverson | Optometry | T064 | Northfield Eye Clinic 3D (NJ) | 226 | 2026-06-26 | R047, R048 |\n| 8 | Avery Vance | Optometry | T054 | Sunridge Eye Clinic 1A (CO) | 208 | 2026-06-25 | R039, R040 |\n\n\\*Stroud and Mercer were last called on 1 Jul, one day before the window starts. With a 91-day window the list would be 18 prescribers.\n\nTogether these 20 prescribers wrote about 5,200 dry-eye TRx in the last 13 weeks. Territories T011, T033 and T044 each have two uncalled decile-10 prescribers, so start there.\n\n**Sources and definitions**\n- **Deciles:** `CORE.PRESCRIBER.DECILE`. I confirmed it's the dry-eye decile: average dry-eye TRx rises steadily from decile 1 to decile 10, but glaucoma TRx doesn't. I ignored the old sandbox decile tables.\n- **High-decile:** deciles 8\u201310. I assumed this cut-off; if you mean 9\u201310 only, the list is the 15 prescribers above decile 8.\n- **Calls:** `CORE.CALL_ACT`, all call types (Detail, Lunch, Sample drop, Virtual), from every rep on the roster in `CORE.REP_ROSTER`. The 90-day window runs 2026-07-02 to 2026-09-30. All call records matched a prescriber and a rep.\n- **Dry-eye market:** the products tagged dry eye in `BIZ.MKT_DEF_DRIVER`: Lacrivia, Cyclosporine OS, Tearsol, Cyclomist, Hydrova and generic cyclosporine. TRx come from `RAW_3P.RXT_WKLY`, over the 13 latest weeks (weeks ending 3 Jul to 25 Sep 2026).\n- **Other context:** planned reps come from `CORE.CALL_PLAN` (2026Q3); territory and account come from `CORE.TERRITORY` and `CORE.ACCOUNT`.\n- **Data-use:** I found no opt-out or no-contact flags (such as the AMA opt-out for sharing prescriber data with reps, known as PDRP) in the schema, so no prescribers were excluded. Before reps act on this list, check it against the compliance opt-out list. I didn't use any patient-level data, and I didn't need the supply-chain data.",
+  "stop_reason": "end_turn",
+  "model_turns": 11,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select d.*, p.brand_nm, p.molecule, p.co_flg from PHARMA_DEMO.BIZ.MKT_DEF_DRIVER d left join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=d.prod_ndc11 order by 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.37
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select decile, spclty, count(*) n, count(distinct prscrbr_me) nd, sum(iff(prscrbr_me is null,1,0)) null_me from PHARMA_DEMO.CORE.PRESCRIBER group by 1,2 order by 1,2",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 1.37
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select min(call_dt), max(call_dt), count(*), count(distinct rep_id), count(distinct prscrbr_me), listagg(distinct call_typ, ',') from PHARMA_DEMO.CORE.CALL_ACT",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.2
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select team, count(*), count(distinct rep_id) from PHARMA_DEMO.CORE.REP_ROSTER group by 1",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.2
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select (p.prscrbr_me is not null) matched, (r.rep_id is not null) rep_matched, r.team, count(*) calls, min(c.call_dt), max(c.call_dt), count(distinct c.prscrbr_me), max(length(c.prscrbr_me)), min(length(c.prscrbr_me))\nfrom PHARMA_DEMO.CORE.CALL_ACT c left join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=c.prscrbr_me left join PHARMA_DEMO.CORE.REP_ROSTER r on r.rep_id=c.rep_id group by 1,2,3",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select min(wk_end_dt), max(wk_end_dt), count(distinct wk_end_dt), count(distinct prod_ndc11), count(distinct prscrbr_me), sum(iff(prod_ndc11 in (select prod_ndc11 from PHARMA_DEMO.CORE.PRODUCT),0,1)) unmatched_ndc, max(length(prod_ndc11)), min(length(prod_ndc11)), sum(iff(prscrbr_me in (select prscrbr_me from PHARMA_DEMO.CORE.PRESCRIBER),0,1)) unmatched_me from PHARMA_DEMO.RAW_3P.RXT_WKLY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.46
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with rx as (select r.prscrbr_me, sum(iff(d.mkt_def='DRY_EYE',trx_qty,0)) de_trx, sum(iff(d.mkt_def='GLAUCOMA',trx_qty,0)) gl_trx from PHARMA_DEMO.RAW_3P.RXT_WKLY r join PHARMA_DEMO.BIZ.MKT_DEF_DRIVER d on d.prod_ndc11=r.prod_ndc11 where r.wk_end_dt > dateadd(week,-52,'2026-09-30') group by 1)\nselect p.decile, count(*), avg(de_trx), min(de_trx), max(de_trx), avg(gl_trx), min(gl_trx), max(gl_trx) from PHARMA_DEMO.CORE.PRESCRIBER p left join rx on rx.prscrbr_me=p.prscrbr_me group by 1 order by 1",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.64
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select table_schema, table_name, column_name, comment from PHARMA_DEMO.INFORMATION_SCHEMA.COLUMNS where table_schema<>'INFORMATION_SCHEMA' and (column_name ilike any ('%OPT%','%PDRP%','%RESTR%','%CONTACT%','%DNC%','%FLAG%','%FLG%','%DECILE%','%STATUS%','%ACTIVE%') or comment is not null) order by 1,2",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 9.29
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with c as (select prscrbr_me, max(call_dt) last_call, count_if(call_dt >= '2026-07-02') calls_90d, count(*) calls_all from PHARMA_DEMO.CORE.CALL_ACT group by 1),\nwk as (select distinct wk_end_dt from PHARMA_DEMO.RAW_3P.RXT_WKLY qualify dense_rank() over (order by wk_end_dt desc)<=13),\nrx as (select r.prscrbr_me, sum(trx_qty) de_trx_13w from PHARMA_DEMO.RAW_3P.RXT_WKLY r join PHARMA_DEMO.BIZ.MKT_DEF_DRIVER d on d.prod_ndc11=r.prod_ndc11 and d.mkt_def='DRY_EYE' where r.wk_end_dt in (select wk_end_dt from wk) group by 1),\npl as (select prscrbr_me, listagg(distinct rep_id, ',') planned_reps from PHARMA_DEMO.CORE.CALL_PLAN where fqtr='2026Q3' group by 1)\nselect p.prscrbr_me, p.prscrbr_nm, p.spclty, p.decile, p.terr_id, t.terr_nm, a.account_nm, a.state, coalesce(rx.de_trx_13w,0) de_trx_13w, c.last_call, coalesce(c.calls_all,0) calls_12m, pl.planned_reps\nfrom PHARMA_DEMO.CORE.PRESCRIBER p left join c on c.prscrbr_me=p.prscrbr_me left join rx on rx.prscrbr_me=p.prscrbr_me left join pl on pl.prscrbr_me=p.prscrbr_me\nleft join PHARMA_DEMO.CORE.TERRITORY t on t.terr_id=p.terr_id left join PHARMA_DEMO.CORE.ACCOUNT a on a.account_id=p.account_id\nwhere p.decile>=8 and coalesce(c.calls_90d,0)=0 order by p.decile desc, de_trx_13w desc",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 4.22
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select date_trunc(month, c.call_dt) m, count(*) calls, count(distinct c.prscrbr_me) hcps, count(distinct iff(p.decile>=8,c.prscrbr_me,null)) hi_dec_hcps from PHARMA_DEMO.CORE.CALL_ACT c join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=c.prscrbr_me where c.call_dt>='2026-03-01' group by 1 order by 1",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 4.24
+    }
+  ],
+  "usage": {
+    "input": 24,
+    "output": 8292,
+    "cache_read": 118752,
+    "cache_write": 20702
+  },
+  "cost_usd": 0.2932,
+  "latency_s": 172.5
+}

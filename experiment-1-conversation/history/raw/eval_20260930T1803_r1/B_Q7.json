@@ -1,0 +1,97 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "B",
+  "qid": "Q7",
+  "question": "Is DC-EAST at risk of a Lacrivia stockout given the recent TRx demand trend?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "## Yes: DC-EAST is about to run out of both Lacrivia packs\n\nBoth packs have been below safety stock since 11 Sep. The last snapshot (25 Sep) shows only 1\u20132 days of supply left. Unless product has arrived since then, DC-EAST is already out or will be around 30 Sep. Demand in the DC-EAST region is rising, which makes it worse.\n\n**Stock at DC-EAST (days of supply = latest on-hand \u00f7 average daily units shipped over the last 28 days)**\n\n| Pack | On hand 25 Sep | Safety stock | Shipped in last 28 days | Per day | **Days of supply** |\n|---|---|---|---|---|---|\n| Lacrivia 0.1% 5 mL (FG-1001) | 46 | 471 | 1,027 | 36.7 | **1.3** |\n| Lacrivia 0.1% 10 mL (FG-1002) | 34 | 233 | 423 | 15.1 | **2.3** |\n\n- **Stock has collapsed since mid-August.** The 5 mL pack went from 1,227 units on 14 Aug to 46; the 10 mL pack went from 572 to 34.\n- **Shipments to wholesalers didn't drop.** They held at about 235\u2013280 units a week for 5 mL and 105\u2013130 for 10 mL.\n- **Incoming stock largely stopped.** My rough estimate (change in stock plus units shipped) is that about 60 units a week of 5 mL came in, down from about 230, and about 30 a week of 10 mL, down from about 110.\n\n**TRx demand in DC-EAST states (last 13 weeks vs the 13 before)**\n- 5 mL: 3,473 vs 3,201 (**+8.5%**). The last 4 weeks averaged 287 a week, a record high.\n- 10 mL: 1,697 vs 1,560 (**+8.8%**). The last 4 weeks averaged 137 a week, with 156 in the latest week, also a record.\n- At the recent TRx rate, the stock on hand covers about 1.1 days (5 mL) and 1.7 days (10 mL).\n\n**What could help now**\n- **Other DCs have stock above their safety levels:**\n  - 5 mL: DC-CENTRAL 363 units (677 on hand vs 314 safety stock) and DC-WEST 332 (593 vs 261).\n  - 10 mL: DC-CENTRAL 196 and DC-WEST 195.\n  - Moving all of it would cover roughly 2.7 weeks of 5 mL and 3.7 weeks of 10 mL at DC-EAST's current shipment rate. Transfers between DCs need Supply Planning approval, and they would draw those DCs down to their safety stock.\n- **If DC-EAST can't cover demand, the shortage allocation rule applies.** Tier A contract health systems are served first, then Tier B. All other accounts are served pro rata by their last-13-week TRx. Clinics get their health system's tier.\n- **Next step: find out what's holding up Lacrivia.** I didn't trace which late supplier order caused it. Several recent orders shipped 14\u201320 days late, and 4 are still open past their promised date. Use `trace_supply_exposure` to find the bottleneck and `get_lead_times` to date the recovery. Recovery takes every stage, including a 14-day sterility test for ophthalmics, so expect weeks, not days.\n\n**Sources and definitions**\n- **Days of supply:** the ratified `days_of_supply` metric (Supply Planning), using the approved join path \"DistributionCenter to demand\".\n- **Supply data:** `SUPPLY_DEMO.dbo.DC_INV` for stock and `dbo.WHSLR_SHIP` for shipments (Supply Execution data product), plus `dbo.PURCH_ORD` for supplier orders.\n- **Demand data:** `PHARMA_DEMO.RAW_3P.RXT_WKLY` (Commercial Demand data product), linked to prescribers' accounts via `CORE.PRESCRIBER` and `CORE.ACCOUNT` (approved join path \"PackagedProduct to customers and payers\").\n- **Reference data and rules:**\n  - The `ndc_crosswalk` maps FG-1001 to NDC 99101010105 and FG-1002 to NDC 99101010110.\n  - The `dc_service_regions` set lists DC-EAST's states: NY, NJ, PA, MA, FL, GA, NC and OH.\n  - Rules used: BR-REGION-01 (DC service regions), BR-ALLOC-01 (shortage allocation) and BR-LEAD-01 (recovery lead time).\n- **Access:** the policy check allowed the SUPPLY_PLANNER role with no masking. The trace is logged as `bff95e7f\u2026`.\n\n**Assumptions**\n- The last stock snapshot is 25 Sep. I didn't see any stock received after that, but it may not be recorded yet.\n- TRx is a stand-in for pharmacy pull-through, not DC units; the two track roughly one to one here.\n- Prescribers are assigned to a DC by their account's state.\n- The incoming-stock figures are rough, because the stock snapshots and shipment weeks don't line up exactly.",
+  "stop_reason": "end_turn",
+  "model_turns": 11,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_business_rules",
+    "get_reference",
+    "get_metric",
+    "get_concept",
+    "get_concept",
+    "get_join_path",
+    "list_deprecated_tables",
+    "get_join_path",
+    "get_metric",
+    "get_reference",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT >= '2026-06-01' ORDER BY MATERIAL_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 34,
+      "error": null,
+      "elapsed_s": 1.36
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, DATEADD(week, DATEDIFF(week, 0, SHIP_DT), 0) AS wk, SUM(UNITS) units, COUNT(*) n FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT >= '2026-05-01' GROUP BY MATERIAL_ID, DATEADD(week, DATEDIFF(week, 0, SHIP_DT), 0) ORDER BY MATERIAL_ID, wk",
+      "ok": true,
+      "rows": 42,
+      "error": null,
+      "elapsed_s": 0.66
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH inv AS (SELECT MATERIAL_ID, ON_HAND_UNITS, SAFETY_STOCK_UNITS, SNAPSHOT_DT FROM dbo.DC_INV i WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT = (SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID=i.MATERIAL_ID)),\nmx AS (SELECT MAX(SHIP_DT) md FROM dbo.WHSLR_SHIP),\nsh AS (SELECT MATERIAL_ID, SUM(UNITS) u28 FROM dbo.WHSLR_SHIP, mx WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT > DATEADD(day,-28,'2026-09-30') GROUP BY MATERIAL_ID)\nSELECT inv.MATERIAL_ID, inv.SNAPSHOT_DT, inv.ON_HAND_UNITS, inv.SAFETY_STOCK_UNITS, sh.u28, sh.u28/28.0 AS avg_daily, inv.ON_HAND_UNITS/(sh.u28/28.0) AS dos, (SELECT md FROM mx) max_ship_dt FROM inv JOIN sh ON inv.MATERIAL_ID=sh.MATERIAL_ID",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 2.06
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 26)\nSELECT r.WK_END_DT, r.PROD_NDC11, SUM(r.TRX_QTY) trx\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\nJOIN PHARMA_DEMO.CORE.PRESCRIBER p ON r.PRSCRBR_ME=p.PRSCRBR_ME\nJOIN PHARMA_DEMO.CORE.ACCOUNT a ON p.ACCOUNT_ID=a.ACCOUNT_ID\nWHERE r.PROD_NDC11 IN ('99101010105','99101010110') AND a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH')\nAND r.WK_END_DT IN (SELECT WK_END_DT FROM wks)\nGROUP BY 1,2 ORDER BY 2,1",
+      "ok": true,
+      "rows": 52,
+      "error": null,
+      "elapsed_s": 2.3
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS FROM dbo.DC_INV i WHERE i.MATERIAL_ID IN ('FG-1001','FG-1002') AND i.SNAPSHOT_DT = (SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) ORDER BY i.MATERIAL_ID, i.DC_ID",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.21
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS, DATEDIFF(day, PROMISED_SHIP_DT, COALESCE(ACTUAL_SHIP_DT,'2026-09-30')) AS days_late FROM dbo.PURCH_ORD WHERE (ACTUAL_SHIP_DT IS NULL AND PROMISED_SHIP_DT < '2026-09-30') OR (ACTUAL_SHIP_DT > PROMISED_SHIP_DT AND PROMISED_SHIP_DT >= '2026-07-01') ORDER BY days_late DESC",
+      "ok": true,
+      "rows": 51,
+      "error": null,
+      "elapsed_s": 1.27
+    }
+  ],
+  "usage": {
+    "input": 24,
+    "output": 9082,
+    "cache_read": 170460,
+    "cache_write": 31669
+  },
+  "cost_usd": 0.3742,
+  "latency_s": 124.8,
+  "cypher_queries": 70
+}

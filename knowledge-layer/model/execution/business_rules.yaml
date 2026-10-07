@@ -1,0 +1,90 @@
+# Business knowledge that is NOT in either warehouse: it lives in process documentation, the MES standard
+# times, the contract-management system and operating procedures. The KL brings it in so agents can use it.
+
+business_rules:
+  - id: BR-CUST-01
+    name: What "customer" means
+    owner: Commercial Analytics
+    concepts: [Account, Wholesaler]
+    text: "In commercial and customer-exposure questions, a customer is the top-level contracted account: the health system (IDN) for affiliated clinics, or the clinic itself if independent. Roll clinics up with CORE.ACCOUNT.PARENT_ACCOUNT_ID. In distribution questions, the customer is the wholesaler (trade customer). Prescribers and clinics are not customers on their own."
+  - id: BR-ALLOC-01
+    name: Shortage allocation
+    owner: Supply Planning
+    concepts: [DistributionCenter, Account]
+    text: "When a DC cannot cover demand, allocate available units in this order: (1) health systems with a Tier A supply contract, (2) Tier B contracts, (3) all other accounts pro rata by their last-13-week TRx. Clinics inherit their health system's contract tier. No transfers between DCs without Supply Planning approval. Before offering a substitute, check BR-SUB-01 and confirm the substitute is not fed by the same failing supply chain."
+  - id: BR-REGION-01
+    name: DC service regions
+    owner: Supply Planning
+    concepts: [DistributionCenter, Account]
+    text: "Accounts are served by the DC for the account's state (see reference set dc_service_regions)."
+  - id: BR-SUB-01
+    name: Approved substitutes during shortage
+    owner: Commercial Analytics
+    concepts: [MedicinalProduct, PackagedProduct]
+    text: "During a Lacrivia shortage the approved company substitute is Cyclosporine OS 0.05%, unless it is constrained by the same supply issue; then there is no approved company substitute and Medical Affairs guides therapeutic alternatives. Oculon has no approved company substitute."
+  - id: BR-LEAD-01
+    name: Recovery lead time
+    owner: Supply Planning
+    concepts: [Material, Plant, PurchaseOrder]
+    text: "Supply recovers at the DC only after every downstream stage completes: supplier transit, make and QC at each BOM level, QC release of the finished good (incl. 14-day sterility test for ophthalmics) and DC transit. Use get_lead_times for the stage durations (MES standard times)."
+  - id: BR-SUB-02
+    name: Substitution order during a pack shortage
+    owner: Supply Planning
+    concepts: [PackagedProduct, MedicinalProduct, DistributionCenter]
+    text: "When a pack is short at a DC, offer customers, in this order: (1) another pack of the same brand that is at or above safety stock at that DC, (2) the approved company substitute (BR-SUB-01) if it is not fed by the failing material and is at or above safety stock, (3) otherwise no company substitute; Medical Affairs guides therapeutic alternatives."
+  - id: BR-ALLOC-02
+    name: Allocation mechanics
+    owner: Supply Planning
+    concepts: [DistributionCenter, Account]
+    text: "Allocate only packs whose supply the disruption interrupts (no qualified, available alternate supplier covers the plant that makes them), and only at DCs where such a pack is below safety stock in the latest inventory snapshot; allocate that pack's on-hand units. Go tier by tier (BR-ALLOC-01). Within a tier, split pro rata by each account's last-13-week TRx of that NDC from prescribers in the DC's service states (BR-REGION-01), rolled up to the contracted account (BR-CUST-01); round down and give the remaining units to the largest account. An account gets at most its 13-week TRx of that NDC; units left after a tier go to the next tier. Accounts with no TRx of that NDC get nothing."
+  - id: BR-APPR-01
+    name: Allocation approval threshold
+    owner: Supply Planning
+    concepts: [DistributionCenter, Account]
+    text: "An allocation plan (everything allocated at one DC for one disruption, all packs together) needs Supply Planning lead approval before it is recorded if its total value at list price is $25,000 or more, or if it moves stock between DCs. Request one approval for the plan and record its approval id on every allocation of the plan."
+
+supply_contracts:  # from the contract-management system
+  - {account_id: AC00038, account: Oak Hollow Health System, tier: A, expires: 2027-06-30}
+  - {account_id: AC00117, account: Northfield Health System, tier: A, expires: 2027-03-31}
+  - {account_id: AC00001, account: Clearview Health System, tier: B, expires: 2026-12-31}
+  - {account_id: AC00059, account: Riverbend Health System, tier: A, expires: 2027-09-30}
+  - {account_id: AC00138, account: Sunridge Health System, tier: B, expires: 2027-01-31}
+
+dc_service_regions:
+  DC-EAST: [NY, NJ, PA, MA, FL, GA, NC, OH]
+  DC-CENTRAL: [IL, TX, MN, CO]
+  DC-WEST: [AZ, CA, WA]
+
+approved_substitutes:
+  - {brand: LACRIVIA, substitute: CYCLOSPORINE OS, condition: "unless constrained by the same supply issue"}
+  - {brand: OCULON, substitute: null, condition: "no approved company substitute"}
+
+# MES standard times per material (days). Defaults by material type; overrides for the ophthalmic core.
+lead_times:
+  defaults:
+    RAW: {transit_days: 7}
+    COMPONENT: {make_days: 4, qc_days: 3, transit_days: 3}
+    INTERMEDIATE: {make_days: 3, qc_days: 2}
+    SEMI: {make_days: 3, qc_days: 4}
+    FILL: {make_days: 2, qc_days: 1}
+    KIT: {make_days: 1}
+    FG: {make_days: 1, qc_days: 7, transit_days: 4}
+  materials:
+    RM-221: {transit_days: 6, note: "ocean + road from S-104 (IN) to the S-201 premix site"}
+    CMP-310: {make_days: 5, qc_days: 3, transit_days: 2, note: "made by S-201, shipped to PL-01"}
+    SEMI-031: {make_days: 2, qc_days: 2}
+    SEMI-044: {make_days: 3, qc_days: 5}
+    SEMI-045: {make_days: 3, qc_days: 5}
+    FG-1001: {make_days: 1, qc_days: 14, transit_days: 4, note: "QC release incl. 14-day sterility test; 4 days to DC"}
+    FG-1002: {make_days: 1, qc_days: 14, transit_days: 4, note: "QC release incl. 14-day sterility test; 4 days to DC"}
+    FG-1003: {make_days: 1, qc_days: 14, transit_days: 4, note: "QC release incl. 14-day sterility test; 4 days to DC"}
+    FG-2001: {make_days: 1, qc_days: 14, transit_days: 4, note: "QC release incl. 14-day sterility test; 4 days to DC"}
+    FG-2002: {make_days: 1, qc_days: 14, transit_days: 4, note: "QC release incl. 14-day sterility test; 4 days to DC"}
+
+# List prices per pack (USD) from the pricing system (outside the warehouses). Synthetic. Used for approval thresholds.
+list_prices:
+  - {ndc11: "99101010105", product: "LACRIVIA 0.1% 5 mL", list_price_usd: 420}
+  - {ndc11: "99101010110", product: "LACRIVIA 0.1% 10 mL", list_price_usd: 780}
+  - {ndc11: "99101020205", product: "CYCLOSPORINE OS 0.05% 5 mL", list_price_usd: 160}
+  - {ndc11: "99101030325", product: "OCULON 0.005% 2.5 mL", list_price_usd: 290}
+  - {ndc11: "99101030350", product: "OCULON 0.005% 5 mL", list_price_usd: 520}

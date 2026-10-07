@@ -1,0 +1,76 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "B",
+  "qid": "Q3",
+  "question": "In district D-03, what is each rep's Lacrivia TRx attainment versus their IC goal quarter-to-date?",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "**No rep in District D-03 has reached their Lacrivia IC goal for Q3 2026.** The quarter is complete in the data, so this is effectively the final Q3 result. Sawyer Upton is closest at 98.6%. Emerson Dorsey (62.4%) and Vale Dorsey (67.0%) are furthest behind.\n\nAll 13 weeks of the quarter have data (weeks ending 3 Jul to 25 Sep 2026), so the paced goal equals the full quarterly goal.\n\n| Rep | Team | Territory | Lacrivia TRx so far | IC goal | Attainment |\n|---|---|---|---|---|---|\n| R019 Sawyer Upton | TEAL | T032 | 347 | 352 | **98.6%** |\n| R020 Indy Calder | CORAL | T032 | 347 | 360 | **96.4%** |\n| R021 Vale Rourke | TEAL | T033 | 844 | 900 | **93.8%** |\n| R024 Quinn Abbott | CORAL | T034 | 376 | 412 | **91.3%** |\n| R018 Finley Stroud | CORAL | T031 | 632 | 713 | **88.6%** |\n| R023 Dana Calder | TEAL | T034 | 376 | 441 | **85.3%** |\n| R022 Vale Dorsey | CORAL | T033 | 844 | 1,259 | **67.0%** |\n| R017 Emerson Dorsey | TEAL | T031 | 632 | 1,013 | **62.4%** |\n\n- **Shared territories:** each territory has one TEAL rep and one CORAL rep. Both are credited with all the territory's TRx, so the difference in their attainment comes only from their goals. In T031 and T033 one rep's goal is much higher than the other's (for example 1,259 vs 900 in T033).\n- **By team:** the district wrote 2,199 Lacrivia TRx. That is 81.3% of the TEAL team's combined goal (2,706) and 80.1% of the CORAL team's (2,744).\n- **Not included:** R051 Marlow Lowry (INDIGO, the glaucoma team) has no Lacrivia goal.\n\n**Sources and definitions**\n- **Metric:** the ratified `ic_attainment` metric (ratified by Finance, used in the Rep Report). It divides the rep's territory TRx for the goal brand since quarter start by the paced goal. The paced goal is the quarterly goal \u00d7 weeks elapsed \u00f7 13.\n- **Tables:** from the ratified Field Force data product (concept IncentiveGoal): `CORE.IC_GOAL` (brand LACRIVIA, quarter 2026Q3), `CORE.REP_ROSTER` and `CORE.PRESCRIBER`. Prescription volumes come from `RAW_3P.RXT_WKLY`, with Lacrivia packs identified through `CORE.PRODUCT`.\n- **Join:** the approved \"SalesRep to Prescriber\" path, which links reps to prescribers by territory.\n- **Policy:** `check_policy` allowed this for FIELD_SALES (compensation purpose), with no masking.\n\n**Assumptions**\n- **Quarter:** Q3 runs 1 Jul to 30 Sep 2026. It includes weeks ending 3 Jul to 25 Sep; the week ending 3 Jul also covers 27\u201330 Jun.\n- **Data freshness:** there is no data for the week ending 2 Oct yet, so the last few days of September are not included.\n- **Coverage:** TRx is credited by the prescriber's current territory, with no adjustment for alignment changes during the quarter.\n\nThe decision trace is logged (ID 0c27d275\u2026).",
+  "stop_reason": "end_turn",
+  "model_turns": 9,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_concept",
+    "get_metric",
+    "get_data_product",
+    "get_report",
+    "get_business_rules",
+    "get_join_path",
+    "list_deprecated_tables",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT r.REP_ID, r.REP_NM, r.TERR_ID, r.DISTRICT_ID, r.TEAM, g.BRAND_NM, g.FQTR, g.TRX_GOAL\nFROM PHARMA_DEMO.CORE.REP_ROSTER r\nLEFT JOIN PHARMA_DEMO.CORE.IC_GOAL g ON g.REP_ID = r.REP_ID AND g.BRAND_NM='LACRIVIA'\nWHERE r.DISTRICT_ID='D-03' ORDER BY r.REP_ID, g.FQTR",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.81
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY WHERE WK_END_DT >= '2026-06-15' ORDER BY 1",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.45
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT (SELECT COUNT(*) - COUNT(DISTINCT PRSCRBR_ME) FROM PHARMA_DEMO.CORE.PRESCRIBER) AS dup_prscrbr,\n(SELECT COUNT(*) - COUNT(DISTINCT PROD_NDC11) FROM PHARMA_DEMO.CORE.PRODUCT) AS dup_ndc,\n(SELECT LISTAGG(DISTINCT BRAND_NM, ',') FROM PHARMA_DEMO.CORE.PRODUCT WHERE UPPER(BRAND_NM) LIKE '%LACRIV%') AS brands,\n(SELECT COUNT(*) FROM PHARMA_DEMO.CORE.IC_GOAL WHERE BRAND_NM='LACRIVIA' AND FQTR='2026Q3' GROUP BY REP_ID ORDER BY 1 DESC LIMIT 1) AS max_goal_rows_per_rep",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 2.41
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH rx AS (\n  SELECT p.TERR_ID, x.WK_END_DT, SUM(x.TRX_QTY) AS trx\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY x\n  JOIN PHARMA_DEMO.CORE.PRODUCT pr ON pr.PROD_NDC11 = x.PROD_NDC11 AND pr.BRAND_NM = 'LACRIVIA'\n  JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME = x.PRSCRBR_ME\n  WHERE x.WK_END_DT >= '2026-07-01' AND x.WK_END_DT <= '2026-09-30'\n  GROUP BY 1,2\n), wk AS (\n  SELECT COUNT(DISTINCT WK_END_DT) AS elapsed_wks FROM PHARMA_DEMO.RAW_3P.RXT_WKLY WHERE WK_END_DT BETWEEN '2026-07-01' AND '2026-09-30'\n)\nSELECT r.REP_ID, r.REP_NM, r.TEAM, r.TERR_ID, g.TRX_GOAL, wk.elapsed_wks,\n  COALESCE(SUM(rx.trx),0) AS qtd_trx,\n  COUNT(DISTINCT rx.WK_END_DT) AS wks_with_rx,\n  ROUND(g.TRX_GOAL * wk.elapsed_wks / 13, 1) AS paced_goal,\n  ROUND(COALESCE(SUM(rx.trx),0) / (g.TRX_GOAL * wk.elapsed_wks / 13) * 100, 1) AS attainment_pct\nFROM PHARMA_DEMO.CORE.REP_ROSTER r\nJOIN PHARMA_DEMO.CORE.IC_GOAL g ON g.REP_ID = r.REP_ID AND g.BRAND_NM='LACRIVIA' AND g.FQTR='2026Q3'\nCROSS JOIN wk\nLEFT JOIN rx ON rx.TERR_ID = r.TERR_ID\nWHERE r.DISTRICT_ID = 'D-03'\nGROUP BY r.REP_ID, r.REP_NM, r.TEAM, r.TERR_ID, g.TRX_GOAL, wk.elapsed_wks\nORDER BY r.REP_ID",
+      "ok": true,
+      "rows": 8,
+      "error": null,
+      "elapsed_s": 5.03
+    }
+  ],
+  "usage": {
+    "input": 20,
+    "output": 6386,
+    "cache_read": 119570,
+    "cache_write": 23027
+  },
+  "cost_usd": 0.2668,
+  "latency_s": 103.0,
+  "cypher_queries": 66
+}

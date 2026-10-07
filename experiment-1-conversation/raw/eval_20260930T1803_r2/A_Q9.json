@@ -1,0 +1,166 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "A",
+  "qid": "Q9",
+  "question": "Which sources feed \"paid rate\", and is it defined the same way in the Payer Report and the Rep Report?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "I couldn't find how either report defines \"paid rate,\" so I can't confirm whether they match. Neither platform holds the Payer Report or Rep Report logic: there are no views, no metric catalog, no report tables, and no saved report SQL in the query history, only ad-hoc queries. The supply-chain warehouse has nothing relevant. What I can show is where the numbers have to come from and how much the answer moves with the definition, which is enough to say the two reports probably can't be built the same way.\n\n**Where \"paid rate\" can come from**\n- **Only source with paid/rejected status: the claims table (`RAW_3P.CLMLNS_ADJ`).** It has 287,395 claims, one row per claim ID, dated 27 Sep 2025 to 30 Sep 2026. Each claim is marked P (paid), R (rejected) or V (reversed). Every rejected claim has a reason code, and all of them match the reject-code lookup.\n- **Lookups:** the reject-code table groups reasons (e.g. prior auth, not covered, step therapy). The payer table rolls plans up to payer, PBM and channel. The product table maps NDCs to brands.\n- **Paid claims feed the weekly prescription counts (`RAW_3P.RXT_WKLY`).** Over the last 13 weeks, total prescriptions there are 59,072, exactly the number of paid claims. So that table carries paid volume by prescriber, but no rejects.\n- **Patient-level file (`RAW_3P.PATHPT_LVL`):** has the prescriber and an abandonment flag, but no paid/rejected status.\n\n**Why the two reports probably differ**\n- The claims table has no prescriber field. A payer view can calculate paid \u00f7 (paid + rejected) directly from claims, by plan, payer or channel.\n- A rep or territory view has no prescriber-level rejects to divide by. It would have to use paid prescription counts over some other base, or use \"not abandoned\" as a stand-in. Those are different metrics. For example, 94.7% of patient-level records were not abandoned, versus an 87.0% paid rate.\n\n**How much the definition matters (last 13 weeks, claims dated 27 Jun\u201325 Sep 2026)**\n\nClaim counts: 59,072 paid, 8,834 rejected, 1,544 reversed.\n\n| Definition | All products | LACRIVIA |\n|---|---|---|\n| Paid \u00f7 (paid + rejected) | **87.0%** | **81.5%** |\n| Paid \u00f7 (paid + rejected + reversed) | 85.1% | 80.0% |\n| (Paid \u2212 reversed) \u00f7 (paid + rejected) | 84.7% | 79.6% |\n| Primary payer only, or new patients only | 87.0% / 87.2% | 81.6% / 81.7% |\n| Not abandoned, patient-level file (not a paid rate) | 94.7% | \u2013 |\n\nSo reversals alone move the rate by about 2 points. Using abandonment instead moves it by about 8.\n\n**Traps that would also make the reports disagree**\n1. **Backup table double-counts.** `RAW_3P.CLMLNS_ADJ_BKP_2025` holds 77,757 claims from 27 Sep\u201331 Dec 2025. All of them are already in the main claims table, unchanged. Adding the two together double-counts that quarter.\n2. **Recent days look better than they are.** Rejected and reversed claims stop on 25 Sep 2026, but paid claims run to 30 Sep. Counting 26\u201330 Sep adds 85 paid claims with no rejects, which pushes the rate up.\n3. **Abandonment isn't the opposite of paid.** Every reversed claim and 2,256 rejected claims are flagged as abandoned. So \"not abandoned\" and \"paid\" measure different things.\n\n**What would settle it:** the report owners' SQL or semantic-model definitions for numerator, denominator, how reversals are handled, which dates are included, and how prescribers are linked. Once I have them I can rebuild both reports' numbers from the table above.\n\n**Sources and assumptions**\n- Snowflake PHARMA_DEMO: `RAW_3P.CLMLNS_ADJ`, `RAW_3P.CLMLNS_ADJ_BKP_2025`, `RAW_3P.RXT_WKLY`, `RAW_3P.PATHPT_LVL`, `REF.REJ_CODE`, `CORE.PRODUCT`, `CORE.PAYER_SPINE`, plus the database's schema listings and query history. Fabric SUPPLY_DEMO has no relevant tables.\n- \"Last 13 weeks\" means weeks ending Friday 3 Jul\u201325 Sep 2026, i.e. claims dated 27 Jun\u201325 Sep 2026.\n- I read P, R and V as paid, rejected and reversed from the data; no lookup table defines them. The flag values (secondary payer, new patient, abandoned) are also my reading of the data.\n- All figures are aggregated counts, with no patient-level output.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT table_schema, table_name, column_name, data_type, comment FROM PHARMA_DEMO.INFORMATION_SCHEMA.COLUMNS WHERE column_name ILIKE ANY ('%PAID%','%PD%','%RATE%','%RPT%','%REPORT%','%KPI%','%METRIC%','%DEF%','%STAT%','%ABN%','%REJ%') ORDER BY 1,2",
+      "ok": true,
+      "rows": 53,
+      "error": null,
+      "elapsed_s": 2.01
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT table_schema, table_name, table_type, comment FROM PHARMA_DEMO.INFORMATION_SCHEMA.TABLES WHERE table_schema <> 'INFORMATION_SCHEMA' ORDER BY 1,2",
+      "ok": true,
+      "rows": 40,
+      "error": null,
+      "elapsed_s": 1.77
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT query_text, start_time FROM TABLE(PHARMA_DEMO.INFORMATION_SCHEMA.QUERY_HISTORY(RESULT_LIMIT=>1000)) WHERE query_text ILIKE '%paid%' OR query_text ILIKE '%ADJ_STAT%' LIMIT 50",
+      "ok": true,
+      "rows": 50,
+      "error": null,
+      "elapsed_s": 14.28
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT table_schema||'.'||table_name t, LISTAGG(column_name, ', ') WITHIN GROUP (ORDER BY ordinal_position) cols FROM PHARMA_DEMO.INFORMATION_SCHEMA.COLUMNS WHERE table_schema IN ('SANDBOX','RAW_3P','CORE','REF','MART') GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 39,
+      "error": null,
+      "elapsed_s": 2.06
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES; ",
+      "ok": true,
+      "rows": 27,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT 'CUR' src, ADJ_STAT, SEC_PYR_FLG, PAT_TYP, COUNT(*) n, COUNT(DISTINCT CLM_ID) d, MIN(CLM_DT) mn, MAX(CLM_DT) mx, SUM(IFF(REJ_RSN_CD IS NOT NULL,1,0)) has_rej FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ GROUP BY 1,2,3,4\nUNION ALL SELECT 'BKP', ADJ_STAT, SEC_PYR_FLG, PAT_TYP, COUNT(*), COUNT(DISTINCT CLM_ID), MIN(CLM_DT), MAX(CLM_DT), SUM(IFF(REJ_RSN_CD IS NOT NULL,1,0)) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ_BKP_2025 GROUP BY 1,2,3,4 ORDER BY 1,2,3,4",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 1.67
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.REF.REJ_CODE ORDER BY REJ_GRP",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.21
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT (SELECT COUNT(*) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ) cur_rows, (SELECT COUNT(DISTINCT CLM_ID) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ) cur_ids,\n(SELECT COUNT(*) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ_BKP_2025 b WHERE EXISTS (SELECT 1 FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c WHERE c.CLM_ID=b.CLM_ID)) bkp_overlap_ids,\n(SELECT COUNT(*) FROM (SELECT CLM_ID FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ GROUP BY 1 HAVING COUNT(*)>1)) dup_ids",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.46
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT SUM(IFF(b.ADJ_STAT<>c.ADJ_STAT,1,0)) stat_changed, SUM(IFF(COALESCE(b.REJ_RSN_CD,'~')<>COALESCE(c.REJ_RSN_CD,'~'),1,0)) rej_changed, SUM(IFF(b.PLAN_ID<>c.PLAN_ID,1,0)) plan_changed,\nLISTAGG(DISTINCT b.ADJ_STAT||'->'||c.ADJ_STAT, ',') transitions\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ_BKP_2025 b JOIN PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c ON c.CLM_ID=b.CLM_ID",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.24
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.REJ_RSN_CD, COUNT(*) n FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c LEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON r.REJ_RSN_CD=c.REJ_RSN_CD WHERE c.ADJ_STAT='R' AND r.REJ_RSN_CD IS NULL GROUP BY 1 ORDER BY 2 DESC",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.07
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT MAX(WK_END_DT), DAYNAME(MAX(WK_END_DT)), COUNT(DISTINCT WK_END_DT) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.38
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH c AS (SELECT c.*, p.BRAND_NM, p.CO_FLG FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=c.PROD_NDC11 WHERE c.CLM_DT BETWEEN '2026-06-27' AND '2026-09-25')\nSELECT IFF(GROUPING(BRAND_NM)=1,'ALL PRODUCTS',BRAND_NM) brand, MAX(CO_FLG) co,\n SUM(IFF(ADJ_STAT='P',1,0)) p, SUM(IFF(ADJ_STAT='R',1,0)) r, SUM(IFF(ADJ_STAT='V',1,0)) v,\n ROUND(100*p/(p+r),1) d1_p_over_pr,\n ROUND(100*p/(p+r+v),1) d2_p_over_all,\n ROUND(100*(p-v)/(p+r),1) d3_net_of_rev,\n ROUND(100*SUM(IFF(ADJ_STAT='P' AND SEC_PYR_FLG='N',1,0))/SUM(IFF(ADJ_STAT IN('P','R') AND SEC_PYR_FLG='N',1,0)),1) d4_primary_only,\n ROUND(100*SUM(IFF(ADJ_STAT='P' AND PAT_TYP='N',1,0))/SUM(IFF(ADJ_STAT IN('P','R') AND PAT_TYP='N',1,0)),1) d5_new_pts,\n ROUND(100*SUM(IFF(ADJ_STAT='P' AND ABNDN_FLG='N',1,0))/SUM(IFF(ADJ_STAT IN('P','R'),1,0)),1) d6_paid_not_abandoned\nFROM c GROUP BY ROLLUP(BRAND_NM) ORDER BY 1",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 3.32
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT DATE_TRUNC('week',CLM_DT) wk, ADJ_STAT, COUNT(*) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ WHERE CLM_DT>='2026-09-12' GROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 3.07
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT 'PATHPT_LVL' src, COUNT(*) n, ROUND(100*AVG(IFF(ABNDN_FLG='N',1,0)),1) pct_not_abandoned, COUNT(DISTINCT PRSCRBR_ME) prescribers, MIN(CLM_DT), MAX(CLM_DT) FROM PHARMA_DEMO.RAW_3P.PATHPT_LVL WHERE CLM_DT BETWEEN '2026-06-27' AND '2026-09-25'\nUNION ALL SELECT 'CLMLNS_ADJ abandon (all stat)', COUNT(*), ROUND(100*AVG(IFF(ABNDN_FLG='N',1,0)),1), NULL, MIN(CLM_DT), MAX(CLM_DT) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ WHERE CLM_DT BETWEEN '2026-06-27' AND '2026-09-25'\nUNION ALL SELECT 'RXT_WKLY TRx', SUM(TRX_QTY), NULL, COUNT(DISTINCT PRSCRBR_ME), MIN(WK_END_DT), MAX(WK_END_DT) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY WHERE WK_END_DT BETWEEN '2026-07-03' AND '2026-09-25'",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 9.88
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT ADJ_STAT, ABNDN_FLG, COUNT(*) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ WHERE CLM_DT BETWEEN '2026-06-27' AND '2026-09-25' GROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.23
+    }
+  ],
+  "usage": {
+    "input": 22,
+    "output": 8905,
+    "cache_read": 168747,
+    "cache_write": 35131
+  },
+  "cost_usd": 0.3876,
+  "latency_s": 167.5
+}

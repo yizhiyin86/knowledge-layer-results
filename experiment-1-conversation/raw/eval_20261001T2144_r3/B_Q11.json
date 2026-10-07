@@ -1,0 +1,44 @@
+{
+  "run_id": "eval_20261001T2144_r3",
+  "agent": "B",
+  "qid": "Q11",
+  "question": "If S-104 became unavailable, is there a qualified alternate supplier for each material it provides, and which products would remain exposed?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Answer: No.** S-104 (Delmar Specialty Chemicals, a tier-2 supplier in India) provides two materials, and only one of them has a qualified alternate supplier. If S-104 went down, 14 finished goods would still have no qualified supply: Lacrivia 5 mL and 10 mL, Cyclosporine 0.05% 5 mL, and 11 lens-care solutions. Oculon would be covered.\n\n**By material**\n\n| Material | S-104 role | Other suppliers | Qualified alternate? | Finished goods affected |\n|---|---|---|---|---|\n| RM-221 Polysorbate 80 NF, low-peroxide | Primary, qualified | S-131 Pinecrest Chemical Trading (China): **not qualified** | **No (single source)** | 14 products, listed below |\n| RM-222 Benzalkonium chloride 50% | Primary, qualified | S-130 Oakridge Chemicals (US): qualified, secondary | **Yes** | Oculon 2.5 mL and 5 mL (covered) |\n\nS-130 already supplies RM-222: it has 11 closed orders (45,700 units) and 1 open order (3,700 units), compared with 48 closed orders (157,600 units) from S-104. So moving supply to S-130 is mainly a question of how much more it can produce; no new qualification is needed.\n\n**Products that would still have no qualified supply (all through RM-221, using current recipe links only)**\n- **FG-1001 Lacrivia 0.1% 5 mL** (NDC 99101-0101-05). Path: RM-221 \u2192 CMP-310 \u2192 SEMI-031 \u2192 SEMI-044 \u2192 FILL-1001, 5 levels down.\n- **FG-1002 Lacrivia 0.1% 10 mL** (NDC 99101-0101-10), 5 levels down.\n- **FG-1003 Cyclosporine 0.05% 5 mL** (NDC 99101-0202-05), 5 levels down, through the same component chain (CMP-310 \u2192 SEMI-031).\n- **FG-3001 to FG-3011, lens-care solutions 1\u201311** (NDCs 99101-4001-91 to 99101-4011-15), 7 levels down through INT-LC1011 and INT-LC2002. These aren't in the commercial database, so there is no prescription data to size their demand.\n\n**Other risks to flag**\n- **No company substitute for Lacrivia.** The approved substitute rule (BR-SUB-01) names Cyclosporine OS 0.05% as Lacrivia's substitute, but that product depends on the same RM-221 supply, so it would be short too. Medical Affairs would need to guide therapeutic alternatives.\n- **CMP-310 is also single-sourced.** This emulsifier premix comes only from S-201 Larchmont Contract Manufacturing, a tier-1 supplier. Because S-104 ships RM-221 to S-201, an S-104 outage would stop CMP-310 as well.\n- **Oculon is not exposed through RM-221.** RM-221 used to feed Oculon through CMP-320, but that recipe link ended on 2025-06-30, so I left it out.\n- **S-104 has open orders.** There are 3 still open: 2 for RM-221 (7,500 units) and 1 for RM-222 (2,600 units), the latest placed 2026-10-02.\n\n**Suggested next steps:** speed up qualifying S-131 for RM-221 (or find another polysorbate 80 source), and confirm how much more RM-222 S-130 can supply. Before deciding on allocation, run lead-time and days-of-supply checks for FG-1001, FG-1002 and FG-1003. Recovery takes longer for eye products because each batch needs a 14-day sterility test before release (BR-LEAD-01).\n\n**Sources and definitions**\n- Knowledge-layer context: ratified Supply Network data product; metric `qualified_supplier_count` (1 = single-source risk); the approved \"Supplier to finished goods\" path through current recipes only (deprecated BOM_FLAT_LEGACY not used); rule BR-SUB-01 for substitutes.\n- `trace_supply_exposure` for S-104: 16 finished goods reached, with the expired link noted.\n- Fabric `dbo.SUPPLIER_MATERIAL`, `dbo.SUPPLIER` and `dbo.MATERIAL` for supplier and qualification flags. Only suppliers flagged as qualified (QUALIFIED_FLG = 'Y') count as usable alternates.\n- Fabric `dbo.PURCH_ORD` for order history.\n- **Assumptions:**\n  - \"Unavailable\" means S-104 supplies nothing at all.\n  - A product counts as exposed if any S-104 material it depends on has no qualified alternate.\n  - I didn't assess S-130's capacity or current stock levels.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "trace_supply_exposure",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.MATERIAL_ID, m.MATERIAL_DESC, sm.SUPPLIER_ID, s.SUPPLIER_NM, s.TIER, s.COUNTRY, sm.QUALIFIED_FLG, sm.PRIMARY_FLG\nFROM dbo.SUPPLIER_MATERIAL sm\nJOIN dbo.SUPPLIER s ON s.SUPPLIER_ID = sm.SUPPLIER_ID\nJOIN dbo.MATERIAL m ON m.MATERIAL_ID = sm.MATERIAL_ID\nWHERE sm.MATERIAL_ID IN (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL WHERE SUPPLIER_ID='S-104') OR sm.MATERIAL_ID='CMP-310'\nORDER BY sm.MATERIAL_ID, sm.SUPPLIER_ID",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 2.08
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SUPPLIER_ID, MATERIAL_ID, STATUS, COUNT(*) n, SUM(QTY) qty, MAX(ORDER_DT) last_order\nFROM dbo.PURCH_ORD WHERE SUPPLIER_ID IN ('S-104','S-130','S-131') GROUP BY SUPPLIER_ID, MATERIAL_ID, STATUS ORDER BY 1,2,3",
+      "ok": true,
+      "rows": 8,
+      "error": null,
+      "elapsed_s": 0.53
+    }
+  ],
+  "cypher_queries": 6,
+  "usage": {
+    "input": 8,
+    "output": 2923,
+    "cache_read": 14121,
+    "cache_write": 12893
+  },
+  "cost_usd": 0.1258,
+  "latency_s": 38.9
+}

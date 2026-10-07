@@ -1,0 +1,315 @@
+{
+  "run_id": "execution_20261007T1700_r1",
+  "agent": "B",
+  "task": "T6",
+  "qid": "T6",
+  "question": "Supplier S-103 will miss its next RM-103 shipment by four weeks. Handle it.",
+  "role": "SUPPLY_PLANNER",
+  "badge": "Supply Response Agent",
+  "effort": "high",
+  "answer": "I've handled the S-103 delay. The backup glycerin supplier (S-111) can only ship to one of our two plants, so I ordered from it for that plant and sent the other plant's gap to Procurement / Supplier Quality. No stock allocation is needed today, because no pack hit by this delay is below safety stock at any DC.\n\n**This run is flagged for human review.** The process only covers two cases: a backup supplier approved for every plant that uses the material, or for none. Here it's approved for one plant and not the other. No trusted playbook covers this, and the search that also returns unapproved playbooks found none, so I worked out the path myself.\n\n**What I found**\n- **The late order:** The next S-103 shipment of RM-103 (glycerin) is PO000210: 3,300 units, promised 2026-10-03, now about 2026-10-31. S-103 has three more open RM-103 orders (PO000211\u2013213, due 10-10 to 10-25). I assumed they ship on time.\n- **Products affected:** The glycerin goes into five products:\n  - Lacrivia 5 mL and 10 mL, and Cyclosporine 0.05% 5 mL, made at plant PL-01.\n  - Oculon 2.5 mL and 5 mL, made at plant PL-02. Their path runs through a component made by contract manufacturers S-202 and S-203.\n- **Backup supplier:** S-111 is qualified, active and not on hold, but approved to ship to PL-01 only. PL-01 is covered; PL-02 (Oculon) is not.\n- **DC stock (snapshot 2026-09-25):**\n  - Oculon is above safety stock at every DC, so the process says no allocation.\n  - Oculon is still tight: the 5 mL pack at DC-WEST has about 31 days of supply. Both Oculon packs at DC-CENTRAL have about 35\u201337 days.\n  - Lacrivia 5 mL (46 units vs 471 safety stock) and 10 mL (34 vs 233) are already below safety stock at DC-EAST. The backup supplier covers their plant, so the rules exclude them from allocation under this delay.\n- **When supply recovers:** Oculon made from the late glycerin reaches the DCs about 46 days after S-103 ships, so around 2026-12-16. Lacrivia takes 37 days from whenever S-111 ships.\n- **Substitutes:** Oculon has no approved company substitute. Both Oculon pack sizes are above safety stock, so customers can be offered the other size.\n\n**Actions taken**\n\n| Action | ID |\n|---|---|\n| Purchase requisition to S-111 for RM-103: 2,760 units to PL-01, needed by 2026-10-10 (the original arrival date) | PR-76D0D3D2 |\n| Case to Procurement / Supplier Quality: speed up S-103 or get PL-02's share (about 540 units) shipped early, look at approving S-111 for PL-02, and check glycerin and component buffers at PL-02, S-202 and S-203 | CASE-42747E0B |\n| Case to Trade Relations: delay notice for wholesalers W-01 to W-06. The EDI gateway has no API, so the process hands this to them. | CASE-588193C6 |\n| Case to the Supply Planning lead: review of this off-process path, plus a decision on the Lacrivia shortage at DC-EAST | CASE-3A50C560 |\n| Account-team notices (no allocation, recovery around Dec 16, no Oculon substitute) for Northfield (AC00117), Oak Hollow (AC00038), Riverbend (AC00059), Clearview (AC00001) and Sunridge (AC00138) | CRM-52682B61, CRM-F17EC191, CRM-7AE54E5F, CRM-A1C297BC, CRM-521B2183 |\n\n**Not done, and why**\n- **No allocation or approval request:** no pack hit by this delay is below safety stock.\n- **Lacrivia at DC-EAST:** I didn't allocate it or move stock from DC-CENTRAL or DC-WEST, where both packs are well above safety stock. It's an existing shortage, not caused by this delay, and a transfer between DCs needs the Supply Planning lead's approval. That's in CASE-3A50C560.\n- **Cyclosporine as a Lacrivia substitute at DC-EAST:** I didn't offer it. It uses the same glycerin, so whether it counts as \"constrained\" is the lead's call.\n- **No order to S-111 for PL-02:** S-111 isn't approved to ship there.\n- **Wholesaler stock not checked:** that feed doesn't start until Q4 2026.\n\n**Assumptions**\n- **Requisition size:** 2,760 units is PL-01's estimated share of the late order, about 84%. I worked it out from the last 13 weeks of shipments of each product and the glycerin each one uses.\n- **Customers:** I notified only the five accounts with supply contracts. All five have prescriptions for the affected products in all three DC regions.\n\n**Knowledge-layer sources:** process Supply Disruption Response, steps SDR-1.1 to 4.2; rules BR-ALLOC-01/02, BR-APPR-01, BR-SUB-01/02, BR-LEAD-01, BR-CUST-01, BR-REGION-01 and POL-DUA-01 (no patient-level data used); the supply-exposure trace and lead-time stages; and the supply_contracts and dc_service_regions reference sets.",
+  "stop_reason": "end_turn",
+  "model_turns": 17,
+  "tool_calls": [
+    "get_process",
+    "find_playbooks",
+    "get_context",
+    "trace_supply_exposure",
+    "run_sql",
+    "get_supplier_status",
+    "get_supplier_status",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "find_playbooks",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_lead_times",
+    "get_lead_times",
+    "get_reference",
+    "get_reference",
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "create_purchase_requisition",
+    "create_escalation_case",
+    "create_escalation_case",
+    "create_escalation_case",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE MATERIAL_ID='RM-103' AND (STATUS='OPEN' OR SUPPLIER_ID='S-103') ORDER BY PROMISED_SHIP_DT DESC",
+      "ok": true,
+      "rows": 54,
+      "error": null,
+      "elapsed_s": 6.3
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.SUPPLIER_MATERIAL WHERE MATERIAL_ID='RM-103'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 2.19
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT pm.PLANT_ID, pm.MATERIAL_ID FROM dbo.PLANT_MATERIAL pm WHERE pm.MATERIAL_ID IN ('RM-103','SEMI-044','SEMI-045','CMP-320','SEMI-060','FILL-1001','FILL-1002','FILL-1003','FILL-2001','FILL-2002','FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') ORDER BY pm.PLANT_ID, pm.MATERIAL_ID",
+      "ok": true,
+      "rows": 13,
+      "error": null,
+      "elapsed_s": 1.59
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, s.SUPPLIER_NM, s.TIER FROM dbo.SUPPLIER_MATERIAL sm JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID IN ('CMP-320','SEMI-060','SEMI-044','SEMI-045') OR sm.SUPPLIER_ID IN ('S-103','S-111')",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.73
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT p.PLANT_ID, p.PLANT_NM, p.COUNTRY, (SELECT COUNT(*) FROM dbo.PLANT_MATERIAL pm WHERE pm.PLANT_ID=p.PLANT_ID) n_mat, (SELECT COUNT(*) FROM dbo.PLANT_MATERIAL pm WHERE pm.PLANT_ID=p.PLANT_ID AND (pm.MATERIAL_ID LIKE 'RM-%' OR pm.MATERIAL_ID LIKE 'CMP-%')) n_rm_cmp FROM dbo.PLANT p",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.66
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b.PARENT_MATERIAL_ID, b.CHILD_MATERIAL_ID, b.QTY_PER, b.EFF_FROM, b.EFF_TO FROM dbo.BOM b WHERE b.CHILD_MATERIAL_ID IN ('RM-103','CMP-320','SEMI-044','SEMI-045','SEMI-060') ORDER BY b.CHILD_MATERIAL_ID",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 2.33
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b.PARENT_MATERIAL_ID, b.CHILD_MATERIAL_ID, b.QTY_PER FROM dbo.BOM b WHERE b.PARENT_MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') AND b.EFF_TO >= '2026-09-30' AND b.CHILD_MATERIAL_ID LIKE 'FILL-%'",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 2.52
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH latest AS (SELECT DC_ID, MATERIAL_ID, MAX(SNAPSHOT_DT) sd FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') GROUP BY DC_ID, MATERIAL_ID)\nSELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS,\n (SELECT SUM(s.UNITS) FROM dbo.WHSLR_SHIP s WHERE s.DC_ID=i.DC_ID AND s.MATERIAL_ID=i.MATERIAL_ID AND s.SHIP_DT > DATEADD(day,-28,'2026-09-30')) ship28\nFROM dbo.DC_INV i JOIN latest l ON l.DC_ID=i.DC_ID AND l.MATERIAL_ID=i.MATERIAL_ID AND l.sd=i.SNAPSHOT_DT ORDER BY i.MATERIAL_ID, i.DC_ID",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 0.93
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nrx AS (SELECT r.PROD_NDC11, r.TRX_QTY, a.STATE, COALESCE(gp.ACCOUNT_ID, p.ACCOUNT_ID, a.ACCOUNT_ID) TOP_ID\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN wk ON wk.WK_END_DT=r.WK_END_DT\n JOIN PHARMA_DEMO.CORE.PRESCRIBER pr ON pr.PRSCRBR_ME=r.PRSCRBR_ME\n JOIN PHARMA_DEMO.CORE.ACCOUNT a ON a.ACCOUNT_ID=pr.ACCOUNT_ID\n LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT p ON p.ACCOUNT_ID=a.PARENT_ACCOUNT_ID\n LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT gp ON gp.ACCOUNT_ID=p.PARENT_ACCOUNT_ID\n WHERE r.PROD_NDC11 IN ('99101030325','99101030350','99101010105','99101010110','99101020205'))\nSELECT CASE WHEN STATE IN ('IL','TX','MN','CO') THEN 'DC-CENTRAL' WHEN STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH') THEN 'DC-EAST' WHEN STATE IN ('AZ','CA','WA') THEN 'DC-WEST' ELSE 'OTHER' END DC,\n TOP_ID, PROD_NDC11, SUM(TRX_QTY) TRX13\nFROM rx WHERE TOP_ID IN ('AC00117','AC00038','AC00059','AC00001','AC00138')\nGROUP BY 1,2,3 ORDER BY 1,2,3",
+      "ok": true,
+      "rows": 75,
+      "error": null,
+      "elapsed_s": 22.83
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.DC_ID, s.WHSLR_ID, w.*, SUM(s.UNITS) units_13wk FROM dbo.WHSLR_SHIP s JOIN dbo.WHSLR w ON w.WHSLR_ID=s.WHSLR_ID WHERE s.MATERIAL_ID IN ('FG-2001','FG-2002') AND s.SHIP_DT > DATEADD(week,-13,'2026-09-30') GROUP BY s.DC_ID, s.WHSLR_ID, w.WHSLR_ID, w.WHSLR_NM ORDER BY s.DC_ID",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', \"[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Column 'dbo.WHSLR.REGION' is invalid in the select list because it is not contained in either an aggregate function or the GROUP BY clause. (8120) (SQLExecDirectW)\")",
+      "elapsed_s": 2.72
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.DC_ID, s.WHSLR_ID, w.WHSLR_NM, s.MATERIAL_ID, SUM(s.UNITS) units_13wk FROM dbo.WHSLR_SHIP s JOIN dbo.WHSLR w ON w.WHSLR_ID=s.WHSLR_ID WHERE s.MATERIAL_ID IN ('FG-2001','FG-2002','FG-1001','FG-1002','FG-1003') AND s.SHIP_DT > DATEADD(week,-13,'2026-09-30') GROUP BY s.DC_ID, s.WHSLR_ID, w.WHSLR_NM, s.MATERIAL_ID ORDER BY s.DC_ID, s.WHSLR_ID, s.MATERIAL_ID",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 2.32
+    }
+  ],
+  "cypher_queries": 59,
+  "usage": {
+    "input": 36,
+    "output": 17167,
+    "cache_read": 483672,
+    "cache_write": 51816
+  },
+  "cost_usd": 0.6993,
+  "latency_s": 232.3,
+  "final_state": {
+    "allocation_plans": [],
+    "purchase_requisitions": [
+      {
+        "pr_id": "PR-76D0D3D2",
+        "material_id": "RM-103",
+        "supplier_id": "S-111",
+        "quantity": 2760,
+        "ship_to_plant": "PL-01",
+        "need_by": "2026-10-10",
+        "reason": "S-103 (Castellan) will ship RM-103 PO000210 (3,300 units, promised 2026-10-03) ~4 weeks late (~2026-10-31). S-111 (Kingsley) is qualified (SUPPLIER_MATERIAL) and portal-APPROVED/ACTIVE for RM-103 at PL-01 only. This PR covers PL-01's estimated share (~84% by RM-103 consumption of FG-1001/1002/1003 shipments, last 13 wks) of the delayed lot, protecting Lacrivia 5/10 mL and Cyclosporine 0.05% 5 mL. Need-by = original arrival (ship 10-03 + 7 days transit). Process SDR-2.2.",
+        "created_at": "2026-10-07T17:12:27+00:00"
+      }
+    ],
+    "approvals": [],
+    "crm_tasks": [
+      {
+        "task_id": "CRM-52682B61",
+        "account_id": "AC00117",
+        "subject": "Supply notice: Oculon supply risk from RM-103 delay \u2013 no allocation",
+        "message": "Northfield Health System (Tier A): Supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. Affected: Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 5/10 mL and Cyclosporine OS 0.05% are covered by a qualified alternate supplier. Allocation: none. Oculon is above safety stock at all DCs (2026-09-25), so orders ship normally. Expected recovery: a lot made from the delayed material reaches the DCs around 2026-12-16. Substitute: Oculon has no approved company substitute (BR-SUB-01). Both Oculon packs are currently above safety stock, so either pack size can be offered. Medical Affairs guides therapeutic alternatives if needed. Note: Lacrivia 5/10 mL are below safety stock at DC-EAST (pre-existing; under review with Supply Planning).",
+        "created_at": "2026-10-07T17:13:06+00:00"
+      },
+      {
+        "task_id": "CRM-F17EC191",
+        "account_id": "AC00038",
+        "subject": "Supply notice: Oculon supply risk from RM-103 delay \u2013 no allocation",
+        "message": "Oak Hollow Health System (Tier A): Supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. Affected: Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 5/10 mL and Cyclosporine OS 0.05% are covered by a qualified alternate supplier. Allocation: none. Oculon is above safety stock at all DCs (2026-09-25), so orders ship normally. Expected recovery: a lot made from the delayed material reaches the DCs around 2026-12-16. Substitute: Oculon has no approved company substitute (BR-SUB-01). Both Oculon packs are currently above safety stock. Medical Affairs guides therapeutic alternatives if needed. Note: Lacrivia 5/10 mL are below safety stock at DC-EAST (pre-existing; under review with Supply Planning).",
+        "created_at": "2026-10-07T17:13:06+00:00"
+      },
+      {
+        "task_id": "CRM-7AE54E5F",
+        "account_id": "AC00059",
+        "subject": "Supply notice: Oculon supply risk from RM-103 delay \u2013 no allocation",
+        "message": "Riverbend Health System (Tier A): Supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. Affected: Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 5/10 mL and Cyclosporine OS 0.05% are covered by a qualified alternate supplier. Allocation: none. Oculon is above safety stock at all DCs (2026-09-25), so orders ship normally. Expected recovery: a lot made from the delayed material reaches the DCs around 2026-12-16. Substitute: Oculon has no approved company substitute (BR-SUB-01). Both Oculon packs are currently above safety stock. Medical Affairs guides therapeutic alternatives if needed. Note: Lacrivia 5/10 mL are below safety stock at DC-EAST (pre-existing; under review with Supply Planning).",
+        "created_at": "2026-10-07T17:13:06+00:00"
+      },
+      {
+        "task_id": "CRM-A1C297BC",
+        "account_id": "AC00001",
+        "subject": "Supply notice: Oculon supply risk from RM-103 delay \u2013 no allocation",
+        "message": "Clearview Health System (Tier B): Supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. Affected: Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 5/10 mL and Cyclosporine OS 0.05% are covered by a qualified alternate supplier. Allocation: none. Oculon is above safety stock at all DCs (2026-09-25), so orders ship normally. Expected recovery: a lot made from the delayed material reaches the DCs around 2026-12-16. Substitute: Oculon has no approved company substitute (BR-SUB-01). Both Oculon packs are currently above safety stock. Medical Affairs guides therapeutic alternatives if needed. Note: Lacrivia 5/10 mL are below safety stock at DC-EAST (pre-existing; under review with Supply Planning).",
+        "created_at": "2026-10-07T17:13:06+00:00"
+      },
+      {
+        "task_id": "CRM-521B2183",
+        "account_id": "AC00138",
+        "subject": "Supply notice: Oculon supply risk from RM-103 delay \u2013 no allocation",
+        "message": "Sunridge Health System (Tier B): Supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. Affected: Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 5/10 mL and Cyclosporine OS 0.05% are covered by a qualified alternate supplier. Allocation: none. Oculon is above safety stock at all DCs (2026-09-25), so orders ship normally. Expected recovery: a lot made from the delayed material reaches the DCs around 2026-12-16. Substitute: Oculon has no approved company substitute (BR-SUB-01). Both Oculon packs are currently above safety stock. Medical Affairs guides therapeutic alternatives if needed. Note: Lacrivia 5/10 mL are below safety stock at DC-EAST (pre-existing; under review with Supply Planning).",
+        "created_at": "2026-10-07T17:13:07+00:00"
+      }
+    ],
+    "edi_messages": [],
+    "escalation_cases": [
+      {
+        "case_id": "CASE-42747E0B",
+        "owner": "Procurement / Supplier Quality",
+        "subject": "RM-103 delay (S-103 PO000210, +4 wks): no qualified alternate for PL-02 (Oculon)",
+        "details": "S-103 Castellan Excipients will ship RM-103 Glycerin USP PO000210 (3,300 units, promised 2026-10-03) about 4 weeks late (~2026-10-31). Open S-103 RM-103 POs PO000211/212/213 (promised 10-10, 10-18, 10-25) should be confirmed as unaffected.\nAlternate S-111 Kingsley is qualified and portal-approved for RM-103 at PL-01 only. PR-76D0D3D2 has been raised with S-111 for 2,760 units to PL-01, need-by 2026-10-10, to cover Lacrivia and Cyclosporine OS.\nPL-02 (Lakeview) is NOT covered. RM-103 feeds Oculon 2.5 mL and 5 mL (FG-2001/2002) via CMP-320 (made by S-202 primary and S-203) and then SEMI-060 at PL-02. \nRequested actions: (1) expedite S-103 or get partial early shipment of PL-02's share (~540 units, about 16% of the lot); (2) assess site-approving S-111 for PL-02 (or for the CMP-320 makers); (3) confirm RM-103 and CMP-320 buffer stock at PL-02, S-202 and S-203. \nRecovery: an Oculon lot made from the delayed RM-103 reaches the DCs about 46 days after S-103 ships (get_lead_times: 7d transit, CMP-320 10d, SEMI-060 7d, fill 3d, FG incl. 14-day sterility + DC transit 19d). That is ~2026-12-16. \nLatest DC snapshot (2026-09-25): Oculon is above safety stock at all DCs, so no allocation is needed yet. Days of supply are tight, though: DC-WEST FG-2002 77 units \u224831 days, DC-CENTRAL FG-2001 \u224835 days, DC-CENTRAL FG-2002 \u224837 days. Please re-run the disruption response if any Oculon pack falls below safety stock.",
+        "related_ids": "[\"PO000210\", \"S-103\", \"S-111\", \"RM-103\", \"PR-76D0D3D2\", \"PL-02\", \"FG-2001\", \"FG-2002\"]",
+        "created_at": "2026-10-07T17:12:49+00:00"
+      },
+      {
+        "case_id": "CASE-588193C6",
+        "owner": "Trade Relations",
+        "subject": "Wholesaler notice: RM-103 supply delay \u2013 Oculon (and Lacrivia/Cyclosporine OS) supply risk",
+        "details": "EDI gateway has no API (process SDR-4.2), so please send this notice to the wholesalers served by all three DCs: W-01 Keystone and W-02 Atlas (DC-EAST), W-03 Bridgeport and W-04 Heartland (DC-CENTRAL), W-05 Pacific Crest and W-06 Sierra (DC-WEST). \nMessage: Raw material supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. The affected NDCs are Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 0.1% 5 mL and 10 mL (99101-0101-05/-10) and Cyclosporine 0.05% 5 mL (99101-0202-05) are being covered by an alternate qualified supplier. No allocation is in effect today; all Oculon packs are above safety stock at every DC as of 2026-09-25. A lot made from the delayed material is expected at the DCs around mid-December 2026. Oculon has no approved company substitute. \nSeparately, Lacrivia 5 mL and 10 mL are already below safety stock at DC-EAST (pre-existing; see the Supply Planning case), so W-01 and W-02 may see constrained fills.",
+        "related_ids": "[\"W-01\", \"W-02\", \"W-03\", \"W-04\", \"W-05\", \"W-06\", \"PO000210\", \"RM-103\"]",
+        "created_at": "2026-10-07T17:12:49+00:00"
+      },
+      {
+        "case_id": "CASE-3A50C560",
+        "owner": "Supply Planning Lead",
+        "subject": "Review: RM-103 disruption handled outside process path (partial alternate coverage); DC-EAST Lacrivia below safety stock",
+        "details": "S-103 RM-103 PO000210 is ~4 weeks late. At decision SDR-2.1, the alternate S-111 is approved for PL-01 but not PL-02. That matches neither process condition ('approved for every plant' / 'not available for any plant'), and no trusted playbook exists (discovery returned none). This run is flagged for human review. \nPath taken: PR-76D0D3D2 raised with S-111 for PL-01 (Lacrivia, Cyclosporine OS). PL-02/Oculon escalated to Procurement/Supplier Quality. Oculon is above safety stock at all DCs, so per SDR-2.4/BR-ALLOC-02 no allocation was created and no approval was requested. Account teams were notified and the wholesaler notice was handed to Trade Relations. \nPlease decide on this item: Lacrivia FG-1001 (46 on hand vs SS 471) and FG-1002 (34 vs SS 233) are below safety stock at DC-EAST in the 2026-09-25 snapshot. BR-ALLOC-02 excludes them from allocation under this disruption because a qualified alternate covers PL-01, so I did not allocate them. The shortage still exists, though. Do you want a separate allocation (Tier A/B, TRx share) or an inter-DC transfer from DC-CENTRAL/DC-WEST, where both packs are well above SS? A transfer needs your approval. \nSubstitute note: Cyclosporine OS 0.05% (FG-1003) is above SS at DC-EAST (615 vs 252), but it is fed by RM-103. Under BR-SUB-01 it is only offerable if you consider it not constrained, given S-111 now covers PL-01.",
+        "related_ids": "[\"PO000210\", \"PR-76D0D3D2\", \"FG-1001\", \"FG-1002\", \"FG-1003\", \"DC-EAST\"]",
+        "created_at": "2026-10-07T17:12:49+00:00"
+      }
+    ],
+    "tool_calls": [
+      {
+        "seq": 1,
+        "tool": "create_purchase_requisition",
+        "args": "{\"material_id\": \"RM-103\", \"supplier_id\": \"S-111\", \"quantity\": 2760, \"ship_to_plant\": \"PL-01\", \"need_by\": \"2026-10-10\", \"reason\": \"S-103 (Castellan) will ship RM-103 PO000210 (3,300 units, promised 2026-10-03) ~4 weeks late (~2026-10-31). S-111 (Kingsley) is qualified (SUPPLIER_MATERIAL) and portal-APPROVED/ACTIVE for RM-103 at PL-01 only. This PR covers PL-01's estimated share (~84% by RM-103 consumption of FG-1001/1002/1003 shipments, last 13 wks) of the delayed lot, protecting Lacrivia 5/10 mL and Cyclosporine 0.05% 5 mL. Need-by = original arrival (ship 10-03 + 7 days transit). Process SDR-2.2.\"}",
+        "accepted": 1,
+        "result": "{\"pr_id\": \"PR-76D0D3D2\", \"status\": \"created\"}",
+        "created_at": "2026-10-07T17:12:27+00:00"
+      },
+      {
+        "seq": 2,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Procurement / Supplier Quality\", \"subject\": \"RM-103 delay (S-103 PO000210, +4 wks): no qualified alternate for PL-02 (Oculon)\", \"details\": \"S-103 Castellan Excipients will ship RM-103 Glycerin USP PO000210 (3,300 units, promised 2026-10-03) about 4 weeks late (~2026-10-31). Open S-103 RM-103 POs PO000211/212/213 (promised 10-10, 10-18, 10-25) should be confirmed as unaffected.\\nAlternate S-111 Kingsley is qualified and portal-approved for RM-103 at PL-01 only. PR-76D0D3D2 has been raised with S-111 for 2,760 units to PL-01, need-by 2026-10-10, to cover Lacrivia and Cyclosporine OS.\\nPL-02 (Lakeview) is NOT covered. RM-103 feeds Oculon 2.5 mL and 5 mL (FG-2001/2002) via CMP-320 (made by S-202 primary and S-203) and then SEMI-060 at PL-02. \\nRequested actions: (1) expedite S-103 or get partial early shipment of PL-02's share (~540 units, about 16% of the lot); (2) assess site-approving S-111 for PL-02 (or for the CMP-320 makers); (3) confirm RM-103 and CMP-320 buffer stock at PL-02, S-202 and S-203. \\nRecovery: an Oculon lot made from the delayed RM-103 reaches the DCs about 46 days after S-103 ships (get_lead_times: 7d transit, CMP-320 10d, SEMI-060 7d, fill 3d, FG incl. 14-day sterility + DC transit 19d). That is ~2026-12-16. \\nLatest DC snapshot (2026-09-25): Oculon is above safety stock at all DCs, so no allocation is needed yet. Days of supply are tight, though: DC-WEST FG-2002 77 units \\u224831 days, DC-CENTRAL FG-2001 \\u224835 days, DC-CENTRAL FG-2002 \\u224837 days. Please re-run the disruption response if any Oculon pack falls below safety stock.\", \"related_ids\": [\"PO000210\", \"S-103\", \"S-111\", \"RM-103\", \"PR-76D0D3D2\", \"PL-02\", \"FG-2001\", \"FG-2002\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-42747E0B\", \"status\": \"open\", \"owner\": \"Procurement / Supplier Quality\"}",
+        "created_at": "2026-10-07T17:12:49+00:00"
+      },
+      {
+        "seq": 3,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Trade Relations\", \"subject\": \"Wholesaler notice: RM-103 supply delay \\u2013 Oculon (and Lacrivia/Cyclosporine OS) supply risk\", \"details\": \"EDI gateway has no API (process SDR-4.2), so please send this notice to the wholesalers served by all three DCs: W-01 Keystone and W-02 Atlas (DC-EAST), W-03 Bridgeport and W-04 Heartland (DC-CENTRAL), W-05 Pacific Crest and W-06 Sierra (DC-WEST). \\nMessage: Raw material supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. The affected NDCs are Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 0.1% 5 mL and 10 mL (99101-0101-05/-10) and Cyclosporine 0.05% 5 mL (99101-0202-05) are being covered by an alternate qualified supplier. No allocation is in effect today; all Oculon packs are above safety stock at every DC as of 2026-09-25. A lot made from the delayed material is expected at the DCs around mid-December 2026. Oculon has no approved company substitute. \\nSeparately, Lacrivia 5 mL and 10 mL are already below safety stock at DC-EAST (pre-existing; see the Supply Planning case), so W-01 and W-02 may see constrained fills.\", \"related_ids\": [\"W-01\", \"W-02\", \"W-03\", \"W-04\", \"W-05\", \"W-06\", \"PO000210\", \"RM-103\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-588193C6\", \"status\": \"open\", \"owner\": \"Trade Relations\"}",
+        "created_at": "2026-10-07T17:12:49+00:00"
+      },
+      {
+        "seq": 4,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Supply Planning Lead\", \"subject\": \"Review: RM-103 disruption handled outside process path (partial alternate coverage); DC-EAST Lacrivia below safety stock\", \"details\": \"S-103 RM-103 PO000210 is ~4 weeks late. At decision SDR-2.1, the alternate S-111 is approved for PL-01 but not PL-02. That matches neither process condition ('approved for every plant' / 'not available for any plant'), and no trusted playbook exists (discovery returned none). This run is flagged for human review. \\nPath taken: PR-76D0D3D2 raised with S-111 for PL-01 (Lacrivia, Cyclosporine OS). PL-02/Oculon escalated to Procurement/Supplier Quality. Oculon is above safety stock at all DCs, so per SDR-2.4/BR-ALLOC-02 no allocation was created and no approval was requested. Account teams were notified and the wholesaler notice was handed to Trade Relations. \\nPlease decide on this item: Lacrivia FG-1001 (46 on hand vs SS 471) and FG-1002 (34 vs SS 233) are below safety stock at DC-EAST in the 2026-09-25 snapshot. BR-ALLOC-02 excludes them from allocation under this disruption because a qualified alternate covers PL-01, so I did not allocate them. The shortage still exists, though. Do you want a separate allocation (Tier A/B, TRx share) or an inter-DC transfer from DC-CENTRAL/DC-WEST, where both packs are well above SS? A transfer needs your approval. \\nSubstitute note: Cyclosporine OS 0.05% (FG-1003) is above SS at DC-EAST (615 vs 252), but it is fed by RM-103. Under BR-SUB-01 it is only offerable if you consider it not constrained, given S-111 now covers PL-01.\", \"related_ids\": [\"PO000210\", \"PR-76D0D3D2\", \"FG-1001\", \"FG-1002\", \"FG-1003\", \"DC-EAST\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-3A50C560\", \"status\": \"open\", \"owner\": \"Supply Planning Lead\"}",
+        "created_at": "2026-10-07T17:12:49+00:00"
+      },
+      {
+        "seq": 5,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00117\", \"subject\": \"Supply notice: Oculon supply risk from RM-103 delay \\u2013 no allocation\", \"message\": \"Northfield Health System (Tier A): Supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. Affected: Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 5/10 mL and Cyclosporine OS 0.05% are covered by a qualified alternate supplier. Allocation: none. Oculon is above safety stock at all DCs (2026-09-25), so orders ship normally. Expected recovery: a lot made from the delayed material reaches the DCs around 2026-12-16. Substitute: Oculon has no approved company substitute (BR-SUB-01). Both Oculon packs are currently above safety stock, so either pack size can be offered. Medical Affairs guides therapeutic alternatives if needed. Note: Lacrivia 5/10 mL are below safety stock at DC-EAST (pre-existing; under review with Supply Planning).\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-52682B61\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T17:13:06+00:00"
+      },
+      {
+        "seq": 6,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00038\", \"subject\": \"Supply notice: Oculon supply risk from RM-103 delay \\u2013 no allocation\", \"message\": \"Oak Hollow Health System (Tier A): Supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. Affected: Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 5/10 mL and Cyclosporine OS 0.05% are covered by a qualified alternate supplier. Allocation: none. Oculon is above safety stock at all DCs (2026-09-25), so orders ship normally. Expected recovery: a lot made from the delayed material reaches the DCs around 2026-12-16. Substitute: Oculon has no approved company substitute (BR-SUB-01). Both Oculon packs are currently above safety stock. Medical Affairs guides therapeutic alternatives if needed. Note: Lacrivia 5/10 mL are below safety stock at DC-EAST (pre-existing; under review with Supply Planning).\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-F17EC191\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T17:13:06+00:00"
+      },
+      {
+        "seq": 7,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00059\", \"subject\": \"Supply notice: Oculon supply risk from RM-103 delay \\u2013 no allocation\", \"message\": \"Riverbend Health System (Tier A): Supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. Affected: Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 5/10 mL and Cyclosporine OS 0.05% are covered by a qualified alternate supplier. Allocation: none. Oculon is above safety stock at all DCs (2026-09-25), so orders ship normally. Expected recovery: a lot made from the delayed material reaches the DCs around 2026-12-16. Substitute: Oculon has no approved company substitute (BR-SUB-01). Both Oculon packs are currently above safety stock. Medical Affairs guides therapeutic alternatives if needed. Note: Lacrivia 5/10 mL are below safety stock at DC-EAST (pre-existing; under review with Supply Planning).\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-7AE54E5F\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T17:13:06+00:00"
+      },
+      {
+        "seq": 8,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00001\", \"subject\": \"Supply notice: Oculon supply risk from RM-103 delay \\u2013 no allocation\", \"message\": \"Clearview Health System (Tier B): Supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. Affected: Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 5/10 mL and Cyclosporine OS 0.05% are covered by a qualified alternate supplier. Allocation: none. Oculon is above safety stock at all DCs (2026-09-25), so orders ship normally. Expected recovery: a lot made from the delayed material reaches the DCs around 2026-12-16. Substitute: Oculon has no approved company substitute (BR-SUB-01). Both Oculon packs are currently above safety stock. Medical Affairs guides therapeutic alternatives if needed. Note: Lacrivia 5/10 mL are below safety stock at DC-EAST (pre-existing; under review with Supply Planning).\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-A1C297BC\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T17:13:06+00:00"
+      },
+      {
+        "seq": 9,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00138\", \"subject\": \"Supply notice: Oculon supply risk from RM-103 delay \\u2013 no allocation\", \"message\": \"Sunridge Health System (Tier B): Supplier S-103 will ship a glycerin lot (RM-103) about 4 weeks late. Affected: Oculon 0.005% 2.5 mL (99101-0303-25) and 5 mL (99101-0303-50). Lacrivia 5/10 mL and Cyclosporine OS 0.05% are covered by a qualified alternate supplier. Allocation: none. Oculon is above safety stock at all DCs (2026-09-25), so orders ship normally. Expected recovery: a lot made from the delayed material reaches the DCs around 2026-12-16. Substitute: Oculon has no approved company substitute (BR-SUB-01). Both Oculon packs are currently above safety stock. Medical Affairs guides therapeutic alternatives if needed. Note: Lacrivia 5/10 mL are below safety stock at DC-EAST (pre-existing; under review with Supply Planning).\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-521B2183\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T17:13:07+00:00"
+      }
+    ]
+  },
+  "discovery": true,
+  "trusted_playbooks_offered": {},
+  "execution_trace": {
+    "trace_id": "169fca5d-6f68-49d3-a5ba-b25022cdff95",
+    "followed": [
+      "SDR-1.2",
+      "SDR-2.1",
+      "SDR-2.4",
+      "SDR-2.2",
+      "SDR-4.2",
+      "SDR-4.1"
+    ],
+    "seeded_asset": "KA-169FCA5D"
+  }
+}

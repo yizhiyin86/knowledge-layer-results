@@ -1,0 +1,167 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "A",
+  "qid": "Q13",
+  "question": "Show Lacrivia abandonment by territory over the last 13 weeks so district managers can plan rep coaching.",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "Lacrivia abandonment is flat across territories over the last 13 weeks: 6.4% nationally, and no territory stands out from that beyond normal random variation. Ranking reps on this number would mostly be ranking noise. The data points to payer access (prior authorisation and non-coverage) as the driver, so that's a better basis for coaching.\n\n**Lacrivia abandonment by territory, weeks ending 3 Jul \u2013 25 Sep 2026 (13 Sat\u2013Fri weeks)**\n\n| District | Territory | Rx attempts | Abandoned | Abandonment % |\n|---|---|---|---|---|\n| D-01 (7.1%) | T011 | 351 | 22 | 6.3 |\n| | T012 | 255 | 21 | **8.2** |\n| | T013 | 232 | 17 | 7.3 |\n| | T014 | 146 | 10 | 6.8 |\n| D-02 (6.5%) | T021 | 193 | 14 | 7.3 |\n| | T022 | 133 | 9 | 6.8 |\n| | T023 | 297 | 18 | 6.1 |\n| | T024 | 130 | 8 | 6.2 |\n| D-03 (6.2%) | T031 | 325 | 22 | 6.8 |\n| | T032 | 174 | 10 | 5.7 |\n| | T033 | 436 | 25 | 5.7 |\n| | T034 | 188 | 13 | 6.9 |\n| D-04 (5.3%) | T041 | 272 | 11 | **4.0** |\n| | T042 | 15 | \u2013 | Hidden (1 prescriber) |\n| | T043 | 293 | 16 | 5.5 |\n| | T044 | 196 | 14 | 7.1 |\n| D-05 (7.2%) | T051 | 145 | 10 | 6.9 |\n| | T052 | 361 | 28 | 7.8 |\n| | T053 | 168 | 11 | 6.5 |\n| | T054 | 147 | 10 | 6.8 |\n| D-06 (6.0%) | T061 | 235 | 14 | 6.0 |\n| | T062 | 216 | 10 | 4.6 |\n| | T063 | 180 | 12 | 6.7 |\n| | T064 | 113 | 9 | 8.0 |\n| **National** | | **5,201** | **334** | **6.4** |\n\n**How to read this for coaching**\n- **The gaps are too small to mean much.** Each territory has only 8\u201328 abandoned prescriptions. The highest (T012, 8.2%) and lowest (T041, 4.0%) are only about 1.2 and 1.6 standard errors from the national rate. District rates (5.3\u20137.2%) aren't significantly different either. I wouldn't use this table to rank reps or assess their performance.\n- **Payer access explains much more of the variation than territory does:**\n  - Prior authorisation required: 9.0% abandonment, vs 3.7% where it isn't.\n  - Plans that don't cover Lacrivia: 16.9%. Preferred-brand tier: 6.5%. Non-preferred-brand tier: 4.7%. Cash: 2.2%.\n- **Better coaching focus:** getting reps to help offices complete prior authorisations and to know which local plans don't cover Lacrivia. Reps shouldn't reach out to patients.\n\n**Data-use handling**\n- The only source that links abandonment to a prescriber (and so to a territory) is third-party patient-level data. I've shared it only as territory and district totals, with no prescriber or patient detail.\n- T042's rate is hidden because it has just one prescriber, so showing it would effectively disclose that prescriber's patient outcomes.\n- These numbers shouldn't be used for incentive pay or individual rep performance reviews.\n\n**Sources, definitions and assumptions**\n- **Abandonment data:** `PHARMA_DEMO.RAW_3P.PATHPT_LVL` (one row per patient, date and product; no duplicates found). Abandonment % = rows where `ABNDN_FLG`='Y' \u00f7 all Lacrivia rows.\n- **Territory assignment:** through the prescriber's territory in `CORE.PRESCRIBER` and `CORE.TERRITORY`. All 5,201 rows matched. This uses the current territory alignment, not historical.\n- **Lacrivia:** NDCs 99101010105 (5 mL) and 99101010110 (10 mL), from `CORE.PRODUCT`.\n- **The 13 weeks:** the most recent complete Sat\u2013Fri weeks, following the Friday week-ending dates in `RXT_WKLY`. That covers claims from 27 Jun to 25 Sep 2026. The partial week of 26\u201330 Sep is left out.\n- **Payer breakdown:** plan-level coverage from `RAW_3P.FMLY_MAP`, with tier codes decoded using `REF.CVG_TIER`.\n- **Not used:**\n  - `RAW_3P.CLMLNS_ADJ` doesn't identify the prescriber, so it can't be split by territory.\n  - The Fabric supply-chain data isn't relevant to this question.",
+  "stop_reason": "end_turn",
+  "model_turns": 15,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.CORE.PRODUCT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.1
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select table_schema, table_name, comment from PHARMA_DEMO.INFORMATION_SCHEMA.TABLES where table_schema not in ('INFORMATION_SCHEMA') and (comment is not null or table_schema='RAW_3P') union all select schema_name, null, comment from PHARMA_DEMO.INFORMATION_SCHEMA.SCHEMATA",
+      "ok": true,
+      "rows": 28,
+      "error": null,
+      "elapsed_s": 2.72
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.BIZ.MKT_DEF_DRIVER",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.27
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select table_schema, table_name, column_name, comment from PHARMA_DEMO.INFORMATION_SCHEMA.COLUMNS where comment is not null and table_schema<>'INFORMATION_SCHEMA'",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.95
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select min(clm_dt), max(clm_dt), count(*), count(distinct pat_key), count_if(abndn_flg='Y'), count(distinct abndn_flg), count_if(prscrbr_me is null), count_if(prod_ndc11 in ('99101010105','99101010110')) from PHARMA_DEMO.RAW_3P.PATHPT_LVL",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.45
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select min(clm_dt), max(clm_dt), count(*), count_if(abndn_flg='Y'), listagg(distinct adj_stat, ','), listagg(distinct abndn_flg, ','), listagg(distinct pat_typ, ',') from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.38
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select adj_stat, abndn_flg, count(*) from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ where prod_ndc11 like '991010101%' group by 1,2 order by 1,2",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.38
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select dayname(clm_dt) d, count(*) from PHARMA_DEMO.RAW_3P.PATHPT_LVL group by 1 order by 2 desc",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 1.43
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select wk_end_dt, dayname(wk_end_dt), count(*) from PHARMA_DEMO.RAW_3P.RXT_WKLY group by 1,2 order by 1 desc limit 15",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.12
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*) n, count(p.prscrbr_me) matched, count(p.terr_id) with_terr, count(t.terr_id) terr_matched, count(distinct l.pat_key) pats\nfrom PHARMA_DEMO.RAW_3P.PATHPT_LVL l left join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=l.prscrbr_me left join PHARMA_DEMO.CORE.TERRITORY t on t.terr_id=p.terr_id\nwhere l.prod_ndc11 in ('99101010105','99101010110') and l.clm_dt between '2026-06-27' and '2026-09-25'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 5.49
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*), count(distinct prscrbr_me), count(distinct npi), count(distinct terr_id) from PHARMA_DEMO.CORE.PRESCRIBER",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 3.32
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*) rows_, count(distinct pat_key, clm_dt, prod_ndc11, prscrbr_me, plan_id, abndn_flg) dist_rows, count(distinct pat_key, clm_dt, prod_ndc11) dist_pat_day_prod from PHARMA_DEMO.RAW_3P.PATHPT_LVL where prod_ndc11 in ('99101010105','99101010110') and clm_dt between '2026-06-27' and '2026-09-25'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.34
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with b as (\n select t.district_id, t.terr_id, t.terr_nm, l.pat_key, l.abndn_flg, l.prscrbr_me\n from PHARMA_DEMO.RAW_3P.PATHPT_LVL l\n join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=l.prscrbr_me\n join PHARMA_DEMO.CORE.TERRITORY t on t.terr_id=p.terr_id\n where l.prod_ndc11 in ('99101010105','99101010110') and l.clm_dt between '2026-06-27' and '2026-09-25')\nselect district_id, terr_id, terr_nm, count(*) rx_attempts, count_if(abndn_flg='Y') abandoned,\n round(100*count_if(abndn_flg='Y')/count(*),1) abn_rate_pct, count(distinct pat_key) patients, count(distinct prscrbr_me) prescribers\nfrom b group by 1,2,3\nunion all\nselect 'ALL','ALL','National',count(*),count_if(abndn_flg='Y'),round(100*count_if(abndn_flg='Y')/count(*),1),count(distinct pat_key),count(distinct prscrbr_me) from b\norder by 1,2",
+      "ok": true,
+      "rows": 25,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with b as (\n select t.district_id, l.abndn_flg, f.cvg_tier, f.pa_req_flg, s.*\n from PHARMA_DEMO.RAW_3P.PATHPT_LVL l\n join PHARMA_DEMO.CORE.PRESCRIBER p on p.prscrbr_me=l.prscrbr_me\n join PHARMA_DEMO.CORE.TERRITORY t on t.terr_id=p.terr_id\n left join PHARMA_DEMO.RAW_3P.FMLY_MAP f on f.plan_id=l.plan_id and f.prod_ndc11=l.prod_ndc11\n left join PHARMA_DEMO.CORE.PAYER_SPINE s on s.plan_id=l.plan_id\n where l.prod_ndc11 in ('99101010105','99101010110') and l.clm_dt between '2026-06-27' and '2026-09-25')\nselect 'district' dim, district_id val, count(*) n, count_if(abndn_flg='Y') ab, round(100*ab/n,1) pct from b group by 2\nunion all select 'tier', coalesce(cvg_tier,'?'), count(*), count_if(abndn_flg='Y'), round(100*count_if(abndn_flg='Y')/count(*),1) from b group by 2\nunion all select 'pa', coalesce(pa_req_flg,'?'), count(*), count_if(abndn_flg='Y'), round(100*count_if(abndn_flg='Y')/count(*),1) from b group by 2\norder by 1,2",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.54
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select 'tier' k, * from PHARMA_DEMO.REF.CVG_TIER",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.18
+    }
+  ],
+  "usage": {
+    "input": 32,
+    "output": 8909,
+    "cache_read": 175485,
+    "cache_write": 21885
+  },
+  "cost_usd": 0.3228,
+  "latency_s": 174.5
+}

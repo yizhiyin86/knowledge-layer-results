@@ -1,0 +1,62 @@
+{
+  "run_id": "eval_20260930T1915_r1",
+  "agent": "B",
+  "qid": "Q13",
+  "question": "Show Lacrivia abandonment by territory over the last 13 weeks so district managers can plan rep coaching.",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "I can't give you Lacrivia abandonment by territory. The data can't support it, and the one source that could isn't allowed for this purpose.\n\n- **The approved claims data can't be split by territory.** Abandonment comes from `RAW_3P.CLMLNS_ADJ`. Those claims are de-identified and carry no prescriber, so they can't be linked to a territory or a rep.\n- **The only other source is off-limits for coaching.** Patient-level data (`RAW_3P.PATHPT_LVL`) is blocked by policy POL-DUA-01, which comes from the data vendor's licence (DUA-3P-07). It can't be used to coach, rank or pay reps or territories. I didn't query it. Any territory abandonment figure built from it would break that licence.\n\nHere is what the policy allows instead: abandonment for the whole brand, plus territory prescription trends for coaching.\n\n**1. Lacrivia abandonment across all territories, last 13 weeks (weeks ending 2026-07-03 to 2026-09-25)**\n| Channel | Rejected claims | Abandoned after rejection | Abandonment rate | Rejection rate |\n|---|---|---|---|---|\n| **All** | 2,367 | 601 | **25.4%** | 18.5% |\n| Commercial | 1,216 | 318 | 26.2% | 17.7% |\n| Medicare Part D | 542 | 128 | 23.6% | 19.9% |\n| Health Exchange | 224 | 56 | 25.0% | 27.6% |\n| Medicaid (M) | 76 | 23 | 30.3% | 14.8% |\n| Managed Medicaid | 309 | 76 | 24.6% | 23.6% |\n\nAbout 1 in 4 rejected Lacrivia claims is abandoned. Exchange plans reject the most claims (27.6%). This is a market access issue, not something to manage rep by rep.\n\n**2. Lacrivia prescriptions by territory: last 13 weeks vs the prior 13**\nTRx is total prescriptions; NRx is new prescriptions.\n\n| District | Territory | TRx | TRx change | NRx | NRx change |\n|---|---|---|---|---|---|\n| D-01 | T011 / T012 / T013 / T014 | 689 / 523 / 430 / 316 | +1.3% / +5.4% / +15.0% / +13.7% | 207 / 157 / 131 / 91 | +9.5% / +15.4% / +12.9% / +7.1% |\n| D-02 | T021 / T022 / T023 / T024 | 375 / 244 / 653 / 287 | +6.8% / +0.8% / +4.0% / +20.6% | 111 / 77 / 217 / 87 | +30.6% / **\u221211.5%** / +30.7% / +27.9% |\n| D-03 | T031 / T032 / T033 / T034 | 632 / 347 / 844 / 376 | +10.3% / +7.4% / +5.9% / +16.8% | 186 / 95 / 250 / 125 | +1.1% / **\u22124.0%** / **\u22120.4%** / +25.0% |\n| D-04 | T041 / T042 / T043 / T044 | 567 / 46 / 559 / 410 | +11.0% / +58.6% / +7.3% / **\u22122.1%** | 181 / 16 / 153 / 131 | +30.2% / +166.7% / +1.3% / 0.0% |\n| D-05 | T051 / T052 / T053 / T054 | 297 / 738 / 347 / 290 | **\u22123.9%** / +9.8% / +14.5% / **\u22122.7%** | 83 / 220 / 88 / 92 | +5.1% / +17.6% / +2.3% / +8.2% |\n| D-06 | T061 / T062 / T063 / T064 | 485 / 422 / 354 / 211 | +10.2% / +15.0% / +1.4% / +20.6% | 141 / 128 / 100 / 53 | +3.7% / +25.5% / **\u22129.9%** / +3.9% |\n\n**Where to focus coaching:**\n- **Falling new prescriptions:** T022 (\u221211.5%) and T063 (\u22129.9%) most of all, then T032 (\u22124.0%).\n- **Flat new prescriptions:** T033 (\u22120.4%) and T044 (0.0%). T033 is the biggest territory by TRx (844).\n- **Falling total prescriptions:** T051 (\u22123.9%), T054 (\u22122.7%) and T044 (\u22122.1%).\n- **Treat with caution:** T042's large increases come from very small numbers (46 TRx).\n\nIf abandonment is the worry, the right next step is a payer and plan view for Market Access, not a rep scorecard.\n\n**Sources and definitions**\n- **Knowledge-layer items used:**\n  - Concepts: Claim, ClaimRejection, Prescription.\n  - Data products: Market Access and Commercial Demand, both ratified.\n  - Join path: SalesRep to Prescriber.\n  - Reference set: territories.\n  - Policies: POL-DUA-01 and POL-PHI-02.\n- **Abandonment rate** uses the ratified `abandonment_after_rejection` metric: rejected claims the patient abandoned \u00f7 all rejected claims. **Rejection rate** uses the ratified `rejection_rate` metric: rejected \u00f7 (paid + rejected). Both come from `RAW_3P.CLMLNS_ADJ`, and channel comes from `CORE.PAYER_SPINE`.\n- **Territory prescriptions** come from `RAW_3P.RXT_WKLY`, linked to territory through each prescriber's territory (`CORE.PRESCRIBER` and `CORE.TERRITORY`).\n- **Lacrivia** means every product listed as brand LACRIVIA in `CORE.PRODUCT`.\n- **Assumptions:**\n  - \"Last 13 weeks\" means the 13 most recent weekly periods, ending 2026-09-25.\n  - For claims, I used claim dates from 2026-06-27 to 2026-09-25 to match those weeks. Claims dated after 2026-09-25 (up to the 2026-09-30 data cut-off) are left out.\n\nThis decision is logged as trace c614199a-7e50-42fc-9783-2f3e5b72d31b.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_metric",
+    "get_concept",
+    "get_join_path",
+    "get_reference",
+    "get_business_rules",
+    "get_concept",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "get_join_path",
+    "get_data_product",
+    "list_tables",
+    "list_deprecated_tables",
+    "check_policy",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (\n  SELECT WK_END_DT, DENSE_RANK() OVER (ORDER BY WK_END_DT DESC) rk\n  FROM (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY)\n), rx AS (\n  SELECT p.TERR_ID, w.rk, r.TRX_QTY, r.NRX_QTY\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n  JOIN wks w ON r.WK_END_DT = w.WK_END_DT\n  JOIN PHARMA_DEMO.CORE.PRODUCT pr ON r.PROD_NDC11 = pr.PROD_NDC11\n  JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON r.PRSCRBR_ME = p.PRSCRBR_ME\n  WHERE pr.BRAND_NM = 'LACRIVIA' AND w.rk <= 26\n)\nSELECT t.TERR_ID, t.DISTRICT_ID,\n  SUM(IFF(rk<=13, TRX_QTY,0)) trx_l13, SUM(IFF(rk>13, TRX_QTY,0)) trx_p13,\n  SUM(IFF(rk<=13, NRX_QTY,0)) nrx_l13, SUM(IFF(rk>13, NRX_QTY,0)) nrx_p13,\n  ROUND(100*(SUM(IFF(rk<=13, TRX_QTY,0))/NULLIF(SUM(IFF(rk>13, TRX_QTY,0)),0)-1),1) trx_chg_pct,\n  ROUND(100*(SUM(IFF(rk<=13, NRX_QTY,0))/NULLIF(SUM(IFF(rk>13, NRX_QTY,0)),0)-1),1) nrx_chg_pct,\n  (SELECT MIN(WK_END_DT) FROM wks WHERE rk<=13) first_wk, (SELECT MAX(WK_END_DT) FROM wks) last_wk\nFROM rx JOIN PHARMA_DEMO.CORE.TERRITORY t ON rx.TERR_ID = t.TERR_ID\nGROUP BY 1,2 ORDER BY 1",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 3.82
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH mx AS (SELECT MAX(WK_END_DT) mx FROM PHARMA_DEMO.RAW_3P.RXT_WKLY)\nSELECT COALESCE(s.CHNL_CD,'ALL') chnl,\n  SUM(IFF(c.ADJ_STAT='R',1,0)) rejected,\n  SUM(IFF(c.ADJ_STAT='R' AND c.ABNDN_FLG='Y',1,0)) rejected_abandoned,\n  ROUND(100*SUM(IFF(c.ADJ_STAT='R' AND c.ABNDN_FLG='Y',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT='R',1,0)),0),1) abandonment_after_rejection_pct,\n  ROUND(100*SUM(IFF(c.ADJ_STAT='R',1,0))/NULLIF(SUM(IFF(c.ADJ_STAT IN ('P','R'),1,0)),0),1) rejection_rate_pct\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\nJOIN PHARMA_DEMO.CORE.PRODUCT pr ON c.PROD_NDC11 = pr.PROD_NDC11\nLEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON c.PLAN_ID = s.PLAN_ID\nCROSS JOIN mx\nWHERE pr.BRAND_NM='LACRIVIA' AND c.CLM_DT > DATEADD(week,-13,mx.mx) AND c.CLM_DT <= mx.mx\nGROUP BY ROLLUP(s.CHNL_CD) ORDER BY 1",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 3.32
+    }
+  ],
+  "usage": {
+    "input": 22,
+    "output": 7400,
+    "cache_read": 145528,
+    "cache_write": 28076
+  },
+  "cost_usd": 0.3176,
+  "latency_s": 117.4,
+  "cypher_queries": 76
+}

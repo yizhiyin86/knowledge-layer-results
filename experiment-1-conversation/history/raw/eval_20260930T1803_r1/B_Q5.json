@@ -1,0 +1,70 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "B",
+  "qid": "Q5",
+  "question": "When Lacrivia claims are rejected, which products are patients switched to?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "When a Lacrivia claim is rejected and the patient is switched, the switch always goes to a competitor or generic product. None went to our own Cyclosporine OS 0.05%. The top destination is Tearsol, which takes half of all switches.\n\n**Scope:** 9,199 rejected Lacrivia claims (both the 5 mL and 10 mL packs) dated 27 Sep 2025 to 25 Sep 2026.\n\n| What happened after rejection | Claims | % of rejections | % of switches |\n|---|---|---|---|\n| **Switched** | **3,287** | **35.7%** | 100% |\n|  \u2022 Tearsol (lifitegrast 0.25%), competitor | 1,630 | 17.7% | 49.6% |\n|  \u2022 Generic cyclosporine 0.05% | 820 | 8.9% | 24.9% |\n|  \u2022 Cyclomist (cyclosporine 0.09%), competitor | 497 | 5.4% | 15.1% |\n|  \u2022 Hydrova (perfluorohexyloctane), competitor | 340 | 3.7% | 10.3% |\n| Abandoned (patient didn't fill) | 2,231 | 24.3% | \u2013 |\n| No switch and not abandoned | 3,681 | 40.0% | \u2013 |\n\n**By rejection reason:** Prior authorization rejections are 58% of the total (5,376). The next largest groups are not covered (1,925), refill too soon (695) and plan limits (563). The switch rate is similar across all reasons, from 32% to 39%. Tearsol is the top destination in every reason group, followed by generic cyclosporine.\n\n**What this means:**\n- About 60% of rejected Lacrivia claims (switched plus abandoned) don't get filled with Lacrivia. Nearly 1 in 5 goes straight to Tearsol.\n- Most rejections are for prior authorization, so improving prior-authorization support is the main way to reduce switching.\n- Another 9% of rejections move to generic cyclosporine 0.05%, while none move to our own Cyclosporine OS 0.05%. That looks like a chance to capture more of these patients.\n\n**Sources and definitions (from the knowledge layer):**\n- **Data:** Market Access data product (ratified). Claims come from `PHARMA_DEMO.RAW_3P.CLMLNS_ADJ` and product names from `CORE.PRODUCT`. Reject codes were grouped into reason categories through `REF.REJ_CODE`, using the approved \"Claim to ClaimRejection group\" join.\n- **Rejected:** a claim with status `R`.\n- **Switched-to product:** the substitute product code recorded on the rejected claim.\n- **Abandoned:** the `ABNDN_FLG` field, which is the basis of the ratified `abandonment_after_rejection` metric.\n- **Access:** the policy check allowed the MARKET_ACCESS role with no masking. The decision trace is logged (ID 56c8241a).\n\n**Assumptions and limits:**\n- The claims data has no patient ID, so this counts switches at the point of rejection. It doesn't follow patients over time. A patient who switches later, or who gets Lacrivia paid on a resubmission, won't show up as switched.\n- The 40% with neither a switch nor abandonment probably includes resubmissions that were later approved, but the data doesn't confirm this.\n- I used the full year of claims data, not just the last 13 weeks.",
+  "stop_reason": "end_turn",
+  "model_turns": 8,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_concept",
+    "get_business_rules",
+    "get_metric",
+    "get_concept",
+    "get_data_product",
+    "check_policy",
+    "describe_table",
+    "run_sql",
+    "get_join_path",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PRODUCT ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.74
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.SUBST_NDC11, p.BRAND_NM, p.PACK_DESC, p.MOLECULE, p.CO_FLG,\n COUNT(*) AS n_rejected,\n SUM(CASE WHEN c.ABNDN_FLG='Y' THEN 1 ELSE 0 END) AS n_abandoned,\n MIN(c.CLM_DT) AS min_dt, MAX(c.CLM_DT) AS max_dt\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\nLEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11 = REPLACE(c.SUBST_NDC11,'-','')\nWHERE c.PROD_NDC11 IN ('99101010105','99101010110') AND c.ADJ_STAT='R'\nGROUP BY 1,2,3,4,5 ORDER BY n_rejected DESC",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 2.47
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT r.REJ_GRP,\n COUNT(*) AS n_rej,\n SUM(CASE WHEN p.BRAND_NM='TEARSOL' THEN 1 ELSE 0 END) AS tearsol,\n SUM(CASE WHEN p.BRAND_NM='CYCLOSPORINE GENERIC' THEN 1 ELSE 0 END) AS cyclo_generic,\n SUM(CASE WHEN p.BRAND_NM='CYCLOMIST' THEN 1 ELSE 0 END) AS cyclomist,\n SUM(CASE WHEN p.BRAND_NM='HYDROVA' THEN 1 ELSE 0 END) AS hydrova,\n SUM(CASE WHEN c.ABNDN_FLG='Y' THEN 1 ELSE 0 END) AS abandoned\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\nLEFT JOIN PHARMA_DEMO.REF.REJ_CODE r ON r.REJ_RSN_CD = c.REJ_RSN_CD\nLEFT JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11 = c.SUBST_NDC11\nWHERE c.PROD_NDC11 IN ('99101010105','99101010110') AND c.ADJ_STAT='R'\nGROUP BY 1 ORDER BY n_rej DESC",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 4.54
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT ADJ_STAT, COUNT(*) n, COUNT(SUBST_NDC11) n_subst FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ WHERE PROD_NDC11 IN ('99101010105','99101010110') GROUP BY 1",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 3.26
+    }
+  ],
+  "usage": {
+    "input": 18,
+    "output": 4926,
+    "cache_read": 81125,
+    "cache_write": 17099
+  },
+  "cost_usd": 0.2003,
+  "latency_s": 79.7,
+  "cypher_queries": 38
+}

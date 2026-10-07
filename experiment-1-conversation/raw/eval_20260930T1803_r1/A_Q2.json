@@ -1,0 +1,164 @@
+{
+  "run_id": "eval_20260930T1803_r1",
+  "agent": "A",
+  "qid": "Q2",
+  "question": "Which company product had the highest claim rejection rate in the last 13 weeks, and what is driving the rejections?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "**LACRIVIA (cyclosporine 0.1%) had the highest claim rejection rate of our three products in the last 13 weeks: 18.5%, or 2,367 rejected out of 12,809 adjudicated claims.** The main cause is prior authorization, which accounts for 58% of its rejections. Formulary exclusions at a few specific plans are the second cause.\n\n**Company products, last 13 weeks (claims dated 27 Jun \u2013 25 Sep 2026)**\n| Product | Paid | Rejected | Rejection rate | Previous 13 weeks |\n|---|---|---|---|---|\n| **LACRIVIA** | 10,442 | 2,367 | **18.5%** | 18.1% |\n| OCULON | 3,554 | 594 | 14.3% | 13.5% |\n| CYCLOSPORINE OS | 3,544 | 223 | 5.9% | 5.2% |\n\nFor comparison, the main competing dry-eye brand, TEARSOL, is at 18.2%, so LACRIVIA's rate is in line with other branded products in the category.\n\n**What drives LACRIVIA's rejections**\n1. **Prior authorization: 58% of rejections, 10.7% of all claims, flat versus the previous 13 weeks.** It splits roughly evenly into three reasons:\n   - The existing authorization ran out or can't be renewed (code PA): 500 claims.\n   - An authorization was required and not on file (code 75): 439 claims.\n   - The authorization was denied (code 3N): 433 claims.\n   \n   New and continuing patients are rejected at about the same rate (about 17\u201321% each). Since one in three of these rejections is an expired authorization, renewals are a problem too, not just getting new patients started.\n   - **Northstar Health Commercial (OptiScript)** is the biggest single contributor: 249 rejections at a 35% rate, 225 of them for prior authorization.\n   - Prior authorization rejections are also high (about 17\u201318% of claims) across Northstar, Keystone and Lakeshore plans.\n2. **Not covered or not on formulary: 22% of rejections, 4.0% of claims, up from 3.5% in the previous 13 weeks.** This is the only cause that is growing, and it is concentrated in a few plans:\n   - Evergreen Medicare Part D (ClearPath Rx): 60% rejection rate, 100 claims not covered.\n   - Harborview Health Exchange and Commercial East (Vantage PBM): 51% and 45% rejection rates, 88 not covered at each.\n   - Granite Plains Commercial and Managed Medicaid (OptiScript), and Harborview Managed Medicaid.\n3. **Everything else is small:** days-supply and plan limits 1.2% of claims, refill-too-soon and drug-interaction checks 1.3%, specialty or limited-distribution pharmacy required 0.4%, other 1.0%. Step therapy doesn't apply to LACRIVIA; it only affects OCULON, at 4.3% of claims.\n\nBy payer type, the highest rates are Health Exchange (27.6%, mostly not-covered) and Managed Medicaid (23.6%). The biggest volume of rejections is in Commercial (1,216 claims, 17.7%). Cash and discount-card claims are never rejected. Both pack sizes are affected; the 10 mL pack rejects slightly more often (20.5% vs 17.4% for 5 mL).\n\n**Suggested focus:** simplify prior authorization and renewals with Northstar/OptiScript, and look at formulary position at Evergreen Part D, Harborview and Granite Plains.\n\n**Sources, definitions and assumptions**\n- Claims come from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ. Products were matched on NDC to CORE.PRODUCT, where the company flag marks LACRIVIA, OCULON and CYCLOSPORINE OS as ours. Reject codes were translated with REF.REJ_CODE, and plans were mapped to payer, PBM and payer type with CORE.PAYER_SPINE and REF.CHNL.\n- **Rejection rate** = rejected claims \u00f7 (paid + rejected). Reversed claims (status V) are left out. Including them lowers LACRIVIA to 18.1%, and the ranking doesn't change.\n- **Last 13 weeks** = the 13 Saturday-to-Friday weeks ending 25 Sep 2026, matching the weekly Rx data's latest week. I left out 26\u201330 Sep because only a few paid claims are loaded for those days and no rejections, which would make the rate look too low.\n- Results are by brand, with both LACRIVIA pack sizes combined.\n- I only used summary figures, never patient-level data. I did not use the backup, sandbox or hub prior-authorization scratch tables because they haven't been checked for accuracy.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.CORE.PRODUCT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.21
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.REF.REJ_CODE",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.14
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select adj_stat, count(*), min(clm_dt), max(clm_dt), count(distinct clm_id), sum(iff(rej_rsn_cd is null,1,0)) from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ group by 1",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.43
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select prod_ndc11, length(prod_ndc11) l, adj_stat, count(*) from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ group by 1,2,3 order by 1,3",
+      "ok": true,
+      "rows": 36,
+      "error": null,
+      "elapsed_s": 2.42
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select rej_rsn_cd, '['||rej_rsn_cd||']' b, count(*) from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ where adj_stat='R' group by 1,2 order by 3 desc",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.24
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select max(wk_end_dt), count(distinct wk_end_dt), dayname(max(wk_end_dt)) from PHARMA_DEMO.RAW_3P.RXT_WKLY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.86
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select clm_dt, adj_stat, count(*) from PHARMA_DEMO.RAW_3P.CLMLNS_ADJ where clm_dt >= '2026-09-19' group by 1,2 order by 1,2",
+      "ok": true,
+      "rows": 26,
+      "error": null,
+      "elapsed_s": 1.24
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select p.brand_nm, p.co_flg,\n sum(iff(adj_stat='P',1,0)) paid, sum(iff(adj_stat='R',1,0)) rej, sum(iff(adj_stat='V',1,0)) rev,\n round(rej/(paid+rej)*100,2) rej_rate_pct, round(rej/(paid+rej+rev)*100,2) rej_rate_incl_v\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.prod_ndc11\nwhere clm_dt between '2026-06-27' and '2026-09-25'\ngroup by 1,2 order by co_flg desc, rej_rate_pct desc",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 3.44
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select r.rej_grp, c.rej_rsn_cd, r.rej_desc, count(*) n, round(n/sum(n) over()*100,1) pct_of_rej, round(n/12809*100,2) pct_of_claims\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.prod_ndc11\nleft join PHARMA_DEMO.REF.REJ_CODE r on r.rej_rsn_cd=c.rej_rsn_cd\nwhere clm_dt between '2026-06-27' and '2026-09-25' and p.brand_nm='LACRIVIA' and adj_stat='R'\ngroup by 1,2,3 order by 1, n desc",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.47
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from PHARMA_DEMO.REF.CHNL",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.71
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select iff(clm_dt>='2026-06-27','L13W','Prior13W') per, p.brand_nm, count_if(adj_stat='R') rej, count_if(adj_stat in ('P','R')) tot, round(rej/tot*100,2) rate,\n round(count_if(r.rej_grp='NOT_COVERED')/tot*100,2) nc, round(count_if(r.rej_grp='PRIOR_AUTH')/tot*100,2) pa, round(count_if(r.rej_grp='STEP')/tot*100,2) st, round(count_if(r.rej_grp='PLAN_LIMIT')/tot*100,2) pl, round(count_if(r.rej_grp='REFILL')/tot*100,2) rf, round(count_if(r.rej_grp='DISTRIBUTION_LIMIT')/tot*100,2) dl, round(count_if(r.rej_grp='OTHER')/tot*100,2) oth\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.prod_ndc11\nleft join PHARMA_DEMO.REF.REJ_CODE r on r.rej_rsn_cd=c.rej_rsn_cd\nwhere clm_dt between '2026-03-28' and '2026-09-25' and p.co_flg='Y'\ngroup by 1,2 order by 2,1",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.89
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select s.chnl_cd, count_if(adj_stat='R') rej, count_if(adj_stat in ('P','R')) tot, round(rej/tot*100,1) rate,\n count_if(r.rej_grp='PRIOR_AUTH') pa, count_if(r.rej_grp='NOT_COVERED') nc, round(pa/tot*100,1) pa_rate, round(nc/tot*100,1) nc_rate\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.prod_ndc11\nleft join PHARMA_DEMO.REF.REJ_CODE r on r.rej_rsn_cd=c.rej_rsn_cd\nleft join PHARMA_DEMO.CORE.PAYER_SPINE s on s.plan_id=c.plan_id\nwhere clm_dt between '2026-06-27' and '2026-09-25' and p.brand_nm='LACRIVIA'\ngroup by 1 order by rej desc",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 4.16
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select s.payer_nm, s.pbm_nm, count_if(adj_stat='R') rej, count_if(adj_stat in ('P','R')) tot, round(rej/tot*100,1) rate,\n count_if(r.rej_grp='PRIOR_AUTH') pa, count_if(r.rej_grp='NOT_COVERED') nc, round(pa/tot*100,1) pa_rate, round(nc/tot*100,1) nc_rate\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.prod_ndc11\nleft join PHARMA_DEMO.REF.REJ_CODE r on r.rej_rsn_cd=c.rej_rsn_cd\nleft join PHARMA_DEMO.CORE.PAYER_SPINE s on s.plan_id=c.plan_id\nwhere clm_dt between '2026-06-27' and '2026-09-25' and p.brand_nm='LACRIVIA'\ngroup by 1,2 order by rej desc",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 3.82
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select c.prod_ndc11, pat_typ, count_if(adj_stat='R') rej, count_if(adj_stat in ('P','R')) tot, round(rej/tot*100,1) rate,\n count_if(r.rej_grp='PRIOR_AUTH') pa, count_if(c.rej_rsn_cd='PA') pa_exh, count_if(c.rej_rsn_cd='75') pa_req, count_if(c.rej_rsn_cd='3N') pa_den\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.prod_ndc11\nleft join PHARMA_DEMO.REF.REJ_CODE r on r.rej_rsn_cd=c.rej_rsn_cd\nwhere clm_dt between '2026-06-27' and '2026-09-25' and p.brand_nm='LACRIVIA'\ngroup by 1,2 order by 1,2",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.52
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select c.plan_id, s.plan_nm, s.pbm_nm, count_if(adj_stat='R') rej, count_if(adj_stat in ('P','R')) tot, round(rej/tot*100,1) rate,\n count_if(r.rej_grp='PRIOR_AUTH') pa, count_if(r.rej_grp='NOT_COVERED') nc\nfrom PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c join PHARMA_DEMO.CORE.PRODUCT p on p.prod_ndc11=c.prod_ndc11\nleft join PHARMA_DEMO.REF.REJ_CODE r on r.rej_rsn_cd=c.rej_rsn_cd\nleft join PHARMA_DEMO.CORE.PAYER_SPINE s on s.plan_id=c.plan_id\nwhere clm_dt between '2026-06-27' and '2026-09-25' and p.brand_nm='LACRIVIA'\ngroup by 1,2,3 having rej>=40 order by rej desc",
+      "ok": true,
+      "rows": 25,
+      "error": null,
+      "elapsed_s": 2.34
+    }
+  ],
+  "usage": {
+    "input": 22,
+    "output": 7365,
+    "cache_read": 87830,
+    "cache_write": 20845
+  },
+  "cost_usd": 0.2692,
+  "latency_s": 145.7
+}

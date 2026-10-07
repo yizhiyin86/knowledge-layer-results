@@ -1,0 +1,66 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "B",
+  "qid": "Q3",
+  "question": "In district D-03, what is each rep's Lacrivia TRx attainment versus their IC goal quarter-to-date?",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "None of the eight Lacrivia reps in D-03 has reached their Q3 2026 IC goal. The quarter is effectively over: all 13 weeks are in the data, so each rep's paced goal is the same as their full quarterly goal. Four reps are within 10% of goal. Emerson Dorsey (62.4%) and Vale Dorsey (67.0%) are furthest behind.\n\n| Territory | Rep | Team | Lacrivia TRx so far this quarter | IC goal (Q3 2026) | Attainment |\n|---|---|---|---|---|---|\n| T031 | R017 Emerson Dorsey | TEAL | 632 | 1,013 | **62.4%** |\n| T031 | R018 Finley Stroud | CORAL | 632 | 713 | **88.6%** |\n| T032 | R019 Sawyer Upton | TEAL | 347 | 352 | **98.6%** |\n| T032 | R020 Indy Calder | CORAL | 347 | 360 | **96.4%** |\n| T033 | R021 Vale Rourke | TEAL | 844 | 900 | **93.8%** |\n| T033 | R022 Vale Dorsey | CORAL | 844 | 1,259 | **67.0%** |\n| T034 | R023 Dana Calder | TEAL | 376 | 441 | **85.3%** |\n| T034 | R024 Quinn Abbott | CORAL | 376 | 412 | **91.3%** |\n\n- **District total:** 2,199 TRx against combined goals of 5,450.\n- **Closest to goal:** Sawyer Upton, 5 TRx short. Indy Calder is 13 short.\n- **Biggest gaps:** Vale Dorsey is 415 TRx short and Emerson Dorsey is 381 short. Both have much higher goals than the other rep in their territory, who is credited with the same TRx.\n- **Excluded:** R051 Marlow Lowry (INDIGO team) has no Lacrivia goal, only an Oculon goal.\n\n**Sources and definitions**\n- **Metric:** `ic_attainment` (approved by Finance and used in the Rep Report). It is the rep's territory TRx for the brand since quarter start, divided by (quarterly goal \u00d7 elapsed weeks / 13). Here that's 13/13.\n- **Data (all from the approved Field Force data product):**\n  - Goals come from `CORE.IC_GOAL` (Lacrivia, 2026Q3).\n  - Reps come from `CORE.REP_ROSTER` (district D-03).\n  - Prescriptions come from `RAW_3P.RXT_WKLY`, limited to Lacrivia products in `CORE.PRODUCT`.\n- **Join path:** \"SalesRep to Prescriber\". TEAL and CORAL reps get credit for all prescribers in their territory (roster territory matched to prescriber territory). That's why both reps in a territory show the same TRx.\n- **Policy:** checked for the FIELD_SALES role with a compensation purpose. It was allowed with no masking. The decision was logged (trace db7f4e2c).\n\n**Assumptions**\n- I took the fiscal quarter to be the calendar quarter, July\u2013September 2026. That covers the 13 data weeks ending 3 July through 25 September 2026.\n- The week ending 3 July also includes 27\u201330 June. If your fiscal calendar starts the quarter differently, the TRx figures would shift slightly.\n- The latest data week ends 25 September, so prescriptions from 26\u201330 September aren't included yet.",
+  "stop_reason": "end_turn",
+  "model_turns": 8,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_concept",
+    "get_metric",
+    "get_data_product",
+    "get_report",
+    "get_join_path",
+    "get_business_rules",
+    "list_deprecated_tables",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT r.REP_ID, r.REP_NM, r.TERR_ID, r.DISTRICT_ID, r.TEAM, g.BRAND_NM, g.FQTR, g.TRX_GOAL\nFROM PHARMA_DEMO.CORE.REP_ROSTER r\nLEFT JOIN PHARMA_DEMO.CORE.IC_GOAL g ON g.REP_ID = r.REP_ID\nWHERE r.DISTRICT_ID = 'D-03'\nORDER BY r.REP_ID, g.FQTR, g.BRAND_NM",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.91
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT MIN(WK_END_DT), MAX(WK_END_DT), COUNT(DISTINCT WK_END_DT), COUNT(DISTINCT CASE WHEN WK_END_DT >= '2026-07-01' THEN WK_END_DT END) AS q3_wks, MIN(CASE WHEN WK_END_DT >= '2026-07-01' THEN WK_END_DT END) q3_first FROM PHARMA_DEMO.RAW_3P.RXT_WKLY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.67
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (\n  SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY\n  WHERE WK_END_DT BETWEEN '2026-07-01' AND '2026-09-30'\n),\nlac AS (SELECT PROD_NDC11 FROM PHARMA_DEMO.CORE.PRODUCT WHERE UPPER(BRAND_NM) = 'LACRIVIA'),\nterr_trx AS (\n  SELECT p.TERR_ID, SUM(x.TRX_QTY) AS TRX\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY x\n  JOIN lac ON lac.PROD_NDC11 = x.PROD_NDC11\n  JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME = x.PRSCRBR_ME\n  WHERE x.WK_END_DT IN (SELECT WK_END_DT FROM wk)\n  GROUP BY p.TERR_ID\n)\nSELECT r.REP_ID, r.REP_NM, r.TEAM, r.TERR_ID, g.TRX_GOAL,\n       (SELECT COUNT(*) FROM wk) AS ELAPSED_WKS,\n       COALESCE(t.TRX,0) AS QTD_TRX,\n       ROUND(g.TRX_GOAL * (SELECT COUNT(*) FROM wk) / 13, 1) AS PACED_GOAL,\n       ROUND(COALESCE(t.TRX,0) / (g.TRX_GOAL * (SELECT COUNT(*) FROM wk) / 13) * 100, 1) AS ATTAIN_PCT\nFROM PHARMA_DEMO.CORE.REP_ROSTER r\nJOIN PHARMA_DEMO.CORE.IC_GOAL g ON g.REP_ID = r.REP_ID AND g.BRAND_NM = 'LACRIVIA' AND g.FQTR = '2026Q3'\nLEFT JOIN terr_trx t ON t.TERR_ID = r.TERR_ID\nWHERE r.DISTRICT_ID = 'D-03'\nORDER BY r.TERR_ID, r.TEAM DESC",
+      "ok": true,
+      "rows": 8,
+      "error": null,
+      "elapsed_s": 5.35
+    }
+  ],
+  "usage": {
+    "input": 18,
+    "output": 5646,
+    "cache_read": 97212,
+    "cache_write": 21441
+  },
+  "cost_usd": 0.2396,
+  "latency_s": 95.6,
+  "cypher_queries": 59
+}

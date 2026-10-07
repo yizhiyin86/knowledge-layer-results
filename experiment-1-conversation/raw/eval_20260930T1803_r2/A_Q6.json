@@ -1,0 +1,254 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "A",
+  "qid": "Q6",
+  "question": "Which customers are exposed if supplier S-104 misses its next ship date? Show the affected products and the top 10 accounts and payers by volume on them.",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "Two products, Lacrivia and Cyclosporine OS, are exposed if S-104 (Delmar Specialty Chemicals, India) misses its next ship date. That shipment is PO005791: 4,200 units of RM-221 (Polysorbate 80 NF, low-peroxide), due to ship **2026-10-07**. S-104 is the only qualified supplier of RM-221. Over the last 13 weeks those two products had **13,986 TRx (about 1,076 a week)**, spread across 137 accounts and all 16 payers.\n\nS-104's second material, RM-222 (benzalkonium chloride), goes into Oculon. Its next shipment isn't until 2026-10-26, and it has a qualified backup supplier, so Oculon is only at risk if that later shipment also slips. S-104's track record makes a slip plausible: since April only 17 of 25 RM-221 orders and 15 of 26 RM-222 orders shipped on time, and the worst was 20 days late.\n\n**Affected products (TRx, last 13 weeks: Jul 3 \u2013 Sep 25, 2026)**\n| Material | Product | 13-wk TRx | Per week | Exposed by the Oct 7 shipment? |\n|---|---|---|---|---|\n| FG-1001 | Lacrivia 0.1% 5 mL | 7,017 | 540 | Yes (RM-221) |\n| FG-1002 | Lacrivia 0.1% 10 mL | 3,425 | 263 | Yes (RM-221) |\n| FG-1003 | Cyclosporine OS 0.05% 5 mL | 3,544 | 273 | Yes (RM-221) |\n| FG-2001 | Oculon 0.005% 2.5 mL | 2,568 | 198 | Only if the Oct 26 RM-222 shipment slips |\n| FG-2002 | Oculon 0.005% 5 mL | 986 | 76 | Only if the Oct 26 RM-222 shipment slips |\n| FG-3001 to 3011 | 11 lens-care solutions | no data | \u2013 | Yes (RM-221), but they aren't in the prescription data |\n| **Total, all S-104 products** | | **17,540** | **1,349** | |\n\n**Top 10 accounts by TRx on these products** (the \"Lacrivia + Cyclosporine OS\" column is the part exposed by the Oct 7 shipment)\n| # | Account (health system) | State | TRx | Lacrivia + Cyclosporine OS | Oculon | % of total |\n|---|---|---|---|---|---|---|\n| 1 | Northfield Eye Clinic 2C (Northfield HS) | IL | 362 | 329 | 33 | 2.1% |\n| 2 | Oak Hollow Eye Clinic 3B (Oak Hollow HS) | NC | 354 | 263 | 91 | 2.0% |\n| 3 | Brightwater Eye Clinic 1B (Brightwater HS) | OH | 332 | 244 | 88 | 1.9% |\n| 4 | Riverbend Eye Clinic 1A (Riverbend HS) | PA | 323 | 295 | 28 | 1.8% |\n| 5 | Oak Hollow Eye Clinic 2C (Oak Hollow HS) | WA | 321 | 206 | 115 | 1.8% |\n| 6 | Northfield Eye Clinic 1D (Northfield HS) | IL | 293 | 228 | 65 | 1.7% |\n| 7 | Silver Lake Vision Associates 7 (independent) | AZ | 290 | 215 | 75 | 1.7% |\n| 8 | Sunridge Vision Associates 20 (independent) | PA | 270 | 248 | 22 | 1.5% |\n| 9 | Glenmoor Vision Associates 12 (independent) | CA | 262 | 246 | 16 | 1.5% |\n| 10 | Westbrook Vision Associates 10 (independent) | CO | 255 | 159 | 96 | 1.5% |\n\nVolume is spread thin across sites: the top 10 together are only 17.5% of TRx. Grouped by health system it's more concentrated. The top five are Oak Hollow (12.6%), Sunridge (11.2%), Riverbend (10.8%), Northfield (10.7%) and Brightwater (10.2%), about 55% combined.\n\n**Top 10 payers by TRx on these products** (together 80.1% of TRx)\n| # | Payer (PBM) | TRx | Lacrivia + Cyclosporine OS | Oculon | % of total |\n|---|---|---|---|---|---|\n| 1 | Northstar Health (OptiScript) | 2,052 | 1,635 | 417 | 11.7% |\n| 2 | Bluecrest Mutual (CoreRx) | 2,048 | 1,630 | 418 | 11.7% |\n| 3 | Silverline Health (ClearPath Rx) | 1,794 | 1,427 | 367 | 10.2% |\n| 4 | Harborview Health (Vantage) | 1,569 | 1,274 | 295 | 8.9% |\n| 5 | Redwood Benefit Trust (Vantage) | 1,312 | 1,030 | 282 | 7.5% |\n| 6 | Lakeshore Health (ClearPath Rx) | 1,168 | 915 | 253 | 6.7% |\n| 7 | Pinnacle Benefit Group (CoreRx) | 1,158 | 926 | 232 | 6.6% |\n| 8 | Keystone Medical Plan (OptiScript) | 1,017 | 802 | 215 | 5.8% |\n| 9 | Meadowbrook Care (CoreRx) | 970 | 775 | 195 | 5.5% |\n| 10 | Cash / Discount Card | 965 | 771 | 194 | 5.5% |\n\n\"Cash / Discount Card\" isn't a real payer. I kept it because it's in the payer table and in the top 10 by volume.\n\n**How I got there**\n- **Supplier to product (Fabric):**\n  - I started from S-104's order list and its approved materials, then traced each material up through the bill of materials, counting only links in effect on 2026-09-30.\n  - RM-221 goes into component CMP-310, then intermediates SEMI-031 and SEMI-044/045, then fill materials FILL-1001 to 1003, and finally FG-1001 to 1003. It also feeds a separate chain of intermediates that ends in the lens-care products FG-3001 to 3011.\n  - RM-222 goes into component CMP-320, then SEMI-060, then FILL-2001/2002, and finally FG-2001/2002.\n  - An old RM-221 \u2192 CMP-320 link ended on 2025-06-30, so RM-221 no longer feeds Oculon.\n  - Finished goods were matched to NDC codes with the material-to-NDC cross-reference table.\n- **Backup suppliers:**\n  - RM-221: the only other listed supplier, S-131, isn't qualified.\n  - RM-222: S-130 is qualified.\n  - CMP-320: S-203 is a qualified second source.\n- **Volume (Snowflake):** weekly TRx (total prescriptions, not shipped units) for the 13 most recent weeks.\n  - Accounts come from each prescriber's affiliated account, and payers from the plan-to-payer table.\n  - Every row matched a prescriber, account and plan, with no duplicates or negative values.\n- **Data use:** no restrictions were recorded in the metadata. I still kept this to account and payer totals, with no prescriber- or patient-level detail.\n- **Assumptions and limits:**\n  - \"Next ship date\" means the earliest open order.\n  - Prescriptions stand in for customer demand.\n  - I didn't check finished-goods or distribution-center stock, or wholesaler shipments. On-hand stock decides whether a slip actually reaches these customers, so that's the next thing to check.\n  - The lens-care products depend on RM-221 but have no prescription data, so their customers aren't counted here.",
+  "stop_reason": "end_turn",
+  "model_turns": 17,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.*, (SELECT COUNT(*) FROM dbo.SUPPLIER_MATERIAL sm WHERE sm.SUPPLIER_ID=s.SUPPLIER_ID) n_mat FROM dbo.SUPPLIER s WHERE SUPPLIER_ID LIKE '%104%' OR SUPPLIER_ID LIKE 'S-10%'",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.25
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, m.MATERIAL_DESC, m.MATERIAL_TYP FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=sm.MATERIAL_ID WHERE sm.SUPPLIER_ID='S-104'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND (ACTUAL_SHIP_DT IS NULL OR STATUS<>'CLOSED' OR PROMISED_SHIP_DT>='2026-09-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 0.35
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT STATUS, COUNT(*) n, MIN(PROMISED_SHIP_DT) mn, MAX(PROMISED_SHIP_DT) mx FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' GROUP BY STATUS",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.45
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH x AS (\n SELECT b.PARENT_MATERIAL_ID, b.CHILD_MATERIAL_ID, CAST(b.CHILD_MATERIAL_ID AS varchar(200)) root, 1 lvl, b.EFF_FROM, b.EFF_TO\n FROM dbo.BOM b WHERE b.CHILD_MATERIAL_ID IN ('RM-221','RM-222')\n UNION ALL\n SELECT b.PARENT_MATERIAL_ID, b.CHILD_MATERIAL_ID, x.root, x.lvl+1, b.EFF_FROM, b.EFF_TO\n FROM dbo.BOM b JOIN x ON b.CHILD_MATERIAL_ID = x.PARENT_MATERIAL_ID WHERE x.lvl<10)\nSELECT x.root, x.lvl, x.CHILD_MATERIAL_ID, x.PARENT_MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP, x.EFF_FROM, x.EFF_TO\nFROM x LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=x.PARENT_MATERIAL_ID ORDER BY root, lvl, PARENT_MATERIAL_ID",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 0.86
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b1.CHILD_MATERIAL_ID rm, b1.PARENT_MATERIAL_ID l1, m1.MATERIAL_TYP t1, b1.EFF_TO e1,\n b2.PARENT_MATERIAL_ID l2, m2.MATERIAL_TYP t2, b2.EFF_TO e2,\n b3.PARENT_MATERIAL_ID l3, m3.MATERIAL_TYP t3, b3.EFF_TO e3,\n b4.PARENT_MATERIAL_ID l4\nFROM dbo.BOM b1 LEFT JOIN dbo.MATERIAL m1 ON m1.MATERIAL_ID=b1.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b2 ON b2.CHILD_MATERIAL_ID=b1.PARENT_MATERIAL_ID LEFT JOIN dbo.MATERIAL m2 ON m2.MATERIAL_ID=b2.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b3 ON b3.CHILD_MATERIAL_ID=b2.PARENT_MATERIAL_ID LEFT JOIN dbo.MATERIAL m3 ON m3.MATERIAL_ID=b3.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b4 ON b4.CHILD_MATERIAL_ID=b3.PARENT_MATERIAL_ID\nWHERE b1.CHILD_MATERIAL_ID IN ('RM-221','RM-222')\nORDER BY 1,2,5,8",
+      "ok": true,
+      "rows": 38,
+      "error": null,
+      "elapsed_s": 1.16
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT x.MATERIAL_ID, x.NDC, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ FROM dbo.MATERIAL_NDC_XREF x LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=x.MATERIAL_ID ORDER BY 1",
+      "ok": true,
+      "rows": 60,
+      "error": null,
+      "elapsed_s": 1.23
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_TYP, COUNT(*) n FROM dbo.MATERIAL GROUP BY MATERIAL_TYP",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH b AS (SELECT PARENT_MATERIAL_ID p, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE EFF_FROM<='2026-09-30' AND EFF_TO>='2026-09-30'),\nl0 AS (SELECT DISTINCT MATERIAL_ID m, MATERIAL_ID rm FROM dbo.MATERIAL WHERE MATERIAL_ID IN ('RM-221','RM-222')),\nl1 AS (SELECT DISTINCT b.p m, l0.rm FROM l0 JOIN b ON b.c=l0.m),\nl2 AS (SELECT DISTINCT b.p m, x.rm FROM l1 x JOIN b ON b.c=x.m),\nl3 AS (SELECT DISTINCT b.p m, x.rm FROM l2 x JOIN b ON b.c=x.m),\nl4 AS (SELECT DISTINCT b.p m, x.rm FROM l3 x JOIN b ON b.c=x.m),\nl5 AS (SELECT DISTINCT b.p m, x.rm FROM l4 x JOIN b ON b.c=x.m),\nl6 AS (SELECT DISTINCT b.p m, x.rm FROM l5 x JOIN b ON b.c=x.m),\nl7 AS (SELECT DISTINCT b.p m, x.rm FROM l6 x JOIN b ON b.c=x.m),\nl8 AS (SELECT DISTINCT b.p m, x.rm FROM l7 x JOIN b ON b.c=x.m),\nl9 AS (SELECT DISTINCT b.p m, x.rm FROM l8 x JOIN b ON b.c=x.m),\nl10 AS (SELECT DISTINCT b.p m, x.rm FROM l9 x JOIN b ON b.c=x.m),\nl11 AS (SELECT DISTINCT b.p m, x.rm FROM l10 x JOIN b ON b.c=x.m),\nl12 AS (SELECT DISTINCT b.p m, x.rm FROM l11 x JOIN b ON b.c=x.m),\na AS (SELECT 1 lv,* FROM l1 UNION ALL SELECT 2,* FROM l2 UNION ALL SELECT 3,* FROM l3 UNION ALL SELECT 4,* FROM l4 UNION ALL SELECT 5,* FROM l5 UNION ALL SELECT 6,* FROM l6 UNION ALL SELECT 7,* FROM l7 UNION ALL SELECT 8,* FROM l8 UNION ALL SELECT 9,* FROM l9 UNION ALL SELECT 10,* FROM l10 UNION ALL SELECT 11,* FROM l11 UNION ALL SELECT 12,* FROM l12)\nSELECT a.lv, mt.MATERIAL_TYP, COUNT(DISTINCT a.m) n, MIN(a.m) ex, STRING_AGG(CASE WHEN mt.MATERIAL_TYP IN ('FG','FILL','SEMI','KIT') THEN a.m+'<'+a.rm END, ',') lst\nFROM a JOIN dbo.MATERIAL mt ON mt.MATERIAL_ID=a.m GROUP BY a.lv, mt.MATERIAL_TYP ORDER BY 1,2",
+      "ok": true,
+      "rows": 14,
+      "error": null,
+      "elapsed_s": 4.29
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, s.SUPPLIER_NM FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID IN ('RM-221','RM-222','CMP-310','CMP-320')",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 1.06
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PRODUCT ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.12
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT 'ARCH' src,* FROM dbo.PURCH_ORD_ARCHIVE WHERE SUPPLIER_ID='S-104' AND PROMISED_SHIP_DT>='2026-09-01'\nUNION ALL SELECT 'CUR',* FROM dbo.PURCH_ORD WHERE PO_ID IN ('PO005791','PO000365','PO000366','PO000367','PO000368','PO000427','PO000428','PO000429')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 4.17
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT table_schema, table_name, column_name, comment FROM PHARMA_DEMO.INFORMATION_SCHEMA.COLUMNS WHERE comment IS NOT NULL AND table_schema IN ('CORE','RAW_3P','REF','MART') ORDER BY 1,2",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 2.6
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT PROD_NDC11, COUNT(DISTINCT WK_END_DT) wks, MIN(WK_END_DT) mn, MAX(WK_END_DT) mx, SUM(TRX_QTY) trx, COUNT(*) n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 2.35
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT WK_END_DT, DAYNAME(WK_END_DT) d, COUNT(*) n, SUM(TRX_QTY) trx FROM PHARMA_DEMO.RAW_3P.RXT_WKLY WHERE WK_END_DT>='2026-06-01' GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 17,
+      "error": null,
+      "elapsed_s": 1.34
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH r AS (SELECT * FROM PHARMA_DEMO.RAW_3P.RXT_WKLY WHERE WK_END_DT BETWEEN '2026-07-03' AND '2026-09-25' AND PROD_NDC11 IN ('99101010105','99101010110','99101020205','99101030325','99101030350'))\nSELECT COUNT(*) n, SUM(TRX_QTY) trx,\n COUNT(*) - COUNT(DISTINCT WK_END_DT||PRSCRBR_ME||PROD_NDC11||PLAN_ID||CHNL_CD) dup_keys,\n SUM(IFF(p.PRSCRBR_ME IS NULL,TRX_QTY,0)) trx_no_prescriber,\n SUM(IFF(p.ACCOUNT_ID IS NULL,TRX_QTY,0)) trx_no_acct,\n SUM(IFF(a.ACCOUNT_ID IS NULL,TRX_QTY,0)) trx_acct_not_in_master,\n SUM(IFF(s.PLAN_ID IS NULL,TRX_QTY,0)) trx_no_plan,\n SUM(IFF(TRX_QTY<0,1,0)) neg_rows\nFROM r LEFT JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME=r.PRSCRBR_ME\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT a ON a.ACCOUNT_ID=p.ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON s.PLAN_ID=r.PLAN_ID",
+      "ok": false,
+      "rows": null,
+      "error": "002028 (42601): SQL compilation error:\nambiguous column name 'PRSCRBR_ME'",
+      "elapsed_s": 1.14
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.REF.CHNL",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.23
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) n, COUNT(DISTINCT PRSCRBR_ME) d_me, COUNT(DISTINCT NPI) d_npi FROM PHARMA_DEMO.CORE.PRESCRIBER UNION ALL SELECT COUNT(*), COUNT(DISTINCT PLAN_ID), COUNT(DISTINCT PAYER_ID) FROM PHARMA_DEMO.CORE.PAYER_SPINE UNION ALL SELECT COUNT(*), COUNT(DISTINCT ACCOUNT_ID), 0 FROM PHARMA_DEMO.CORE.ACCOUNT",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.36
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH r AS (SELECT * FROM PHARMA_DEMO.RAW_3P.RXT_WKLY WHERE WK_END_DT BETWEEN '2026-07-03' AND '2026-09-25' AND PROD_NDC11 IN ('99101010105','99101010110','99101020205','99101030325','99101030350'))\nSELECT COUNT(*) n, SUM(r.TRX_QTY) trx,\n COUNT(*) - COUNT(DISTINCT r.WK_END_DT||r.PRSCRBR_ME||r.PROD_NDC11||r.PLAN_ID||r.CHNL_CD) dup_keys,\n SUM(IFF(p.PRSCRBR_ME IS NULL,r.TRX_QTY,0)) trx_no_prescriber,\n SUM(IFF(p.ACCOUNT_ID IS NULL,r.TRX_QTY,0)) trx_no_acct,\n SUM(IFF(a.ACCOUNT_ID IS NULL,r.TRX_QTY,0)) trx_acct_not_in_master,\n SUM(IFF(s.PLAN_ID IS NULL,r.TRX_QTY,0)) trx_no_plan,\n SUM(IFF(s.CHNL_CD<>r.CHNL_CD,r.TRX_QTY,0)) trx_chnl_mismatch,\n SUM(IFF(r.TRX_QTY<0,1,0)) neg_rows\nFROM r LEFT JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME=r.PRSCRBR_ME\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT a ON a.ACCOUNT_ID=p.ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON s.PLAN_ID=r.PLAN_ID",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 3.53
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT r.PROD_NDC11, pr.BRAND_NM, pr.PACK_DESC, SUM(TRX_QTY) trx13, ROUND(SUM(TRX_QTY)/13,0) trx_wk, COUNT(DISTINCT p.ACCOUNT_ID) accts, COUNT(DISTINCT s.PAYER_ID) payers\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN PHARMA_DEMO.CORE.PRODUCT pr ON pr.PROD_NDC11=r.PROD_NDC11\nJOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME=r.PRSCRBR_ME JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON s.PLAN_ID=r.PLAN_ID\nWHERE WK_END_DT BETWEEN '2026-07-03' AND '2026-09-25' AND r.PROD_NDC11 IN ('99101010105','99101010110','99101020205','99101030325','99101030350')\nGROUP BY ROLLUP(1,2,3) HAVING GROUPING(2)=GROUPING(3) AND GROUPING(1)=GROUPING(2) ORDER BY 1 NULLS LAST",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 13.53
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH t AS (SELECT p.ACCOUNT_ID, r.PROD_NDC11, r.TRX_QTY FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME=r.PRSCRBR_ME\n WHERE WK_END_DT BETWEEN '2026-07-03' AND '2026-09-25' AND r.PROD_NDC11 IN ('99101010105','99101010110','99101020205','99101030325','99101030350'))\nSELECT t.ACCOUNT_ID, a.ACCOUNT_NM, a.ACCT_TYP, a.STATE, par.ACCOUNT_NM parent_nm, gp.ACCOUNT_NM grandparent_nm,\n SUM(TRX_QTY) trx13,\n SUM(IFF(PROD_NDC11 IN ('99101010105','99101010110'),TRX_QTY,0)) lacrivia,\n SUM(IFF(PROD_NDC11='99101020205',TRX_QTY,0)) cyclo_os,\n SUM(IFF(PROD_NDC11 IN ('99101030325','99101030350'),TRX_QTY,0)) oculon,\n ROUND(100*SUM(TRX_QTY)/SUM(SUM(TRX_QTY)) OVER (),1) pct\nFROM t JOIN PHARMA_DEMO.CORE.ACCOUNT a ON a.ACCOUNT_ID=t.ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT par ON par.ACCOUNT_ID=a.PARENT_ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT gp ON gp.ACCOUNT_ID=par.PARENT_ACCOUNT_ID\nGROUP BY 1,2,3,4,5,6 ORDER BY trx13 DESC LIMIT 10",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.73
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH t AS (SELECT s.PAYER_ID, s.PAYER_NM, s.PBM_NM, r.CHNL_CD, r.PROD_NDC11, r.TRX_QTY FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON s.PLAN_ID=r.PLAN_ID\n WHERE WK_END_DT BETWEEN '2026-07-03' AND '2026-09-25' AND r.PROD_NDC11 IN ('99101010105','99101010110','99101020205','99101030325','99101030350'))\nSELECT PAYER_ID, PAYER_NM, LISTAGG(DISTINCT PBM_NM, '/') pbm, SUM(TRX_QTY) trx13,\n SUM(IFF(PROD_NDC11 IN ('99101010105','99101010110'),TRX_QTY,0)) lacrivia,\n SUM(IFF(PROD_NDC11='99101020205',TRX_QTY,0)) cyclo_os,\n SUM(IFF(PROD_NDC11 IN ('99101030325','99101030350'),TRX_QTY,0)) oculon,\n LISTAGG(DISTINCT CHNL_CD, ',') chnls,\n ROUND(100*SUM(TRX_QTY)/SUM(SUM(TRX_QTY)) OVER (),1) pct\nFROM t GROUP BY 1,2 ORDER BY trx13 DESC LIMIT 10",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.32
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH t AS (SELECT p.ACCOUNT_ID, r.TRX_QTY FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME=r.PRSCRBR_ME\n WHERE WK_END_DT BETWEEN '2026-07-03' AND '2026-09-25' AND r.PROD_NDC11 IN ('99101010105','99101010110','99101020205','99101030325','99101030350'))\nSELECT COALESCE(gp.ACCOUNT_NM, par.ACCOUNT_NM, a.ACCOUNT_NM) top_parent, COALESCE(gp.ACCT_TYP, par.ACCT_TYP, a.ACCT_TYP) typ, SUM(TRX_QTY) trx13, ROUND(100*SUM(TRX_QTY)/SUM(SUM(TRX_QTY)) OVER (),1) pct\nFROM t JOIN PHARMA_DEMO.CORE.ACCOUNT a ON a.ACCOUNT_ID=t.ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT par ON par.ACCOUNT_ID=a.PARENT_ACCOUNT_ID\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT gp ON gp.ACCOUNT_ID=par.PARENT_ACCOUNT_ID\nGROUP BY 1,2 ORDER BY 3 DESC LIMIT 8",
+      "ok": true,
+      "rows": 8,
+      "error": null,
+      "elapsed_s": 3.73
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, COUNT(*) n, SUM(CASE WHEN ACTUAL_SHIP_DT<=PROMISED_SHIP_DT THEN 1 ELSE 0 END) on_time, MAX(DATEDIFF(day,PROMISED_SHIP_DT,ACTUAL_SHIP_DT)) max_late_days\nFROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND STATUS='CLOSED' AND PROMISED_SHIP_DT>='2026-04-01' GROUP BY MATERIAL_ID",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.92
+    }
+  ],
+  "usage": {
+    "input": 36,
+    "output": 17435,
+    "cache_read": 332609,
+    "cache_write": 40749
+  },
+  "cost_usd": 0.6191,
+  "latency_s": 258.6
+}

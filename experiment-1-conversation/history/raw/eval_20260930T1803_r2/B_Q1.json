@@ -1,0 +1,77 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "B",
+  "qid": "Q1",
+  "question": "What is Lacrivia's market share by payer channel over the last 13 weeks, and how is it trending?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Over the last 13 weeks (weeks ending 3 Jul to 25 Sep 2026), Lacrivia held **23.75% of prescriptions (TRx) in the dry eye market**. Share rose about 1.8 points, from 22.8% in the first 4 weeks to 24.6% in the last 4. Commercial drove the gain. Medicare Part D is losing share.\n\n| Payer channel | Lacrivia TRx / market TRx (13 wks) | 13-week share | First 4 wks \u2192 last 4 wks | Trend (change per week) |\n|---|---|---|---|---|\n| **Total** | 10,442 / 43,975 | **23.75%** | 22.81% \u2192 24.60% | \u25b2 +0.21 pts |\n| Commercial | 5,649 / 21,530 | **26.24%** | 23.58% \u2192 28.78% | \u25b2 +0.59 pts, rising steadily |\n| Medicare Part D | 2,184 / 11,055 | **19.76%** | 22.25% \u2192 18.27% | \u25bc \u22120.41 pts, falling |\n| Managed Medicaid | 999 / 4,412 | **22.64%** | 22.44% \u2192 21.58% | \u25ac about flat, drifting down (\u22120.11 pts) |\n| Medicaid FFS | 436 / 1,885 | **23.13%** | 20.36% \u2192 24.37% | \u25b2 +0.41 pts (small numbers) |\n| Health Exchange | 589 / 2,679 | **21.99%** | 21.73% \u2192 22.50% | \u25ac about flat, jumps week to week (15\u201326%) |\n| Cash / Discount | 585 / 2,414 | **24.23%** | 22.10% \u2192 25.32% | \u25b2 +0.27 pts, but peaked at 31.7% on 4 Sep and fell back to 21.4% |\n\n**What stands out**\n- **Commercial is the growth engine.** Weekly share climbed from about 23% in early July to 29.3% in the week ending 25 Sep. That's more than 5 points, on a market that stayed flat at about 1,650 TRx a week. This is real market-share gain, not market growth.\n- **Medicare Part D is losing share.** Lacrivia's Part D prescriptions fell from 717 to 645 (first 4 weeks vs last 4). Over the same stretch, the Part D market grew from 3,223 to 3,531. Share dropped sharply in the week ending 14 Aug (to 17.1%) and has stayed at 17\u201319% since. A sudden step like that often points to a coverage or formulary change, such as a tier change, prior authorization or a competitor winning a preferred position. I haven't checked this; the next step would be to compare Lacrivia's Part D claim paid and rejection rates before and after mid-August.\n- **The smaller channels (Medicaid FFS, Health Exchange, Cash)** each have about 150\u2013230 market prescriptions a week, so a few prescriptions swing share by several points. Read their trends as directional only.\n\n**Sources and definitions**\n- **Metric:** the company-approved share metric (`trx_share_by_market`, signed off by Commercial Analytics): Lacrivia prescriptions divided by prescriptions for all products in the dry eye market. It is not divided by all products.\n- **Market:** the dry eye market list (`BIZ.MKT_DEF_DRIVER`, file v7), joined by product code within its effective dates. It covers Lacrivia's 5 mL and 10 mL packs, Cyclosporine OS, Cyclomist, Hydrova, Tearsol and generic cyclosporine.\n- **Data:** weekly prescriptions (`RAW_3P.RXT_WKLY`) and the product master (`CORE.PRODUCT`), both from the approved Commercial Demand data. My figures matched the approved weekly share table that feeds the Payer Report (`MART.PYR_SHR_WK`) exactly for every channel. I didn't use the deprecated `PYR_SHR_WK_OLD` table or the sandbox `LACRIVIA_SHR_SCRATCH`.\n- **Payer channel:** the channel code on each prescription (C, D, H, M, MM, X), named using the company's reference list of channels.\n- **Access:** the data-use check allowed this analysis for the MARKET_ACCESS role with no masking. I logged the analysis (trace 02486d44).\n\n**Assumptions**\n- \"Last 13 weeks\" means the 13 most recent weeks in the data, ending 25 Sep 2026.\n- \"Trending\" compares the first 4 and last 4 weeks, plus the average weekly change in share (a straight-line fit across all 13 weeks).\n- Channel totals don't add up across rows because each channel has its own market total.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_concept",
+    "get_metric",
+    "get_join_path",
+    "get_join_path",
+    "get_reference",
+    "get_reference",
+    "get_business_rules",
+    "list_deprecated_tables",
+    "get_report",
+    "get_data_product",
+    "get_concept",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nbase AS (\n SELECT r.WK_END_DT, r.CHNL_CD, SUM(CASE WHEN p.BRAND_NM='LACRIVIA' THEN r.TRX_QTY ELSE 0 END) brand_trx, SUM(r.TRX_QTY) mkt_trx\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n JOIN wks w ON w.WK_END_DT=r.WK_END_DT\n JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11=r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\n JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\n GROUP BY 1,2)\nSELECT WK_END_DT, CHNL_CD, brand_trx, mkt_trx, ROUND(100*brand_trx/NULLIF(mkt_trx,0),2) shr FROM base ORDER BY CHNL_CD, WK_END_DT",
+      "ok": true,
+      "rows": 78,
+      "error": null,
+      "elapsed_s": 2.6
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT WK_END_DT, ROW_NUMBER() OVER (ORDER BY WK_END_DT) wn FROM (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY) QUALIFY ROW_NUMBER() OVER (ORDER BY WK_END_DT DESC) <= 13),\nbase AS (\n SELECT w.wn, r.CHNL_CD, SUM(CASE WHEN p.BRAND_NM='LACRIVIA' THEN r.TRX_QTY ELSE 0 END) b, SUM(r.TRX_QTY) m\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n JOIN wks w ON w.WK_END_DT=r.WK_END_DT\n JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER d ON d.PROD_NDC11=r.PROD_NDC11 AND d.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN d.EFF_FROM AND d.EFF_TO\n JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\n GROUP BY 1,2),\ntot AS (SELECT wn, 'ALL' CHNL_CD, SUM(b) b, SUM(m) m FROM base GROUP BY 1),\nu AS (SELECT * FROM base UNION ALL SELECT * FROM tot)\nSELECT CHNL_CD, SUM(b) brand_trx_13w, SUM(m) mkt_trx_13w, ROUND(100*SUM(b)/SUM(m),2) shr_13w,\n ROUND(100*SUM(CASE WHEN wn<=4 THEN b END)/SUM(CASE WHEN wn<=4 THEN m END),2) shr_first4,\n ROUND(100*SUM(CASE WHEN wn>=10 THEN b END)/SUM(CASE WHEN wn>=10 THEN m END),2) shr_last4,\n ROUND(100*REGR_SLOPE(b/m, wn),3) slope_pts_per_wk,\n ROUND(SUM(CASE WHEN wn<=4 THEN m END)/4,0) mkt_wk_first4, ROUND(SUM(CASE WHEN wn>=10 THEN m END)/4,0) mkt_wk_last4\nFROM u GROUP BY 1 ORDER BY mkt_trx_13w DESC",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 3.02
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.MART.PYR_SHR_WK ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT CHNL_CD, MIN(s.WK_END_DT) mn, MAX(s.WK_END_DT) mx, SUM(BRAND_TRX) b, SUM(MKT_TRX) m, ROUND(100*SUM(BRAND_TRX)/SUM(MKT_TRX),2) shr\nFROM PHARMA_DEMO.MART.PYR_SHR_WK s JOIN wks USING (WK_END_DT)\nWHERE BRAND_NM='LACRIVIA' AND MKT_DEF='DRY_EYE' GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 3.81
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH w0 AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nwks AS (SELECT WK_END_DT, ROW_NUMBER() OVER (ORDER BY WK_END_DT) wn FROM w0),\nbase AS (\n SELECT w.wn, r.CHNL_CD, SUM(CASE WHEN p.BRAND_NM='LACRIVIA' THEN r.TRX_QTY ELSE 0 END) b, SUM(r.TRX_QTY) m\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n JOIN wks w ON w.WK_END_DT=r.WK_END_DT\n JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER d ON d.PROD_NDC11=r.PROD_NDC11 AND d.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN d.EFF_FROM AND d.EFF_TO\n JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\n GROUP BY 1,2),\ntot AS (SELECT wn, 'ALL' CHNL_CD, SUM(b) b, SUM(m) m FROM base GROUP BY 1),\nu AS (SELECT * FROM base UNION ALL SELECT * FROM tot)\nSELECT CHNL_CD, SUM(b) brand_trx_13w, SUM(m) mkt_trx_13w, ROUND(100*SUM(b)/SUM(m),2) shr_13w,\n ROUND(100*SUM(CASE WHEN wn<=4 THEN b END)/SUM(CASE WHEN wn<=4 THEN m END),2) shr_first4,\n ROUND(100*SUM(CASE WHEN wn>=10 THEN b END)/SUM(CASE WHEN wn>=10 THEN m END),2) shr_last4,\n ROUND(100*REGR_SLOPE(b/m, wn),3) slope_pts_per_wk,\n SUM(CASE WHEN wn<=4 THEN b END) b_first4, SUM(CASE WHEN wn>=10 THEN b END) b_last4,\n SUM(CASE WHEN wn<=4 THEN m END) m_first4, SUM(CASE WHEN wn>=10 THEN m END) m_last4\nFROM u GROUP BY 1 ORDER BY mkt_trx_13w DESC",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 2.98
+    }
+  ],
+  "usage": {
+    "input": 22,
+    "output": 7219,
+    "cache_read": 145410,
+    "cache_write": 25725
+  },
+  "cost_usd": 0.3022,
+  "latency_s": 108.8,
+  "cypher_queries": 73
+}

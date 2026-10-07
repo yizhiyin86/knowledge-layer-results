@@ -1,0 +1,80 @@
+{
+  "run_id": "eval_20261001T2144_r2",
+  "agent": "B",
+  "qid": "Q1",
+  "question": "What is Lacrivia's market share by payer channel over the last 13 weeks, and how is it trending?",
+  "role": "MARKET_ACCESS",
+  "effort": "high",
+  "answer": "Over the last 13 weeks (weeks ending 3 Jul to 25 Sep 2026), Lacrivia held **23.7% of dry-eye TRx** (10,442 of 43,975). Its share is **rising, driven by Commercial**. Medicare Part D is the one channel where share is falling.\n\n**Lacrivia TRx share of the DRY_EYE market by payer channel**\n\n| Channel | Lacrivia TRx (13 wk) | Market TRx (13 wk) | 13-wk share | First 4 wks | Last 4 wks | Trend |\n|---|---|---|---|---|---|---|\n| Commercial | 5,649 | 21,530 | **26.2%** | 23.6% | 28.8% | \u25b2 +5.2 pts, steady climb |\n| Medicare Part D | 2,184 | 11,055 | **19.8%** | 22.2% | 18.3% | \u25bc \u22123.9 pts, slow erosion |\n| Managed Medicaid | 999 | 4,412 | 22.6% | 22.4% | 21.6% | \u2248 flat to slightly down |\n| Health Exchange | 589 | 2,679 | 22.0% | 21.7% | 22.5% | \u2248 flat (noisy) |\n| Cash / Discount | 585 | 2,414 | 24.2% | 22.1% | 25.3% | \u25b2 but volatile |\n| Medicaid FFS | 436 | 1,885 | 23.1% | 20.4% | 24.4% | \u25b2 but low volume |\n| **Total** | **10,442** | **43,975** | **23.7%** | 22.8% | 24.6% | \u25b2 +1.8 pts |\n\n**How it's trending**\n- **Commercial (about half of market TRx) is the growth engine.** Weekly share rose almost every week, from 23.1% to 29.3%. Lacrivia TRx grew from about 390 to about 489 a week while the market stayed flat at about 1,650\u20131,690 a week. The gain came mainly from Tearsol (25.1% \u2192 23.3%) and generic cyclosporine (20.1% \u2192 18.0%).\n- **Medicare Part D is the watch-out.** Share went from 21.9% to 18.3%. The 26.4% in the week of 17 Jul was a one-week spike. Lacrivia volume stayed flat at about 155\u2013180 TRx a week while the Part D market grew from about 820 to 920 a week. Competitors took that growth: Cyclomist rose from 14.1% to 15.3%, generic cyclosporine from 20.0% to 21.2% and Tearsol from 24.5% to 25.7%. That points to a coverage or access question in Part D. A useful next step is to check Part D paid rate and reject reasons in the claims data.\n- **Medicaid FFS, Managed Medicaid, Health Exchange and Cash are small channels.** Each has about 140\u2013350 market TRx a week, so weekly share swings of \u00b15 points are mostly noise. Their 13-week shares sit at about 22\u201324% with no clear direction. The Cash rise peaked at 31.7% in early September and has since fallen back to about 21%.\n\n**Sources and definitions**\n- **Metric:** the ratified `trx_share_by_market` (Commercial Analytics), which is Lacrivia TRx divided by the TRx of all packs in its market. It is not divided by all products.\n- **Market:** the market definition file `BIZ.MKT_DEF_DRIVER` with `MKT_DEF = 'DRY_EYE'`, within its effective dates. That covers Lacrivia (5 mL and 10 mL), Cyclosporine OS, generic cyclosporine, Cyclomist, Hydrova and Tearsol, and matches the governed `market_definition` reference set.\n- **Volume:** `RAW_3P.RXT_WKLY` (the ratified weekly prescription source), with `CHNL_CD` decoded through `REF.CHNL`. It agreed with `CORE.PAYER_SPINE` channel on every row (0 mismatches). Brand names come from `CORE.PRODUCT`.\n- **Last 13 weeks:** the 13 most recent week-ending dates in the data, 3 Jul to 25 Sep 2026 (Fridays).\n- **Trend:** the first 4 weeks compared with the last 4 weeks, read alongside the weekly series.\n- **Avoided:** the deprecated `MART.PYR_SHR_WK_OLD` table.\n- **Policy:** no restricted tables were used for the MARKET_ACCESS role.",
+  "stop_reason": "end_turn",
+  "model_turns": 7,
+  "tool_calls": [
+    "get_context",
+    "get_reference",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT p.*, m.MKT_DEF, m.EFF_FROM, m.EFF_TO FROM PHARMA_DEMO.CORE.PRODUCT p LEFT JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11=p.PROD_NDC11 ORDER BY m.MKT_DEF, p.BRAND_NM",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 13.81
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.REF.CHNL",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.69
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nbase AS (\n SELECT r.WK_END_DT, r.CHNL_CD, SUM(IFF(p.BRAND_NM='LACRIVIA', r.TRX_QTY,0)) lac, SUM(r.TRX_QTY) mkt\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n JOIN wk ON wk.WK_END_DT=r.WK_END_DT\n JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11=r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\n JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\n GROUP BY 1,2)\nSELECT WK_END_DT, CHNL_CD, lac, mkt, ROUND(lac/NULLIF(mkt,0)*100,2) shr FROM base ORDER BY CHNL_CD, WK_END_DT",
+      "ok": true,
+      "rows": 78,
+      "error": null,
+      "elapsed_s": 2.86
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wk AS (SELECT WK_END_DT, ROW_NUMBER() OVER (ORDER BY WK_END_DT) n FROM (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY) QUALIFY ROW_NUMBER() OVER (ORDER BY WK_END_DT DESC)<=13),\nb AS (\n SELECT COALESCE(r.CHNL_CD,'ALL') ch, wk.n, r.CHNL_CD raw_ch, r.TRX_QTY, IFF(p.BRAND_NM='LACRIVIA', r.TRX_QTY,0) lac, IFF(ps.CHNL_CD<>r.CHNL_CD,1,0) mismatch\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n JOIN wk ON wk.WK_END_DT=r.WK_END_DT\n JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11=r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\n JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\n LEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE ps ON ps.PLAN_ID=r.PLAN_ID)\nSELECT COALESCE(raw_ch,'ALL') ch, SUM(lac) lac13, SUM(TRX_QTY) mkt13, ROUND(SUM(lac)/SUM(TRX_QTY)*100,1) shr13,\n ROUND(SUM(IFF(n<=4,lac,0))/SUM(IFF(n<=4,TRX_QTY,0))*100,1) first4,\n ROUND(SUM(IFF(n>=10,lac,0))/SUM(IFF(n>=10,TRX_QTY,0))*100,1) last4,\n SUM(mismatch) mism\nFROM b GROUP BY ROLLUP(raw_ch) ORDER BY mkt13 DESC",
+      "ok": false,
+      "rows": null,
+      "error": "100051 (22012): Division by zero",
+      "elapsed_s": 2.02
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH w0 AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nwk AS (SELECT WK_END_DT, ROW_NUMBER() OVER (ORDER BY WK_END_DT) n FROM w0),\nb AS (\n SELECT wk.n, r.CHNL_CD raw_ch, r.TRX_QTY, IFF(p.BRAND_NM='LACRIVIA', r.TRX_QTY,0) lac, IFF(ps.CHNL_CD IS DISTINCT FROM r.CHNL_CD,1,0) mismatch\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n JOIN wk ON wk.WK_END_DT=r.WK_END_DT\n JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11=r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\n JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\n LEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE ps ON ps.PLAN_ID=r.PLAN_ID)\nSELECT COALESCE(raw_ch,'ALL') ch, SUM(lac) lac13, SUM(TRX_QTY) mkt13, ROUND(SUM(lac)/SUM(TRX_QTY)*100,1) shr13,\n ROUND(SUM(IFF(n<=4,lac,0))/NULLIF(SUM(IFF(n<=4,TRX_QTY,0)),0)*100,1) first4,\n ROUND(SUM(IFF(n>=10,lac,0))/NULLIF(SUM(IFF(n>=10,TRX_QTY,0)),0)*100,1) last4,\n SUM(mismatch) mism\nFROM b GROUP BY ROLLUP(raw_ch) ORDER BY mkt13 DESC",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 2.14
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH w0 AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13),\nwk AS (SELECT WK_END_DT, ROW_NUMBER() OVER (ORDER BY WK_END_DT) n FROM w0),\nb AS (\n SELECT wk.n, r.CHNL_CD ch, p.BRAND_NM, r.TRX_QTY\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n JOIN wk ON wk.WK_END_DT=r.WK_END_DT\n JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11=r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\n JOIN PHARMA_DEMO.CORE.PRODUCT p ON p.PROD_NDC11=r.PROD_NDC11\n WHERE r.CHNL_CD IN ('C','D'))\nSELECT ch, BRAND_NM,\n ROUND(SUM(IFF(n<=4,TRX_QTY,0))/SUM(SUM(IFF(n<=4,TRX_QTY,0))) OVER (PARTITION BY ch)*100,1) first4,\n ROUND(SUM(IFF(n>=10,TRX_QTY,0))/SUM(SUM(IFF(n>=10,TRX_QTY,0))) OVER (PARTITION BY ch)*100,1) last4\nFROM b GROUP BY ch, BRAND_NM ORDER BY ch, BRAND_NM",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 4.28
+    }
+  ],
+  "cypher_queries": 10,
+  "usage": {
+    "input": 16,
+    "output": 5671,
+    "cache_read": 71156,
+    "cache_write": 17992
+  },
+  "cost_usd": 0.2177,
+  "latency_s": 84.9
+}

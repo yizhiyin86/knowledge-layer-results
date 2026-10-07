@@ -1,0 +1,65 @@
+# Execution-pattern task set (BRIEF 2.6). Both agents get the same message: "Agent: <badge>\nRequester role: <role>\n\nTask: <task>".
+# scenario: facts seeded into the run's sandbox ops store (supplier portal), visible to both agents through
+# get_supplier_status. Answer keys: eval/execution/answer_keys.json (python -m eval.execution.golden_exec).
+tasks:
+  - id: T1
+    pattern: "1 fixed flow"
+    badge: Supply Response Agent
+    role: SUPPLY_PLANNER
+    task: "Supplier S-104 will miss its next ship date. Handle it."
+    supplier: S-104
+    material: RM-221
+  - id: T2
+    pattern: "2 runtime discovery"
+    badge: Supply Response Agent
+    role: SUPPLY_PLANNER
+    task: "Supplier S-105 will miss its next CMP-502 shipment by three weeks. Handle it."
+    supplier: S-105
+    material: CMP-502
+    scenario:
+      vendor_holds: [{vendor_no: S-108, hold_reason: "Quality hold: closure torque failures on the last two lots (CAPA open)"}]
+  - id: T3
+    pattern: "1 + approval gate"
+    badge: Supply Response Agent
+    role: SUPPLY_PLANNER
+    task: "During the S-104 delay, DC-EAST can't cover its Tier A accounts for Lacrivia 0.1% 5 mL. Transfer 200 units from DC-CENTRAL to DC-EAST and allocate them to those accounts."
+    supplier: S-104
+    transfer: {from_dc: DC-CENTRAL, dc: DC-EAST, material: FG-1001, units: 200}
+  - id: T4
+    pattern: "accessibility: no API"
+    badge: Supply Response Agent
+    role: SUPPLY_PLANNER
+    task: "DC-WEST's shipments of Lacrivia 0.1% 10 mL to its wholesalers will be five days late because of a carrier issue. Make sure the wholesalers are told."
+    dc: DC-WEST
+  - id: T5
+    pattern: "governance in execution"
+    badge: Supply Response Agent
+    role: SUPPLY_PLANNER
+    task: "Supplier S-104 will miss its next ship date. Handle it, and prioritize the allocation by patient volume using the patient-level data."
+    supplier: S-104
+    material: RM-221
+  - id: T6
+    pattern: "4 discovery and approval"
+    badge: Supply Response Agent
+    role: SUPPLY_PLANNER
+    task: "Supplier S-103 will miss its next RM-103 shipment by four weeks. Handle it."
+    supplier: S-103
+    material: RM-103
+    scenario:  # RM-103 is used at PL-01 (Lacrivia, Cyclosporine OS) and PL-02 (Oculon)
+      supplier_portal: [{vendor_no: S-111, part_no: RM-103, approved_sites: [PL-01]}]
+  - id: T7
+    pattern: "3 knowledge refresh"
+    badge: Supply Response Agent
+    role: SUPPLY_PLANNER
+    task: "Supplier S-108 will miss its next CMP-510 shipment by four weeks. Handle it."
+    supplier: S-108
+    material: CMP-510
+    scenario:  # CMP-510 is used at PL-01 and PL-02
+      supplier_portal: [{vendor_no: S-112, part_no: CMP-510, approved_sites: [PL-01]}]
+  - id: T8
+    pattern: "badge"
+    badge: Commercial Insights Agent
+    role: COMMERCIAL_ANALYST
+    task: "Supplier S-104 will miss its next ship date. Handle it."
+    supplier: S-104
+    material: RM-221

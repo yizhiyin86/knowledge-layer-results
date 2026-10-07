@@ -1,0 +1,116 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "B",
+  "qid": "Q7",
+  "question": "Is DC-EAST at risk of a Lacrivia stockout given the recent TRx demand trend?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Yes. DC-EAST is almost certainly out of stock of Lacrivia already, or will be within a day or two.** Both pack sizes are far below safety stock, while demand in the region is rising.\n\n**Stock position at DC-EAST (latest snapshot, 2026-09-25)**\n\n| Pack | On hand | Safety stock | Shipped, last 28 days | Days of supply |\n|---|---|---|---|---|\n| FG-1001 Lacrivia 5 mL | 46 | 471 | 1,027 (about 37 a day) | **1.3** |\n| FG-1002 Lacrivia 10 mL | 34 | 233 | 423 (about 15 a day) | **2.3** |\n\nThe data runs to 2026-09-30, five days after that snapshot. At these shipment rates both packs have probably run out already.\n\n**Demand trend (TRx from prescribers whose accounts are in DC-EAST states)**\n- **Last 13 weeks vs. the 13 before: 5,170 vs. 4,761 TRx, up 8.6%.** The 5 mL grew 8.5% (3,473 vs. 3,201) and the 10 mL grew 8.8% (1,697 vs. 1,560).\n- **Demand is speeding up.** The last 4 weeks averaged 424 TRx a week, compared with 398 in the 4 weeks before and 366 a week in the earlier 13-week period.\n- Sizing stock against prescription demand gives the same picture: at about 290 5 mL TRx a week, 46 units cover roughly one day.\n\n**Why the stock fell: rising demand plus a drop in resupply**\n- From 08-14 to 09-25, on-hand fell from 1,227 to 46 units (5 mL) and from 572 to 34 (10 mL). Shipments stayed steady at about 250 and 118 units a week.\n- That means much less stock has been arriving at DC-EAST since mid-August. Before then, deliveries in roughly matched shipments out.\n- In the week to 09-11, 5 mL stock dropped by 539 units, far more than was shipped. It could be a quality hold or a write-off, but I haven't confirmed it. It's worth checking.\n- The problem is limited to DC-EAST. DC-CENTRAL has 31\u201334 days of supply and DC-WEST has 35\u201341.\n\n**Options**\n1. **Transfer stock from the other DCs.** Together they hold about 695 5 mL and 391 10 mL units above their safety stock. That covers about 2.7 and 3.7 weeks of DC-EAST shipments. Under the shortage allocation rule (BR-ALLOC-01), any transfer between DCs needs Supply Planning approval.\n2. **Allocate what's left** in this order: Tier A health-system contracts first, then Tier B, then all other accounts split in proportion to their last-13-week TRx.\n3. **Find out why resupply dropped.** Recovery has to wait for every production and release step, including a 14-day sterility test (BR-LEAD-01). So resupply from production won't fix this quickly. Transfers are the only near-term fix.\n\n**Sources and definitions**\n- **Inventory and shipments:** ratified Supply Execution tables (`dbo.DC_INV`, `dbo.WHSLR_SHIP`).\n- **Days of supply:** the ratified `days_of_supply` metric, which is the latest on-hand divided by average daily units shipped from that DC over the last 28 days.\n- **TRx:** ratified Commercial Demand table `RAW_3P.RXT_WKLY`, linked to prescriber and then account to get the state.\n- **Product match:** Lacrivia packs were matched to NDCs 99101010105 and 99101010110 by stripping the dashes from the supply-side NDC codes (the approved cross-platform join).\n- **DC-EAST region:** the governed `dc_service_regions` list (NY, NJ, PA, MA, FL, GA, NC, OH), applied through BR-REGION-01.\n- **Policy:** the check returned \"allow\" for SUPPLY_PLANNER, with no masking.\n- **Assumptions:**\n  - A prescriber's region comes from their affiliated account's state.\n  - Shipments to wholesalers stand in for how fast stock leaves the DC. There's no table of deliveries into the DC, so the resupply drop is worked out from stock levels minus shipments.\n  - The 13-week periods are the most recent weekly periods, ending 2026-09-25.\n\nThe decision trace is logged as 168a69dc.",
+  "stop_reason": "end_turn",
+  "model_turns": 11,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_concept",
+    "get_business_rules",
+    "get_reference",
+    "get_metric",
+    "get_concept",
+    "get_join_path",
+    "get_join_path",
+    "get_metric",
+    "get_data_product",
+    "list_deprecated_tables",
+    "check_policy",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "check_policy",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "list_tables",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT PROD_NDC11, BRAND_NM, * FROM PHARMA_DEMO.CORE.PRODUCT WHERE BRAND_NM ILIKE '%lacrivia%'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 19.65
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.MATERIAL_ID, m.*, x.NDC FROM dbo.MATERIAL m LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID = m.MATERIAL_ID WHERE m.MATERIAL_TYP='FG'",
+      "ok": true,
+      "rows": 60,
+      "error": null,
+      "elapsed_s": 1.01
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT >= '2026-06-01' ORDER BY MATERIAL_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 34,
+      "error": null,
+      "elapsed_s": 1.57
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, DATEADD(day, -((DATEDIFF(day,'2026-09-30',SHIP_DT) % 28 + 28) % 28), SHIP_DT) AS dummy, COUNT(*) n FROM dbo.WHSLR_SHIP WHERE 1=0 GROUP BY MATERIAL_ID, SHIP_DT",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.77
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, DATEADD(week, DATEDIFF(week, '2026-01-02', SHIP_DT), '2026-01-02') AS wk_start, SUM(UNITS) units, COUNT(*) n_ship FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT >= '2026-06-01' GROUP BY MATERIAL_ID, DATEADD(week, DATEDIFF(week, '2026-01-02', SHIP_DT), '2026-01-02') ORDER BY MATERIAL_ID, wk_start",
+      "ok": true,
+      "rows": 34,
+      "error": null,
+      "elapsed_s": 2.26
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH inv AS (SELECT MATERIAL_ID, ON_HAND_UNITS, SAFETY_STOCK_UNITS, SNAPSHOT_DT, ROW_NUMBER() OVER (PARTITION BY MATERIAL_ID ORDER BY SNAPSHOT_DT DESC) rn FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002')),\nsh AS (SELECT MATERIAL_ID, SUM(UNITS) u28 FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT > DATEADD(day,-28,'2026-09-30') AND SHIP_DT <= '2026-09-30' GROUP BY MATERIAL_ID),\nsh_prior AS (SELECT MATERIAL_ID, SUM(UNITS) u28p FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT > DATEADD(day,-56,'2026-09-30') AND SHIP_DT <= DATEADD(day,-28,'2026-09-30') GROUP BY MATERIAL_ID)\nSELECT i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS, s.u28, p.u28p, CAST(i.ON_HAND_UNITS / (s.u28/28.0) AS decimal(10,1)) AS days_of_supply FROM inv i LEFT JOIN sh s ON s.MATERIAL_ID=i.MATERIAL_ID LEFT JOIN sh_prior p ON p.MATERIAL_ID=i.MATERIAL_ID WHERE rn=1",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 2.57
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH wks AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 26)\nSELECT r.WK_END_DT,\n SUM(CASE WHEN a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH') THEN r.TRX_QTY ELSE 0 END) AS east_trx,\n SUM(CASE WHEN a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH') AND r.PROD_NDC11='99101010105' THEN r.TRX_QTY ELSE 0 END) AS east_trx_5ml,\n SUM(CASE WHEN a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH') AND r.PROD_NDC11='99101010110' THEN r.TRX_QTY ELSE 0 END) AS east_trx_10ml,\n SUM(r.TRX_QTY) AS national_trx,\n SUM(CASE WHEN a.STATE IS NULL THEN r.TRX_QTY ELSE 0 END) AS unmapped_trx\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\nJOIN wks w ON w.WK_END_DT = r.WK_END_DT\nLEFT JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME = r.PRSCRBR_ME\nLEFT JOIN PHARMA_DEMO.CORE.ACCOUNT a ON a.ACCOUNT_ID = p.ACCOUNT_ID\nWHERE r.PROD_NDC11 IN ('99101010105','99101010110')\nGROUP BY r.WK_END_DT ORDER BY r.WK_END_DT",
+      "ok": true,
+      "rows": 26,
+      "error": null,
+      "elapsed_s": 2.4
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH inv AS (SELECT DC_ID, MATERIAL_ID, ON_HAND_UNITS, SAFETY_STOCK_UNITS, SNAPSHOT_DT, ROW_NUMBER() OVER (PARTITION BY DC_ID, MATERIAL_ID ORDER BY SNAPSHOT_DT DESC) rn FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002')),\nsh AS (SELECT DC_ID, MATERIAL_ID, SUM(UNITS) u28 FROM dbo.WHSLR_SHIP WHERE MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT > DATEADD(day,-28,'2026-09-30') AND SHIP_DT <= '2026-09-30' GROUP BY DC_ID, MATERIAL_ID)\nSELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS, s.u28, CAST(i.ON_HAND_UNITS/(NULLIF(s.u28,0)/28.0) AS decimal(10,1)) dos FROM inv i LEFT JOIN sh s ON s.DC_ID=i.DC_ID AND s.MATERIAL_ID=i.MATERIAL_ID WHERE rn=1 ORDER BY i.MATERIAL_ID, i.DC_ID",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.81
+    }
+  ],
+  "usage": {
+    "input": 24,
+    "output": 9879,
+    "cache_read": 179023,
+    "cache_write": 32530
+  },
+  "cost_usd": 0.3961,
+  "latency_s": 160.3,
+  "cypher_queries": 85
+}

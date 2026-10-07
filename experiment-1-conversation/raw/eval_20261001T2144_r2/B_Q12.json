@@ -1,0 +1,86 @@
+{
+  "run_id": "eval_20261001T2144_r2",
+  "agent": "B",
+  "qid": "Q12",
+  "question": "If S-104's next RM-221 shipment ships two weeks late, when will DC-EAST run out of Lacrivia, when will supply recover there, and which customers get supply first under our allocation rules?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Short answer:** The two-week delay doesn't change when DC-EAST runs out of Lacrivia, because it already has. It does push recovery back by 14 days, from about 26 Nov to about **10 Dec 2026**. Until then, the rules say Tier A health systems get stock first, then Tier B, then everyone else pro rata. There is no approved company substitute.\n\n**1. When DC-EAST runs out**\n| Pack | On hand 25 Sep | Safety stock | Average shipped per day (last 28 days) | Days of supply | Projected stock-out |\n|---|---|---|---|---|---|\n| FG-1001 Lacrivia 5 mL | 46 | 471 | 36.7 | 1.3 | **about 26 Sep 2026** |\n| FG-1002 Lacrivia 10 mL | 34 | 233 | 15.1 | 2.3 | **about 27 Sep 2026** |\n\nAs of the 30 Sep data date, DC-EAST is effectively out of both packs.\n\n**2. When supply recovers**\n- The next shipment is PO005791: 4,200 units of RM-221 (polysorbate 80, a raw material). S-104 promised to ship it on 7 Oct. Two weeks late means it ships **21 Oct**.\n- It takes 50 days from shipment until finished Lacrivia reaches the DC (plant standard times):\n  - 6 days transit to the S-201 premix site (arrives 27 Oct)\n  - 10 days to make the CMP-310 premix (6 Nov)\n  - 4 days for SEMI-031 (10 Nov)\n  - 8 days for the SEMI-044 bulk emulsion (18 Nov)\n  - 3 days to fill (21 Nov)\n  - 1 day to pack, 14 days of sterility testing and QC release, and 4 days to the DC (**10 Dec**)\n- So DC-EAST goes without Lacrivia for about 75 days, from late September to 10 Dec. At current demand that is a shortfall of about **2,750 units of 5 mL and 1,130 of 10 mL**. The delay alone adds about 510 and 210 units.\n- The risk is real. S-104 shipped 11 of its 35 closed RM-221 orders in 2026 late, by up to 20 days. It is the only qualified source for RM-221: the alternate, S-131, is not qualified.\n\n**3. Who gets supply first (rule BR-ALLOC-01)**\nThese figures are Lacrivia prescriptions over the last 13 weeks from clinics in DC-EAST's states (NY, NJ, PA, MA, FL, GA, NC, OH), rolled up to the health system. Clinics get their health system's contract tier.\n\n| Priority | Customer | Prescriptions, last 13 weeks (5 mL / 10 mL) |\n|---|---|---|\n| 1 \u2013 Tier A | Riverbend Health System | 836 (565 / 271) |\n| 1 \u2013 Tier A | Oak Hollow Health System | 708 (471 / 237) |\n| 1 \u2013 Tier A | Northfield Health System | 533 (359 / 174) |\n| 2 \u2013 Tier B | Clearview Health System | 530 (347 / 183) |\n| 2 \u2013 Tier B | Sunridge Health System | 428 (283 / 145) |\n| 3 \u2013 Pro rata | 18 other customers, 2,135 prescriptions | Largest shares: Brightwater HS 19.4%, Stonegate HS 15.0%, Sunridge Vision Associates 20 9.3%, Willow Creek HS 8.8%, Harbor Point VA 2 6.5%, Highland VA 26 6.2%. The rest are 5.2% or less each. |\n\n- Tier A needs about 160 prescriptions a week and Tier B about 74. Together that is about 59% of DC-EAST demand of about 398 a week.\n- Riverbend and Clearview are headquartered outside the east, but their clinics in DC-EAST states are served from DC-EAST.\n- Independent clinics whose names look like a health system's (for example \"Sunridge Vision Associates 20\" or \"Northfield VA 19\") are not part of those systems. They get no contract tier and fall into the pro-rata group.\n\n**4. Options and limits**\n- **No approved substitute.** Cyclosporine OS 0.05% (FG-1003) uses the same RM-221 and CMP-310 chain, so rule BR-SUB-01 means there is no company substitute. Medical Affairs would guide alternative treatments.\n- **Moving stock from other DCs** needs Supply Planning approval. Stock above safety stock is about 695 units of 5 mL (DC-CENTRAL 363, DC-WEST 332) and about 390 of 10 mL. That covers only about 2\u20133 weeks of Tier A and B demand. Both DCs also run out in late October or early November, still before 10 Dec, because they depend on the same supply chain.\n\n**Sources and definitions**\n- **Knowledge-layer rules:** BR-ALLOC-01 (allocation order), BR-LEAD-01 (recovery only after every stage completes), BR-SUB-01 (substitutes), BR-REGION-01 (which DC serves which states), BR-CUST-01 (customer = top-level health system or independent clinic).\n- **Metric:** the ratified days-of-supply definition.\n- **Supply tools:** the supply trace for S-104 and RM-221 (current bill-of-materials links only) and the lead-time tool's plant standard times for RM-221 to FG-1001 and FG-1002.\n- **Reference sets:** supply_contracts (tiers, held in the contract-management system), dc_service_regions and approved_substitutes.\n- **Supply data (Fabric):** dbo.PURCH_ORD, dbo.DC_INV and dbo.WHSLR_SHIP.\n- **Commercial data (Snowflake):** RAW_3P.RXT_WKLY joined to CORE.PRESCRIBER and CORE.ACCOUNT, rolled up to the top-level account; NDCs 99101010105 and 99101010110.\n- I started from the earlier answer on DC-EAST stock-out risk.\n\n**Assumptions**\n- Recovery depends on PO005791. The warehouse has no work-in-progress data, so I can't see whether earlier RM-221 lots (shipped 22 and 24 Sep) are already in production. Please confirm with plant PL-01 and S-201.\n- Demand stays at the last 28 days' shipment rate. Prescription demand in the east is up about 8\u20139%, so the shortfall may be larger.\n- There is no other inbound stock to DC-EAST before 10 Dec.",
+  "stop_reason": "end_turn",
+  "model_turns": 7,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "trace_supply_exposure",
+    "run_sql",
+    "run_sql",
+    "get_reference",
+    "get_reference",
+    "get_lead_times",
+    "get_lead_times",
+    "run_sql",
+    "get_reference",
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND (MATERIAL_ID='RM-221' OR STATUS='OPEN') AND ORDER_DT >= '2026-01-01' ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 38,
+      "error": null,
+      "elapsed_s": 1.28
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT >= '2026-08-28' ORDER BY MATERIAL_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.09
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, SUM(UNITS) units_28d, SUM(UNITS)/28.0 avg_daily, MAX(SHIP_DT) last_ship FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT > DATEADD(day,-28,'2026-09-30') AND SHIP_DT <= '2026-09-30' GROUP BY MATERIAL_ID",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 2.29
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS FROM dbo.DC_INV i WHERE i.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003') AND i.SNAPSHOT_DT = (SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) ORDER BY i.MATERIAL_ID, i.DC_ID",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.97
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH mx AS (SELECT MAX(WK_END_DT) m FROM PHARMA_DEMO.RAW_3P.RXT_WKLY),\nacct AS (\n SELECT a.ACCOUNT_ID, a.STATE, a.ACCT_TYP,\n  COALESCE(gp.ACCOUNT_ID, p.ACCOUNT_ID, a.ACCOUNT_ID) top_id\n FROM PHARMA_DEMO.CORE.ACCOUNT a\n LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT p ON a.PARENT_ACCOUNT_ID=p.ACCOUNT_ID\n LEFT JOIN PHARMA_DEMO.CORE.ACCOUNT gp ON p.PARENT_ACCOUNT_ID=gp.ACCOUNT_ID),\nt AS (\n SELECT ac.top_id, SUM(CASE WHEN r.PROD_NDC11='99101010105' THEN r.TRX_QTY ELSE 0 END) trx_5ml,\n  SUM(CASE WHEN r.PROD_NDC11='99101010110' THEN r.TRX_QTY ELSE 0 END) trx_10ml,\n  SUM(r.TRX_QTY) trx, COUNT(DISTINCT ac.ACCOUNT_ID) clinics\n FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n JOIN PHARMA_DEMO.CORE.PRESCRIBER pr ON r.PRSCRBR_ME=pr.PRSCRBR_ME\n JOIN acct ac ON pr.ACCOUNT_ID=ac.ACCOUNT_ID\n CROSS JOIN mx\n WHERE r.PROD_NDC11 IN ('99101010105','99101010110') AND ac.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH')\n AND r.WK_END_DT > DATEADD(week,-13,mx.m)\n GROUP BY 1)\nSELECT t.top_id, a.ACCOUNT_NM, a.ACCT_TYP, a.STATE, t.clinics, t.trx_5ml, t.trx_10ml, t.trx,\n CASE WHEN t.top_id IN ('AC00117','AC00038','AC00059') THEN 'A' WHEN t.top_id IN ('AC00001','AC00138') THEN 'B' ELSE '-' END tier,\n ROUND(100*t.trx/SUM(t.trx) OVER (),2) pct_all\nFROM t JOIN PHARMA_DEMO.CORE.ACCOUNT a ON t.top_id=a.ACCOUNT_ID\nORDER BY CASE WHEN tier='A' THEN 1 WHEN tier='B' THEN 2 ELSE 3 END, t.trx DESC",
+      "ok": true,
+      "rows": 23,
+      "error": null,
+      "elapsed_s": 4.07
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SUM(UNITS)/28.0 avg_daily FROM dbo.WHSLR_SHIP WHERE MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003') AND SHIP_DT > DATEADD(day,-28,'2026-09-30') AND SHIP_DT <= '2026-09-30' GROUP BY DC_ID, MATERIAL_ID ORDER BY MATERIAL_ID, DC_ID",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 2.06
+    }
+  ],
+  "cypher_queries": 18,
+  "usage": {
+    "input": 16,
+    "output": 8672,
+    "cache_read": 116485,
+    "cache_write": 35575
+  },
+  "cost_usd": 0.3747,
+  "latency_s": 101.8
+}

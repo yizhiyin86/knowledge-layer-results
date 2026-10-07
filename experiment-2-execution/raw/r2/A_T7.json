@@ -1,0 +1,235 @@
+{
+  "run_id": "execution_20261007T1700_r2",
+  "agent": "A",
+  "task": "T7",
+  "qid": "T7",
+  "question": "Supplier S-108 will miss its next CMP-510 shipment by four weeks. Handle it.",
+  "role": "SUPPLY_PLANNER",
+  "badge": "Supply Response Agent",
+  "effort": "high",
+  "answer": "I raised a backup order for PL-01 and opened two cases, one for the PL-02 gap and one for East. I couldn't measure how short the plants actually are: there's no data on how many caps they hold. No customers have been told.\n\n**The delay:** S-108 (Halvorsen Closures) is the main supplier of CMP-510, a tamper-evident cap. Its next shipment, PO001006 for 4,100 caps, was due 2026-10-07 and will now arrive around 2026-11-04. S-108 has three more open orders due Oct 15\u201328 (9,400 caps), which I assumed will still arrive on time.\n\n**What it affects:** each of 5 products uses one cap:\n- **Plant PL-01:** Lacrivia 5mL and 10mL, and Cyclosporine 0.05% 5mL. This is about 79% of cap demand.\n- **Plant PL-02:** Oculon 2.5mL and 5mL.\n\n**Stock at the distribution centres (DCs):**\n- **East DC, Lacrivia:** almost out. 5mL has 46 units (safety stock 471, about 0.2 weeks of cover). 10mL has 34 units (safety stock 233, about 0.3 weeks).\n  - East's orders from wholesalers W-01 and W-02 are steady, but it hasn't been restocked since mid-August. This started before the cap delay, and the delay will slow the recovery.\n- **Everything else:** about 4.3\u20135.9 weeks of cover, so a four-week delay is tight.\n\n**The only backup supplier:** S-112 (Lambert Plastics) is active and approved for this cap, but only for PL-01. Nobody else is approved to ship it to PL-02.\n\n**Actions taken:**\n1. **Purchase requisition PR-59B40C15:** 4,100 caps from S-112 to PL-01, needed by 2026-10-07, marked to expedite. S-112 usually takes about 30 days, so without a push it lands around Oct 30.\n2. **Case CASE-49DF1A26, Procurement / Supplier Management:**\n   - Confirm only PO001006 is late and the other three S-108 orders hold.\n   - Ask S-108 to ship part of the order early and put PL-02 first.\n   - Fast-track approval of S-112 for PL-02.\n3. **Case CASE-3C92A7BE, Supply Planning Lead:**\n   - Decide whether to ration East's Lacrivia between W-01 and W-02 and move spare stock from the Central and West DCs. Over 13 weeks the split was 46/54 (5mL) and 55/45 (10mL).\n   - Check how many caps each plant holds.\n   - Decide whether to notify customers.\n\n**Not done, and why:**\n- **No sourcing for PL-02:** no supplier other than S-108 is approved to ship caps there, so I handed it to Procurement.\n- **No rationing or stock-transfer approval requested:** the approval request needs a dollar amount, and I found no unit price in either system. Instead I sent it to the Supply Planning Lead as a decision.\n- **No messages to wholesalers or account teams:** I couldn't measure the shortfall, and the wholesaler inventory feed is down (HTTP 503). Notifying now could cause panic ordering.\n\n**Assumptions:**\n- I didn't split the 4,100 caps between plants: the orders don't say which plant they're for, and PL-01 is the only plant S-112 can ship to.\n- Weekly demand is the last 13 weeks of DC shipments to wholesalers (Jul 2\u2013Sep 25), and stock is from the 2026-09-25 snapshot.\n- I used the current bill of materials, not the legacy copy last updated in 2024-11.",
+  "stop_reason": "end_turn",
+  "model_turns": 16,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "get_supplier_status",
+    "get_supplier_status",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "get_wholesaler_inventory",
+    "get_wholesaler_inventory",
+    "get_wholesaler_inventory",
+    "get_wholesaler_inventory",
+    "describe_table",
+    "create_purchase_requisition",
+    "create_escalation_case",
+    "create_escalation_case"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.*, (SELECT COUNT(*) FROM dbo.BOM b WHERE b.CHILD_MATERIAL_ID=m.MATERIAL_ID) parents FROM dbo.MATERIAL m WHERE MATERIAL_ID='CMP-510';\nSELECT * FROM dbo.SUPPLIER WHERE SUPPLIER_ID='S-108';",
+      "ok": false,
+      "rows": null,
+      "error": "rejected: expected exactly one statement, got 2",
+      "elapsed_s": 0.0
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, s.SUPPLIER_NM, s.COUNTRY, s.TIER FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID='CMP-510'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.0
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD WHERE MATERIAL_ID='CMP-510' ORDER BY PROMISED_SHIP_DT DESC",
+      "ok": true,
+      "rows": 64,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.*, s.SUPPLIER_NM, s.COUNTRY, s.TIER FROM dbo.MATERIAL m CROSS JOIN dbo.SUPPLIER s WHERE m.MATERIAL_ID='CMP-510' AND s.SUPPLIER_ID IN ('S-108','S-112')",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.07
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH t AS (SELECT PARENT_MATERIAL_ID, CHILD_MATERIAL_ID, QTY_PER, EFF_FROM, EFF_TO, 1 lvl FROM dbo.BOM WHERE CHILD_MATERIAL_ID='CMP-510' UNION ALL SELECT b.PARENT_MATERIAL_ID, b.CHILD_MATERIAL_ID, b.QTY_PER, b.EFF_FROM, b.EFF_TO, t.lvl+1 FROM dbo.BOM b JOIN t ON b.CHILD_MATERIAL_ID=t.PARENT_MATERIAL_ID) SELECT t.*, m.MATERIAL_DESC, m.MATERIAL_TYP FROM t LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=t.PARENT_MATERIAL_ID ORDER BY lvl, PARENT_MATERIAL_ID",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 0.9
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b1.PARENT_MATERIAL_ID l1, m1.MATERIAL_TYP t1, b1.QTY_PER q1, b1.EFF_FROM f1, b1.EFF_TO e1, b2.PARENT_MATERIAL_ID l2, m2.MATERIAL_TYP t2, b2.QTY_PER q2, b2.EFF_TO e2, b3.PARENT_MATERIAL_ID l3, m3.MATERIAL_TYP t3, b3.EFF_TO e3, b4.PARENT_MATERIAL_ID l4\nFROM dbo.BOM b1 LEFT JOIN dbo.MATERIAL m1 ON m1.MATERIAL_ID=b1.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b2 ON b2.CHILD_MATERIAL_ID=b1.PARENT_MATERIAL_ID LEFT JOIN dbo.MATERIAL m2 ON m2.MATERIAL_ID=b2.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b3 ON b3.CHILD_MATERIAL_ID=b2.PARENT_MATERIAL_ID LEFT JOIN dbo.MATERIAL m3 ON m3.MATERIAL_ID=b3.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b4 ON b4.CHILD_MATERIAL_ID=b3.PARENT_MATERIAL_ID\nWHERE b1.CHILD_MATERIAL_ID='CMP-510'",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.11
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ, x.NDC, (SELECT STRING_AGG(PLANT_ID, ',') FROM dbo.PLANT_MATERIAL pm WHERE pm.MATERIAL_ID=m.MATERIAL_ID) plants FROM dbo.MATERIAL m LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=m.MATERIAL_ID WHERE m.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002','FILL-1001','FILL-1002','FILL-1003','FILL-2001','FILL-2002','CMP-510')",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 1.66
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PARENT_MATERIAL_ID, CHILD_MATERIAL_ID, QTY_PER, EFF_FROM, EFF_TO FROM dbo.BOM WHERE PARENT_MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002','FILL-1001','FILL-1002','FILL-1003','FILL-2001','FILL-2002') ORDER BY 1,2",
+      "ok": true,
+      "rows": 25,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS FROM dbo.DC_INV i WHERE i.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') AND i.SNAPSHOT_DT=(SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV i2 WHERE i2.DC_ID=i.DC_ID AND i2.MATERIAL_ID=i.MATERIAL_ID) ORDER BY 2,1",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.54
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, DC_ID, COUNT(*) n, SUM(UNITS) units, MIN(SHIP_DT) mn, MAX(SHIP_DT) mx FROM dbo.WHSLR_SHIP WHERE MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') AND SHIP_DT > DATEADD(week,-13,'2026-09-30') GROUP BY MATERIAL_ID, DC_ID ORDER BY 1,2",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.12
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, DC_ID, SNAPSHOT_DT, ON_HAND_UNITS FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT >= '2026-07-01' ORDER BY 1,2,3",
+      "ok": true,
+      "rows": 78,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.MATERIAL_ID, s.WHSLR_ID, w.REGION, SUM(CASE WHEN SHIP_DT < '2026-08-15' AND SHIP_DT >= '2026-05-16' THEN UNITS ELSE 0 END) base_13wk_before, SUM(CASE WHEN SHIP_DT >= '2026-08-15' THEN UNITS ELSE 0 END) since_aug15, SUM(CASE WHEN SHIP_DT >= '2026-07-02' THEN UNITS ELSE 0 END) last13wk FROM dbo.WHSLR_SHIP s JOIN dbo.WHSLR w ON w.WHSLR_ID=s.WHSLR_ID WHERE s.DC_ID='DC-EAST' AND s.MATERIAL_ID IN ('FG-1001','FG-1002') GROUP BY s.MATERIAL_ID, s.WHSLR_ID, w.REGION ORDER BY 1,2",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 2.31
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, WHSLR_ID, MATERIAL_ID, COUNT(*) n, SUM(UNITS) u FROM dbo.WHSLR_SHIP WHERE MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') AND SHIP_DT>='2026-07-02' GROUP BY DC_ID, WHSLR_ID, MATERIAL_ID ORDER BY 1,3,2",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 0.38
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 34,
+    "output": 14972,
+    "cache_read": 326652,
+    "cache_write": 40193
+  },
+  "cost_usd": 0.5659,
+  "latency_s": 252.8,
+  "final_state": {
+    "allocation_plans": [],
+    "purchase_requisitions": [
+      {
+        "pr_id": "PR-59B40C15",
+        "material_id": "CMP-510",
+        "supplier_id": "S-112",
+        "quantity": 4100,
+        "ship_to_plant": "PL-01",
+        "need_by": "2026-10-07",
+        "reason": "Cover for primary supplier S-108 (Halvorsen Closures) delay: next CMP-510 shipment PO001006 (4,100 units, promised 2026-10-07) slipping ~4 weeks to ~2026-11-04. S-112 is the qualified alternate, ACTIVE and APPROVED for CMP-510 at PL-01 only. PL-01 makes Lacrivia 5mL/10mL and Cyclosporine 0.05% (FG-1001/1002/1003), about 79% of CMP-510 demand. DC-EAST Lacrivia is already below safety stock. Please expedite: S-112's normal lead time is ~30 days.",
+        "created_at": "2026-10-07T17:31:24+00:00"
+      }
+    ],
+    "approvals": [],
+    "crm_tasks": [],
+    "edi_messages": [],
+    "escalation_cases": [
+      {
+        "case_id": "CASE-49DF1A26",
+        "owner": "Procurement / Supplier Management",
+        "subject": "S-108 Halvorsen Closures: CMP-510 tamper-evident cap PO001006 slipping 4 weeks. PL-02 (Oculon) has no approved alternate",
+        "details": "S-108 will miss its next CMP-510 shipment by ~4 weeks: PO001006, 4,100 units, promised 2026-10-07, now ~2026-11-04. CMP-510 is a single cap (qty 1) on 5 finished goods: Lacrivia 5mL/10mL and Cyclosporine 0.05% 5mL at PL-01, and Oculon 2.5mL/5mL at PL-02.\nAction taken: PR-59B40C15 raised to qualified alternate S-112 (Lambert Plastics) for 4,100 units to PL-01, need-by 2026-10-07. S-112's normal order-to-ship time is ~30 days, so please push them to expedite.\nGap: S-112 is approved for CMP-510 at PL-01 only, so PL-02 (Oculon) has no alternate. Oculon DCs hold about 4.4\u20135.9 weeks of cover.\nRequests:\n(1) Confirm with S-108 that only PO001006 is affected and that PO001007 (5,100, due 10-15), PO001008 (1,600, due 10-21) and PO001009 (2,700, due 10-28) hold.\n(2) Ask S-108 to partial-ship PO001006 and prioritize volume for PL-02.\n(3) Have Supplier Quality assess an urgent S-112 site approval for PL-02 if S-108 cannot protect PL-02.",
+        "related_ids": "[\"PO001006\", \"PO001007\", \"PO001008\", \"PO001009\", \"PR-59B40C15\", \"S-108\", \"S-112\", \"CMP-510\"]",
+        "created_at": "2026-10-07T17:31:38+00:00"
+      },
+      {
+        "case_id": "CASE-3C92A7BE",
+        "owner": "Supply Planning Lead",
+        "subject": "CMP-510 delay: DC-EAST Lacrivia already below safety stock. Decide on allocation or transfer and check plant cap inventory",
+        "details": "Context: S-108 CMP-510 cap shipment PO001006 (4,100) is slipping ~4 weeks to ~2026-11-04. Alternate PR-59B40C15 has been raised to S-112 for PL-01.\nDC on-hand at the 2026-09-25 snapshot vs safety stock (SS) and weeks of cover (WOC), using 13-week wholesaler shipments:\n- Lacrivia 5mL FG-1001 (NDC 99101010105): East 46 (SS 471, ~0.2 WOC); Central 677 (SS 314, 4.3 WOC); West 593 (SS 261, 4.8 WOC).\n- Lacrivia 10mL FG-1002 (NDC 99101010110): East 34 (SS 233, ~0.3 WOC); Central 351 (SS 155, 4.8 WOC); West 324 (SS 129, 5.0 WOC).\n- FG-1003, FG-2001 and FG-2002 hold ~4.4\u20135.9 WOC at all DCs.\nDC-EAST demand from W-01/W-02 is steady, but East has not been restocked since mid-August. It fell from ~1,230 to 46 units of FG-1001. This started before the cap delay, and the delay will slow recovery.\nDecisions needed:\n(a) Should constrained DC-EAST Lacrivia be allocated across W-01/W-02, and should excess above safety stock be transferred from DC-CENTRAL/DC-WEST? On a 13-week basis W-01/W-02 split is 46/54 for FG-1001 and 55/45 for FG-1002. I did not submit an approval request because no unit price/value data is available to fill in the dollar amount.\n(b) Check CMP-510 inventory at PL-01 and PL-02. Plant component inventory is not in the supply warehouse, so the actual production gap could not be measured.\n(c) Decide on wholesaler or account-team notices once the gap is confirmed. The wholesaler inventory feed is down (HTTP 503).",
+        "related_ids": "[\"PO001006\", \"PR-59B40C15\", \"FG-1001\", \"FG-1002\", \"DC-EAST\", \"99101010105\", \"99101010110\"]",
+        "created_at": "2026-10-07T17:31:38+00:00"
+      }
+    ],
+    "tool_calls": [
+      {
+        "seq": 1,
+        "tool": "create_purchase_requisition",
+        "args": "{\"material_id\": \"CMP-510\", \"supplier_id\": \"S-112\", \"quantity\": 4100, \"ship_to_plant\": \"PL-01\", \"need_by\": \"2026-10-07\", \"reason\": \"Cover for primary supplier S-108 (Halvorsen Closures) delay: next CMP-510 shipment PO001006 (4,100 units, promised 2026-10-07) slipping ~4 weeks to ~2026-11-04. S-112 is the qualified alternate, ACTIVE and APPROVED for CMP-510 at PL-01 only. PL-01 makes Lacrivia 5mL/10mL and Cyclosporine 0.05% (FG-1001/1002/1003), about 79% of CMP-510 demand. DC-EAST Lacrivia is already below safety stock. Please expedite: S-112's normal lead time is ~30 days.\"}",
+        "accepted": 1,
+        "result": "{\"pr_id\": \"PR-59B40C15\", \"status\": \"created\"}",
+        "created_at": "2026-10-07T17:31:24+00:00"
+      },
+      {
+        "seq": 2,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Procurement / Supplier Management\", \"subject\": \"S-108 Halvorsen Closures: CMP-510 tamper-evident cap PO001006 slipping 4 weeks. PL-02 (Oculon) has no approved alternate\", \"details\": \"S-108 will miss its next CMP-510 shipment by ~4 weeks: PO001006, 4,100 units, promised 2026-10-07, now ~2026-11-04. CMP-510 is a single cap (qty 1) on 5 finished goods: Lacrivia 5mL/10mL and Cyclosporine 0.05% 5mL at PL-01, and Oculon 2.5mL/5mL at PL-02.\\nAction taken: PR-59B40C15 raised to qualified alternate S-112 (Lambert Plastics) for 4,100 units to PL-01, need-by 2026-10-07. S-112's normal order-to-ship time is ~30 days, so please push them to expedite.\\nGap: S-112 is approved for CMP-510 at PL-01 only, so PL-02 (Oculon) has no alternate. Oculon DCs hold about 4.4\\u20135.9 weeks of cover.\\nRequests:\\n(1) Confirm with S-108 that only PO001006 is affected and that PO001007 (5,100, due 10-15), PO001008 (1,600, due 10-21) and PO001009 (2,700, due 10-28) hold.\\n(2) Ask S-108 to partial-ship PO001006 and prioritize volume for PL-02.\\n(3) Have Supplier Quality assess an urgent S-112 site approval for PL-02 if S-108 cannot protect PL-02.\", \"related_ids\": [\"PO001006\", \"PO001007\", \"PO001008\", \"PO001009\", \"PR-59B40C15\", \"S-108\", \"S-112\", \"CMP-510\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-49DF1A26\", \"status\": \"open\", \"owner\": \"Procurement / Supplier Management\"}",
+        "created_at": "2026-10-07T17:31:38+00:00"
+      },
+      {
+        "seq": 3,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Supply Planning Lead\", \"subject\": \"CMP-510 delay: DC-EAST Lacrivia already below safety stock. Decide on allocation or transfer and check plant cap inventory\", \"details\": \"Context: S-108 CMP-510 cap shipment PO001006 (4,100) is slipping ~4 weeks to ~2026-11-04. Alternate PR-59B40C15 has been raised to S-112 for PL-01.\\nDC on-hand at the 2026-09-25 snapshot vs safety stock (SS) and weeks of cover (WOC), using 13-week wholesaler shipments:\\n- Lacrivia 5mL FG-1001 (NDC 99101010105): East 46 (SS 471, ~0.2 WOC); Central 677 (SS 314, 4.3 WOC); West 593 (SS 261, 4.8 WOC).\\n- Lacrivia 10mL FG-1002 (NDC 99101010110): East 34 (SS 233, ~0.3 WOC); Central 351 (SS 155, 4.8 WOC); West 324 (SS 129, 5.0 WOC).\\n- FG-1003, FG-2001 and FG-2002 hold ~4.4\\u20135.9 WOC at all DCs.\\nDC-EAST demand from W-01/W-02 is steady, but East has not been restocked since mid-August. It fell from ~1,230 to 46 units of FG-1001. This started before the cap delay, and the delay will slow recovery.\\nDecisions needed:\\n(a) Should constrained DC-EAST Lacrivia be allocated across W-01/W-02, and should excess above safety stock be transferred from DC-CENTRAL/DC-WEST? On a 13-week basis W-01/W-02 split is 46/54 for FG-1001 and 55/45 for FG-1002. I did not submit an approval request because no unit price/value data is available to fill in the dollar amount.\\n(b) Check CMP-510 inventory at PL-01 and PL-02. Plant component inventory is not in the supply warehouse, so the actual production gap could not be measured.\\n(c) Decide on wholesaler or account-team notices once the gap is confirmed. The wholesaler inventory feed is down (HTTP 503).\", \"related_ids\": [\"PO001006\", \"PR-59B40C15\", \"FG-1001\", \"FG-1002\", \"DC-EAST\", \"99101010105\", \"99101010110\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-3C92A7BE\", \"status\": \"open\", \"owner\": \"Supply Planning Lead\"}",
+        "created_at": "2026-10-07T17:31:38+00:00"
+      }
+    ]
+  },
+  "discovery": false,
+  "trusted_playbooks_offered": {},
+  "execution_trace": null
+}

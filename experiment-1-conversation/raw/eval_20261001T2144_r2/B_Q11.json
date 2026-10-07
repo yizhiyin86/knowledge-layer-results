@@ -1,0 +1,54 @@
+{
+  "run_id": "eval_20261001T2144_r2",
+  "agent": "B",
+  "qid": "Q11",
+  "question": "If S-104 became unavailable, is there a qualified alternate supplier for each material it provides, and which products would remain exposed?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "No. S-104 (Delmar Specialty Chemicals, India, a tier-2 supplier) provides two materials, and only one of them has a qualified alternate supplier. If S-104 became unavailable, 14 finished goods would remain exposed: 3 Lacrivia and Cyclosporine eye-emulsion products and 11 lens care solutions.\n\n**Alternate supplier for each material S-104 provides**\n\n| Material | S-104 role | Other suppliers | Qualified alternate? |\n|---|---|---|---|\n| RM-221 Polysorbate 80 NF, low-peroxide (raw material) | Primary, qualified | S-131 Pinecrest Chemical Trading (China), **not qualified** | **No: only one usable supplier** |\n| RM-222 Benzalkonium chloride 50% (raw material) | Primary, qualified | S-130 Oakridge Chemicals (US), qualified, not primary | **Yes** |\n\n**Products that would remain exposed (all through RM-221), 14 finished goods**\n\nThree products that are in the commercial database:\n- FG-1001 Lacrivia 0.1% eye emulsion 5 mL, NDC 99101-0101-05\n- FG-1002 Lacrivia 0.1% eye emulsion 10 mL, NDC 99101-0101-10\n- FG-1003 Cyclosporine 0.05% eye emulsion 5 mL, NDC 99101-0202-05\n- Path: RM-221 \u2192 CMP-310 emulsifier premix \u2192 SEMI-031 \u2192 SEMI-044 or SEMI-045 \u2192 fill \u2192 finished good (5 BOM levels).\n\nEleven lens care solutions, which are not in the commercial database:\n- FG-3001 to FG-3011, NDCs 99101-4001-91 to 99101-4011-15\n- Path: RM-221 \u2192 INT-LC1011 \u2192 INT-LC2002 \u2192 \u2026 \u2192 finished good (7 BOM levels).\n\n**Products that are covered**\n- Oculon 0.005% 2.5 mL (FG-2001) and 5 mL (FG-2002) depend on S-104 only through RM-222. S-130 is a qualified alternate, so they would not be stranded.\n- Switching to S-130 still means moving volume to a non-primary source. Its capacity and transit time still need to be confirmed.\n\n**Additional risks**\n- **No company substitute for Lacrivia:** Company rules say Cyclosporine 0.05% is the approved substitute during a Lacrivia shortage, unless the same supply problem affects it. Here it does (FG-1003 is fed by the same RM-221 and CMP-310 chain). So there would be no approved company substitute, and Medical Affairs would need to guide therapeutic alternatives.\n- **Second single-source point on the same path:** CMP-310, the emulsifier premix, has only one supplier (S-201), so the eye emulsions have two single-source points in a row.\n- **Fastest fix:** Qualifying S-131 for RM-221 is the main way to close the gap. Until then, RM-221 stock and recovery lead times for FG-1001 to FG-1003 are worth checking. Those lead times include the 14-day sterility test for eye products.\n\n**Sources and definitions**\n- I used the knowledge layer's Supply Network data: the supplier list, which suppliers can supply which material, and the material list.\n- \"Qualified alternate\" follows the ratified count of qualified suppliers: a different supplier marked as qualified (`QUALIFIED_FLG = 'Y'`). A count of 1 means a single-source risk.\n- The product exposure comes from `trace_supply_exposure`, which follows the current bill of materials up to finished goods. It skips retired recipe links, for example the RM-221 \u2192 CMP-320 link that ended on 2025-06-30.\n- I also applied two company rules: the approved-substitute rule (BR-SUB-01) and the shortage allocation rule (BR-ALLOC-01).\n- Assumptions: \"unavailable\" means S-104 delivers nothing at all. I did not count unqualified suppliers as usable, and I did not assess on-hand stock or open purchase orders.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "trace_supply_exposure",
+    "trace_supply_exposure",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.MATERIAL_ID, m.MATERIAL_DESC, m.MATERIAL_TYP, sm.QUALIFIED_FLG AS S104_QUAL, sm.PRIMARY_FLG AS S104_PRIMARY,\n (SELECT COUNT(*) FROM dbo.SUPPLIER_MATERIAL x WHERE x.MATERIAL_ID=sm.MATERIAL_ID AND x.SUPPLIER_ID<>'S-104' AND x.QUALIFIED_FLG='Y') AS alt_qualified,\n (SELECT COUNT(*) FROM dbo.SUPPLIER_MATERIAL x WHERE x.MATERIAL_ID=sm.MATERIAL_ID AND x.SUPPLIER_ID<>'S-104' AND ISNULL(x.QUALIFIED_FLG,'N')<>'Y') AS alt_unqualified,\n (SELECT STRING_AGG(x.SUPPLIER_ID+':'+x.QUALIFIED_FLG+'/'+x.PRIMARY_FLG, ', ') FROM dbo.SUPPLIER_MATERIAL x WHERE x.MATERIAL_ID=sm.MATERIAL_ID AND x.SUPPLIER_ID<>'S-104') AS others\nFROM dbo.SUPPLIER_MATERIAL sm JOIN dbo.MATERIAL m ON m.MATERIAL_ID=sm.MATERIAL_ID\nWHERE sm.SUPPLIER_ID='S-104' ORDER BY sm.MATERIAL_ID",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.6
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.SUPPLIER WHERE SUPPLIER_ID='S-104'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.61
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.SUPPLIER_ID, s.SUPPLIER_NM, s.COUNTRY, s.TIER FROM dbo.SUPPLIER s WHERE s.SUPPLIER_ID IN ('S-130','S-131')",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.58
+    }
+  ],
+  "cypher_queries": 8,
+  "usage": {
+    "input": 10,
+    "output": 2772,
+    "cache_read": 20745,
+    "cache_write": 13094
+  },
+  "cost_usd": 0.1251,
+  "latency_s": 36.2
+}

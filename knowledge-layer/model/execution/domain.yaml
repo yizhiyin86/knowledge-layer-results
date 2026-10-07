@@ -1,0 +1,209 @@
+# Domain ontology: compact (~30 concepts), aligned to industry standards where one exists.
+# Loaded as (:Concept)-[:ALIGNED_WITH]->(:StandardTerm), typed concept-to-concept relationships, and
+# (:Concept)-[:MAPPED_TO {role}]->(:Table|:Column) links into the technical ontology.
+
+standards:
+  FHIR: {name: "HL7 FHIR R5", uri: "https://hl7.org/fhir/R5/"}
+  IDMP: {name: "ISO IDMP (ISO 11615/11616)", uri: "https://www.iso.org/standard/70941.html"}
+  NDC: {name: "FDA National Drug Code Directory", uri: "https://www.fda.gov/drugs/drug-approvals-and-databases/national-drug-code-directory"}
+  NCPDP: {name: "NCPDP Telecommunication Standard (reject codes, field 511-FB)", uri: "https://www.ncpdp.org/"}
+  ATC: {name: "WHO ATC classification", uri: "https://www.whocc.no/atc_ddd_index/"}
+  GS1: {name: "GS1 identification keys (GTIN, GLN) and EDI", uri: "https://www.gs1.org/standards"}
+  ISA95: {name: "ISA-95 / IEC 62264 manufacturing operations", uri: "https://www.isa.org/standards-and-publications/isa-standards/isa-95-standard"}
+
+concepts:
+  # ---------------------------------------------------------------- Product
+  - name: MedicinalProduct
+    area: Product
+    definition: "A branded or generic medicine at brand + molecule level, independent of pack (e.g. Lacrivia, cyclosporine)."
+    aligned_with: [[FHIR, MedicinalProductDefinition], [IDMP, "ISO 11615 Medicinal Product"]]
+    maps_to: [["PHARMA_DEMO.CORE.PRODUCT", [BRAND_NM, MOLECULE, CO_FLG]]]
+  - name: PackagedProduct
+    area: Product
+    definition: "A specific saleable pack of a medicinal product, identified by an NDC. Snowflake stores the 11-digit NDC without dashes; Fabric stores the dashed 5-4-2 form."
+    aligned_with: [[FHIR, PackagedProductDefinition], [IDMP, "ISO 11615 Packaged Medicinal Product"], [NDC, "NDC package code"]]
+    maps_to: [["PHARMA_DEMO.CORE.PRODUCT", [PROD_NDC11, PACK_DESC]], ["SUPPLY_DEMO.dbo.MATERIAL_NDC_XREF", [NDC]]]
+  - name: TherapeuticMarket
+    area: Product
+    definition: "A competitive market definition (DRY_EYE, GLAUCOMA) listing which packs compete. The denominator for market share. Maintained in a business-driver file."
+    aligned_with: [[ATC, "S01 Ophthalmologicals (closest standard grouping)"]]
+    maps_to: [["PHARMA_DEMO.BIZ.MKT_DEF_DRIVER", [MKT_DEF, PROD_NDC11]]]
+  # ---------------------------------------------------------------- Care and demand
+  - name: Prescriber
+    area: Care and demand
+    definition: "An eye-care professional who writes prescriptions (optometrist or ophthalmologist), with a prescribing decile. Ratified segments: high-decile = DECILE 8-10; a dry-eye prescriber is anyone with any DRY_EYE market TRx in the available data (all 52 weeks, not only recent weeks)."
+    aligned_with: [[FHIR, Practitioner], [FHIR, "PractitionerRole (NPI identifier)"]]
+    maps_to: [["PHARMA_DEMO.CORE.PRESCRIBER", [PRSCRBR_ME, NPI, DECILE, SPCLTY]]]
+  - name: Account
+    area: Care and demand
+    definition: "A customer organization (health system / IDN, hospital or clinic) in a parent-child hierarchy. Customers are exposed through the prescribers affiliated with them."
+    aligned_with: [[FHIR, "Organization (partOf hierarchy)"]]
+    maps_to: [["PHARMA_DEMO.CORE.ACCOUNT", [ACCOUNT_ID, PARENT_ACCOUNT_ID, ACCT_TYP]]]
+  - name: Prescription
+    area: Care and demand
+    definition: "Dispensed prescriptions, counted as TRx (total) and NRx (new-to-brand). The unit of demand and market share."
+    aligned_with: [[FHIR, "MedicationRequest / MedicationDispense"]]
+    maps_to: [["PHARMA_DEMO.RAW_3P.RXT_WKLY", [TRX_QTY, NRX_QTY, WK_END_DT]]]
+  - name: Patient
+    area: Care and demand
+    definition: "A (tokenized) patient. Patient-level data is RESTRICTED by data-use agreement."
+    aligned_with: [[FHIR, Patient]]
+    maps_to: [["PHARMA_DEMO.RAW_3P.PATHPT_LVL", [PAT_KEY]]]
+  # ---------------------------------------------------------------- Market access
+  - name: Payer
+    area: Market access
+    definition: "An organization that pays for prescriptions (insurer, government program), owning one or more plans."
+    aligned_with: [[FHIR, "Organization (type = payer)"]]
+    maps_to: [["PHARMA_DEMO.CORE.PAYER_SPINE", [PAYER_ID, PAYER_NM, PBM_NM]]]
+  - name: Plan
+    area: Market access
+    definition: "A specific benefit plan offered by a payer in one channel, e.g. 'Northstar Health – Commercial'."
+    aligned_with: [[FHIR, InsurancePlan]]
+    maps_to: [["PHARMA_DEMO.CORE.PAYER_SPINE", [PLAN_ID, PLAN_NM]]]
+  - name: Channel
+    area: Market access
+    definition: "Payer channel / line of business: Commercial, Medicare Part D, Medicaid FFS, Managed Medicaid, Health Exchange, Cash."
+    aligned_with: [[FHIR, "Coverage.type"]]
+    maps_to: [["PHARMA_DEMO.REF.CHNL", [CHNL_CD, CHNL_NM]]]
+  - name: Formulary
+    area: Market access
+    definition: "A plan's coverage rules for a pack: tier, prior-authorization and step-therapy requirements."
+    aligned_with: [[FHIR, "InsurancePlan / Da Vinci US Drug Formulary FormularyItem"]]
+    maps_to: [["PHARMA_DEMO.RAW_3P.FMLY_MAP", [CVG_TIER, PA_REQ_FLG, STEP_REQ_FLG]]]
+  - name: Claim
+    area: Market access
+    definition: "A pharmacy claim line and its adjudication outcome: paid, rejected or reversed."
+    aligned_with: [[FHIR, Claim], [NCPDP, "B1 billing transaction"]]
+    maps_to: [["PHARMA_DEMO.RAW_3P.CLMLNS_ADJ", [CLM_ID, ADJ_STAT, CLM_DT]]]
+  - name: ClaimRejection
+    area: Market access
+    definition: "Why a claim was rejected, as a reject code rolled up to one of 7 reject groups (e.g. PRIOR_AUTH)."
+    aligned_with: [[NCPDP, "Reject Code (511-FB)"]]
+    maps_to: [["PHARMA_DEMO.REF.REJ_CODE", [REJ_RSN_CD, REJ_GRP]], ["PHARMA_DEMO.RAW_3P.CLMLNS_ADJ", [REJ_RSN_CD, SUBST_NDC11, ABNDN_FLG]]]
+  # ---------------------------------------------------------------- Field force
+  - name: Territory
+    area: Field force
+    definition: "A sales territory; prescribers are aligned to exactly one."
+    maps_to: [["PHARMA_DEMO.CORE.TERRITORY", [TERR_ID]]]
+  - name: District
+    area: Field force
+    definition: "A group of territories managed together, e.g. D-03."
+    maps_to: [["PHARMA_DEMO.CORE.TERRITORY", [DISTRICT_ID]]]
+  - name: SalesRep
+    area: Field force
+    definition: "A field sales representative on one of three teams: TEAL (dry-eye depth), CORAL (breadth), INDIGO (glaucoma)."
+    maps_to: [["PHARMA_DEMO.CORE.REP_ROSTER", [REP_ID, TEAM]]]
+  - name: Call
+    area: Field force
+    definition: "A rep interaction with a prescriber, from any team."
+    maps_to: [["PHARMA_DEMO.CORE.CALL_ACT", [CALL_ID, CALL_DT, REP_ID, PRSCRBR_ME]]]
+  - name: CallPlan
+    area: Field force
+    definition: "The quarterly target list: planned calls per rep and prescriber (DEPTH or BREADTH targeting)."
+    maps_to: [["PHARMA_DEMO.CORE.CALL_PLAN", [PLAN_CALLS, TARGET_TYP]]]
+  - name: IncentiveGoal
+    area: Field force
+    definition: "A rep's quarterly TRx goal for a brand, used for incentive compensation (IC)."
+    maps_to: [["PHARMA_DEMO.CORE.IC_GOAL", [TRX_GOAL, FQTR]]]
+  # ---------------------------------------------------------------- Supply
+  - name: Supplier
+    area: Supply
+    definition: "A company that supplies materials. Tier 1 ships to our plants; tier 2 ships to a tier-1 supplier."
+    aligned_with: [[GS1, "GLN (party)"]]
+    maps_to: [["SUPPLY_DEMO.dbo.SUPPLIER", [SUPPLIER_ID, TIER]], ["SUPPLY_DEMO.dbo.SUPPLIER_MATERIAL", [SUPPLIER_ID, QUALIFIED_FLG]]]
+  - name: Material
+    area: Supply
+    definition: "Anything in the bill of materials: raw material, component, semi-finished bulk or finished good."
+    aligned_with: [[GS1, "GTIN (trade item)"], [ISA95, "Material Definition"]]
+    maps_to: [["SUPPLY_DEMO.dbo.MATERIAL", [MATERIAL_ID, MATERIAL_TYP]]]
+  - name: BillOfMaterials
+    area: Supply
+    definition: "Parent-child consumption edges between materials, up to 9 levels deep, with effective dates (expired edges kept separately)."
+    aligned_with: [[ISA95, "Bill of Material"]]
+    maps_to: [["SUPPLY_DEMO.dbo.BOM", [PARENT_MATERIAL_ID, CHILD_MATERIAL_ID]]]
+  - name: Plant
+    area: Supply
+    definition: "A manufacturing site that makes semi-finished and finished materials."
+    aligned_with: [[GS1, "GLN (location)"], [ISA95, Site]]
+    maps_to: [["SUPPLY_DEMO.dbo.PLANT", [PLANT_ID]]]
+  - name: DistributionCenter
+    area: Supply
+    definition: "A warehouse that stocks finished goods and ships to wholesalers."
+    aligned_with: [[GS1, "GLN (location)"]]
+    maps_to: [["SUPPLY_DEMO.dbo.DC", [DC_ID]]]
+  - name: Wholesaler
+    area: Supply
+    definition: "A trade customer that buys finished goods from our DCs."
+    aligned_with: [[GS1, "GLN (party)"]]
+    maps_to: [["SUPPLY_DEMO.dbo.WHSLR", [WHSLR_ID]]]
+  - name: PurchaseOrder
+    area: Supply
+    definition: "An order to a supplier with promised and actual ship dates."
+    aligned_with: [[GS1, "EDI ORDERS"]]
+    maps_to: [["SUPPLY_DEMO.dbo.PURCH_ORD", [PO_ID, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, STATUS]]]
+  - name: Shipment
+    area: Supply
+    definition: "Finished goods shipped from a DC to a wholesaler."
+    aligned_with: [[GS1, "EDI DESADV (despatch advice)"]]
+    maps_to: [["SUPPLY_DEMO.dbo.WHSLR_SHIP", [SHIP_ID, UNITS, SHIP_DT]]]
+  - name: InventorySnapshot
+    area: Supply
+    definition: "Weekly on-hand units of a finished good at a DC, with its safety-stock level."
+    aligned_with: [[ISA95, "Material Lot / inventory"]]
+    maps_to: [["SUPPLY_DEMO.dbo.DC_INV", [ON_HAND_UNITS, SAFETY_STOCK_UNITS, SNAPSHOT_DT]]]
+
+  # ---------------------------------------------------------------- Operations (execution pattern: what agents create)
+  # layer: execution. Not embedded, so question-answering retrieval (get_context) is unchanged.
+  - name: Allocation
+    area: Operations
+    definition: "Units of a pack at a DC assigned to customer accounts during a shortage, recorded in the ERP."
+  - name: ApprovalRequest
+    area: Operations
+    definition: "A request for a named approver to approve an allocation plan or transfer, with its decision."
+  - name: PurchaseRequisition
+    area: Operations
+    definition: "A request to buy a material from a supplier for delivery to a plant."
+  - name: CustomerNotification
+    area: Operations
+    definition: "A message to a customer's account team (CRM task) or a wholesaler about a supply issue."
+  - name: EscalationCase
+    area: Operations
+    definition: "A case routed to a team when an agent cannot complete a step itself (e.g. no system interface)."
+  - name: ExecutionRecord
+    area: Operations
+    definition: "The record of a task an agent carried out: steps, tools, data, rules and outcome."
+
+relationships:  # [from, TYPE, to]
+  - [PackagedProduct, PACKAGES, MedicinalProduct]
+  - [MedicinalProduct, IN_MARKET, TherapeuticMarket]
+  - [Prescription, FOR, PackagedProduct]
+  - [Prescription, WRITTEN_BY, Prescriber]
+  - [Prescription, COVERED_BY, Plan]
+  - [Patient, FILLS, Prescription]
+  - [Claim, FOR, PackagedProduct]
+  - [Claim, UNDER, Plan]
+  - [Claim, MAY_HAVE, ClaimRejection]
+  - [Plan, OFFERED_BY, Payer]
+  - [Plan, IN_CHANNEL, Channel]
+  - [Plan, HAS_FORMULARY, Formulary]
+  - [Formulary, COVERS, PackagedProduct]
+  - [Prescriber, AFFILIATED_WITH, Account]
+  - [Account, PART_OF, Account]
+  - [Prescriber, IN_TERRITORY, Territory]
+  - [Territory, IN_DISTRICT, District]
+  - [SalesRep, COVERS, Territory]
+  - [Call, BY, SalesRep]
+  - [Call, "ON", Prescriber]
+  - [CallPlan, TARGETS, Prescriber]
+  - [IncentiveGoal, FOR, SalesRep]
+  - [Supplier, SUPPLIES, Material]
+  - [Material, COMPONENT_OF, Material]
+  - [BillOfMaterials, LINKS, Material]
+  - [Material, IS_PACKAGED_AS, PackagedProduct]
+  - [Plant, MAKES, Material]
+  - [PurchaseOrder, TO, Supplier]
+  - [PurchaseOrder, FOR, Material]
+  - [DistributionCenter, STOCKS, Material]
+  - [InventorySnapshot, OF, Material]
+  - [Shipment, FROM, DistributionCenter]
+  - [Shipment, TO, Wholesaler]

@@ -1,0 +1,150 @@
+{
+  "run_id": "execution_20261007T1700_r3",
+  "agent": "B",
+  "task": "T7",
+  "qid": "T7",
+  "question": "Supplier S-108 will miss its next CMP-510 shipment by four weeks. Handle it.",
+  "role": "SUPPLY_PLANNER",
+  "badge": "Supply Response Agent",
+  "effort": "high",
+  "answer": "I raised a requisition with the backup supplier for the plant it's approved to supply, and asked Quality Assurance to approve it for the other plant. No allocation was needed: none of the affected products is below safety stock at any distribution center (DC). I followed the process (Supply Disruption Response) and the trusted playbook KA-33552A16-R, which covers a backup supplier approved at only some plants.\n\n## What I found\n- **Late order:** the next S-108 (Halvorsen Closures) order for CMP-510 (tamper-evident cap) is PO001006: 4,100 units, promised to ship 2026-10-07. Four weeks late means about 2026-11-04. S-108's later open orders (PO001007\u2013PO001009) are not reported late.\n- **Products affected** (current bill of materials, depth 2):\n  - **Plant PL-01 (Riverside):** Lacrivia 5 mL and 10 mL (FG-1001, FG-1002) and Cyclosporine 0.05% 5 mL (FG-1003).\n  - **Plant PL-02 (Lakeview):** Oculon 2.5 mL and 5 mL (FG-2001, FG-2002).\n- **Backup supplier:** S-112 (Lambert Plastics) is qualified for CMP-510 and active, with no hold. The supplier portal approves it to ship to PL-01 only. PL-02, which makes Oculon, has no backup.\n- **DC stock (latest snapshot, 2026-09-25):**\n  - Oculon is above safety stock at all three DCs, with 31\u201351 days of supply.\n  - Once the late caps arrive, it takes 25 more days to get Oculon to the DCs, including the 14-day sterility test. Supply recovers there around 2026-11-29.\n- **A separate problem:** Lacrivia is already far below safety stock at DC-EAST.\n  - 5 mL (FG-1001): 46 on hand against 471 safety stock.\n  - 10 mL (FG-1002): 34 on hand against 233.\n  - Lacrivia is made at PL-01, which the backup supplier covers, so this delay isn't the cause. The allocation rule (BR-ALLOC-02) only allows allocating packs whose supply the delay cuts off.\n\n## Actions taken\n1. **Purchase requisition PR-6799B3CB:** 4,100 units of CMP-510 from S-112, shipped to PL-01, needed by 2026-10-07.\n2. **Case CASE-CEE6EFB3 (Quality Assurance):** approve S-112 to ship CMP-510 to PL-02, so Oculon has a backup source.\n3. **Case CASE-A65490C2 (Supply Planning):** flags the Lacrivia shortage at DC-EAST for separate review. DC-CENTRAL and DC-WEST hold stock above safety stock, but moving stock between DCs needs the Supply Planning lead's approval. The case also asks them to re-check Oculon stock weekly and start allocation if any pack falls below safety stock.\n\n## Not done, and why\n- **No allocation or approval request:** the only products without backup supply are the Oculon packs, and they are above safety stock at every DC (process step SDR-2.4, \"no DC below safety stock\").\n- **No account-team or wholesaler notices:** the playbook only calls for these when allocating, and customers see no shortage from this delay. The wholesaler messaging system has no connection, so any later wholesaler notice would go through Trade Relations.\n- **No substitute offered:** no shortage needs one. If one were needed, Cyclosporine 0.05% also uses CMP-510, and Oculon has no approved company substitute.\n\n## Assumptions\n- I asked S-112 for the whole late quantity for PL-01, because the data doesn't show how much of the 4,100 caps each plant uses. Please adjust the requisition if PL-01 needs less.\n- I can't see cap stock held at the plants, so the recovery estimate assumes there is no plant buffer.\n- I used shipments from DCs to wholesalers as the measure of demand for days of supply. The wholesaler inventory feed isn't available until Q4 2026.\n\n**Knowledge-layer sources:** process Supply Disruption Response (SDR-1.1 to SDR-2.4); playbook KA-33552A16-R; rules BR-ALLOC-01/02, BR-APPR-01, BR-SUB-01/02, BR-LEAD-01; tables dbo.PURCH_ORD, PLANT_MATERIAL, PLANT, DC_INV, WHSLR_SHIP; tools trace_supply_exposure and get_lead_times.",
+  "stop_reason": "end_turn",
+  "model_turns": 8,
+  "tool_calls": [
+    "get_process",
+    "find_playbooks",
+    "get_context",
+    "trace_supply_exposure",
+    "run_sql",
+    "run_sql",
+    "get_supplier_status",
+    "get_supplier_status",
+    "run_sql",
+    "get_lead_times",
+    "get_lead_times",
+    "run_sql",
+    "create_purchase_requisition",
+    "create_escalation_case",
+    "create_escalation_case"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE MATERIAL_ID='CMP-510' AND (STATUS='OPEN' OR PROMISED_SHIP_DT >= '2026-06-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 28,
+      "error": null,
+      "elapsed_s": 3.58
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT pm.*, p.* FROM dbo.PLANT_MATERIAL pm LEFT JOIN dbo.PLANT p ON p.PLANT_ID = pm.PLANT_ID WHERE pm.MATERIAL_ID IN ('CMP-510','FILL-1001','FILL-1002','FILL-1003','FILL-2001','FILL-2002','FG-1001','FG-1002','FG-1003','FG-2001','FG-2002')",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.49
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS FROM dbo.DC_INV i WHERE i.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-2001','FG-2002') AND i.SNAPSHOT_DT = (SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) ORDER BY i.MATERIAL_ID, i.DC_ID",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.72
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS, s.UNITS_28D, CAST(i.ON_HAND_UNITS / NULLIF(s.UNITS_28D/28.0,0) AS DECIMAL(10,1)) AS DOS FROM dbo.DC_INV i LEFT JOIN (SELECT DC_ID, MATERIAL_ID, SUM(UNITS) AS UNITS_28D FROM dbo.WHSLR_SHIP WHERE SHIP_DT > DATEADD(day,-28,'2026-09-30') GROUP BY DC_ID, MATERIAL_ID) s ON s.DC_ID=i.DC_ID AND s.MATERIAL_ID=i.MATERIAL_ID WHERE i.SNAPSHOT_DT='2026-09-25' AND i.MATERIAL_ID IN ('FG-2001','FG-2002','FG-1001','FG-1002','FG-1003') ORDER BY i.MATERIAL_ID, i.DC_ID",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 2.18
+    }
+  ],
+  "cypher_queries": 27,
+  "usage": {
+    "input": 18,
+    "output": 7253,
+    "cache_read": 138785,
+    "cache_write": 29131
+  },
+  "cost_usd": 0.3185,
+  "latency_s": 88.2,
+  "final_state": {
+    "allocation_plans": [],
+    "purchase_requisitions": [
+      {
+        "pr_id": "PR-6799B3CB",
+        "material_id": "CMP-510",
+        "supplier_id": "S-112",
+        "quantity": 4100,
+        "ship_to_plant": "PL-01",
+        "need_by": "2026-10-07",
+        "reason": "S-108 (Halvorsen Closures) will ship open PO001006 (CMP-510 tamper-evident cap, 4,100 units, promised 2026-10-07) ~4 weeks late (~2026-11-04). Cover the late quantity from qualified alternate S-112 (Lambert Plastics; ACTIVE, CMP-510 APPROVED for PL-01 only) to protect Lacrivia/Cyclosporine OS filling at PL-01 (FILL-1001/1002/1003). Playbook KA-33552A16-R, process SDR-2.2.",
+        "created_at": "2026-10-07T17:54:19+00:00"
+      }
+    ],
+    "approvals": [],
+    "crm_tasks": [],
+    "edi_messages": [],
+    "escalation_cases": [
+      {
+        "case_id": "CASE-CEE6EFB3",
+        "owner": "QUALITY_ASSURANCE",
+        "subject": "Qualify alternate S-112 for CMP-510 at PL-02 (Lakeview Ophthalmics) \u2013 S-108 4-week delay",
+        "details": "S-108 (Halvorsen Closures) will ship open PO001006 for CMP-510 (tamper-evident cap, 4,100 units, promised 2026-10-07) about 4 weeks late (~2026-11-04). The only other qualified supplier, S-112 (Lambert Plastics, ACTIVE), is approved in the supplier portal for CMP-510 at PL-01 only. PL-02 (Lakeview Ophthalmics) uses CMP-510 in FILL-2001/FILL-2002 for Oculon 0.005% 2.5 mL (FG-2001, NDC 99101-0303-25) and 5 mL (FG-2002, NDC 99101-0303-50), and has no approved alternate. Please assess and, if feasible, expedite site qualification/approval of S-112 for CMP-510 at PL-02. Context: Oculon DC stock is above safety stock at all DCs (snapshot 2026-09-25, 31-51 days of supply), but recovery after the late PO arrives takes 25 days (incl. 14-day sterility test), so supply at the DCs recovers around 2026-11-29. A requisition for PL-01 has been raised with S-112 (see related ids). Playbook KA-33552A16-R.",
+        "related_ids": "[\"PO001006\", \"S-108\", \"S-112\", \"CMP-510\", \"PL-02\", \"FG-2001\", \"FG-2002\"]",
+        "created_at": "2026-10-07T17:54:19+00:00"
+      },
+      {
+        "case_id": "CASE-A65490C2",
+        "owner": "SUPPLY_PLANNING",
+        "subject": "FYI: Lacrivia packs below safety stock at DC-EAST (not caused by S-108/CMP-510 delay) + Oculon watch",
+        "details": "While handling the S-108 CMP-510 delay (PO001006, ~4 weeks late), the latest DC_INV snapshot (2026-09-25) shows Lacrivia below safety stock at DC-EAST: FG-1001 (NDC 99101-0101-05) 46 on hand vs SS 471 (~1.3 days of supply); FG-1002 (NDC 99101-0101-10) 34 vs SS 233 (~2.3 days). These packs are made at PL-01, which is covered by alternate S-112 (requisition PR-6799B3CB). Under BR-ALLOC-02 the CMP-510 disruption does not interrupt their supply, so I did not allocate them under this disruption. The shortage exists already and needs separate review (e.g. replenishment or an inter-DC transfer from DC-CENTRAL/DC-WEST, which are above SS; any transfer needs Supply Planning lead approval under BR-ALLOC-01/BR-APPR-01). Oculon watch: FG-2001/FG-2002 (PL-02, no approved alternate yet; QA case CASE-CEE6EFB3) are above SS at every DC (31-51 days of supply), but DC recovery after the late PO is about 2026-11-29 (arrival ~2026-11-04 + 25 days). Please re-check the Oculon DC snapshots each week and start SDR-3.1 allocation if any pack drops below safety stock.",
+        "related_ids": "[\"PO001006\", \"PR-6799B3CB\", \"CASE-CEE6EFB3\", \"FG-1001\", \"FG-1002\", \"FG-2001\", \"FG-2002\", \"DC-EAST\"]",
+        "created_at": "2026-10-07T17:54:26+00:00"
+      }
+    ],
+    "tool_calls": [
+      {
+        "seq": 1,
+        "tool": "create_purchase_requisition",
+        "args": "{\"material_id\": \"CMP-510\", \"supplier_id\": \"S-112\", \"quantity\": 4100, \"ship_to_plant\": \"PL-01\", \"need_by\": \"2026-10-07\", \"reason\": \"S-108 (Halvorsen Closures) will ship open PO001006 (CMP-510 tamper-evident cap, 4,100 units, promised 2026-10-07) ~4 weeks late (~2026-11-04). Cover the late quantity from qualified alternate S-112 (Lambert Plastics; ACTIVE, CMP-510 APPROVED for PL-01 only) to protect Lacrivia/Cyclosporine OS filling at PL-01 (FILL-1001/1002/1003). Playbook KA-33552A16-R, process SDR-2.2.\"}",
+        "accepted": 1,
+        "result": "{\"pr_id\": \"PR-6799B3CB\", \"status\": \"created\"}",
+        "created_at": "2026-10-07T17:54:19+00:00"
+      },
+      {
+        "seq": 2,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"QUALITY_ASSURANCE\", \"subject\": \"Qualify alternate S-112 for CMP-510 at PL-02 (Lakeview Ophthalmics) \\u2013 S-108 4-week delay\", \"details\": \"S-108 (Halvorsen Closures) will ship open PO001006 for CMP-510 (tamper-evident cap, 4,100 units, promised 2026-10-07) about 4 weeks late (~2026-11-04). The only other qualified supplier, S-112 (Lambert Plastics, ACTIVE), is approved in the supplier portal for CMP-510 at PL-01 only. PL-02 (Lakeview Ophthalmics) uses CMP-510 in FILL-2001/FILL-2002 for Oculon 0.005% 2.5 mL (FG-2001, NDC 99101-0303-25) and 5 mL (FG-2002, NDC 99101-0303-50), and has no approved alternate. Please assess and, if feasible, expedite site qualification/approval of S-112 for CMP-510 at PL-02. Context: Oculon DC stock is above safety stock at all DCs (snapshot 2026-09-25, 31-51 days of supply), but recovery after the late PO arrives takes 25 days (incl. 14-day sterility test), so supply at the DCs recovers around 2026-11-29. A requisition for PL-01 has been raised with S-112 (see related ids). Playbook KA-33552A16-R.\", \"related_ids\": [\"PO001006\", \"S-108\", \"S-112\", \"CMP-510\", \"PL-02\", \"FG-2001\", \"FG-2002\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-CEE6EFB3\", \"status\": \"open\", \"owner\": \"QUALITY_ASSURANCE\"}",
+        "created_at": "2026-10-07T17:54:19+00:00"
+      },
+      {
+        "seq": 3,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"SUPPLY_PLANNING\", \"subject\": \"FYI: Lacrivia packs below safety stock at DC-EAST (not caused by S-108/CMP-510 delay) + Oculon watch\", \"details\": \"While handling the S-108 CMP-510 delay (PO001006, ~4 weeks late), the latest DC_INV snapshot (2026-09-25) shows Lacrivia below safety stock at DC-EAST: FG-1001 (NDC 99101-0101-05) 46 on hand vs SS 471 (~1.3 days of supply); FG-1002 (NDC 99101-0101-10) 34 vs SS 233 (~2.3 days). These packs are made at PL-01, which is covered by alternate S-112 (requisition PR-6799B3CB). Under BR-ALLOC-02 the CMP-510 disruption does not interrupt their supply, so I did not allocate them under this disruption. The shortage exists already and needs separate review (e.g. replenishment or an inter-DC transfer from DC-CENTRAL/DC-WEST, which are above SS; any transfer needs Supply Planning lead approval under BR-ALLOC-01/BR-APPR-01). Oculon watch: FG-2001/FG-2002 (PL-02, no approved alternate yet; QA case CASE-CEE6EFB3) are above SS at every DC (31-51 days of supply), but DC recovery after the late PO is about 2026-11-29 (arrival ~2026-11-04 + 25 days). Please re-check the Oculon DC snapshots each week and start SDR-3.1 allocation if any pack drops below safety stock.\", \"related_ids\": [\"PO001006\", \"PR-6799B3CB\", \"CASE-CEE6EFB3\", \"FG-1001\", \"FG-1002\", \"FG-2001\", \"FG-2002\", \"DC-EAST\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-A65490C2\", \"status\": \"open\", \"owner\": \"SUPPLY_PLANNING\"}",
+        "created_at": "2026-10-07T17:54:26+00:00"
+      }
+    ]
+  },
+  "discovery": false,
+  "trusted_playbooks_offered": {
+    "KA-33552A16-R": 0.7
+  },
+  "execution_trace": {
+    "trace_id": "28fc2784-1085-4f04-b00d-c5aad41bca56",
+    "followed": [
+      "SDR-1.2",
+      "SDR-2.1",
+      "SDR-2.4",
+      "SDR-2.2",
+      "SDR-4.2"
+    ],
+    "seeded_asset": null
+  }
+}

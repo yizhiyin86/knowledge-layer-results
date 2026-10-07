@@ -1,0 +1,533 @@
+{
+  "run_id": "execution_dry2",
+  "agent": "A",
+  "task": "T1",
+  "qid": "T1",
+  "question": "Supplier S-104 will miss its next ship date. Handle it.",
+  "role": "SUPPLY_PLANNER",
+  "badge": "Supply Response Agent",
+  "effort": "high",
+  "answer": "I've rebalanced Lacrivia stock into the East distribution center, set allocations for its two wholesalers, and opened cases with Procurement, Quality, Production Planning and Trade Relations. I couldn't fix the missing raw material itself: S-104 is the only approved source and there's no approved backup.\n\n**What's affected**\n- **The missed shipment:** S-104 (Delmar Specialty Chemicals) is late on PO005791 \u2014 4,200 units of RM-221 (Polysorbate 80) due to ship 2026-10-07. The order number is out of sequence with S-104's other RM-221 orders, so I asked Procurement to confirm it's valid.\n- **Later orders also at risk:** PO000369 (RM-221, 3,300 units, due 2026-10-29) and PO000430 (RM-222, 2,600 units, due 2026-10-26).\n- **Products:** RM-221 goes into Lacrivia 0.1% 5 mL and 10 mL and Cyclosporine 0.05% 5 mL at plant PL-01. It also goes into lens-care solutions (FG-3001 to FG-3011) through PL-03 intermediates.\n- **No backup supplier:** the only other listed source, S-131 Pinecrest, is not approved for RM-221 in the supplier portal.\n- **Urgent stock problem:** the East DC was already short on Lacrivia. On 2026-09-25 it had 46 units of 5 mL against a safety stock of 471 (0.2 weeks of cover), and 34 units of 10 mL against 233 (0.3 weeks). Cyclosporine 0.05% has about 5.5 weeks of cover at every DC.\n\n**What I did**\n1. **Four stock transfers, all approved by the Supply Planning lead.** Each one brings the DCs to equal weeks of cover and leaves the donor DC above its safety stock:\n\n| Pack | From | Units | Approval | Donor DC after |\n|---|---|---|---|---|\n| 5 mL | Central | 276 | APR-71C0944E | 401 (safety stock 314) |\n| 5 mL | West | 278 | APR-F9097D29 | 315 (safety stock 261) |\n| 10 mL | Central | 141 | APR-D42CE6CA | 210 (safety stock 155) |\n| 10 mL | West | 139 | APR-859B7EA8 | 185 (safety stock 129) |\n\n2. **Four allocation plans at the East DC.** Units are split between W-01 Keystone and W-02 Atlas by their share of shipments over the last 13 weeks:\n   - 5 mL: AL-23EE2564 and AL-82D7F9C2 (W-01 gets 261 units, W-02 gets 293).\n   - 10 mL: AL-F21DEEE1 and AL-EE5A7EF8 (W-01 gets 161 units, W-02 gets 119).\n3. **Cases opened:**\n   - **CASE-840A01F0, Procurement:** get a revised date and root cause from S-104, push for a partial or air-freight shipment, and check PO000369 and the out-of-sequence order number.\n   - **CASE-482A9E1C, Quality:** assess urgent qualification of a second RM-221 source.\n   - **CASE-AD99E0BC, Production Planning:** confirm how much RM-221 PL-01 and PL-03 have on hand, and use it for Lacrivia and Cyclosporine ahead of lens-care.\n   - **CASE-1E1A4FAB, Trade Relations:** send the allocation notices to W-01 and W-02.\n\n**What I didn't do, and why**\n- **No purchase requisition:** there's no approved alternate supplier, and ordering more from S-104 wouldn't fix the delay.\n- **Wholesaler notices weren't sent:** the EDI gateway has no way to send outbound notices, so I passed them to Trade Relations.\n- **Wholesaler stock wasn't checked:** that inventory feed hasn't been loaded yet. I asked Trade Relations to get on-hand Lacrivia figures from W-01 and W-02.\n- **No CRM account-team notices:** the East DC's customers are the wholesalers, not CRM accounts.\n\n**Assumptions and gaps**\n- **Transfers aren't valued:** I found no cost or price data, so the approvals went in at $0. Finance needs to value them.\n- **Plant stock of RM-221 is unknown:** the data doesn't include it, so I couldn't work out when the plants run out. Production Planning is confirming.\n- **Lens-care DC stock is unknown:** there's no DC inventory data for those products, so I couldn't measure the downstream risk.\n- **\"Next ship date\"** means the earliest open S-104 order, PO005791.\n- **Data used for allocation:** I used only shipment history. I didn't use any commercial prescription or claims data.\n- **Remaining risk:** after rebalancing, the whole network has only about 2.5 weeks of Lacrivia 5 mL and 2.8 weeks of 10 mL, so supply recovery depends on S-104's revised date.",
+  "stop_reason": "end_turn",
+  "model_turns": 21,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "get_supplier_status",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_supplier_status",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_wholesaler_inventory",
+    "get_wholesaler_inventory",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "request_approval",
+    "request_approval",
+    "request_approval",
+    "request_approval",
+    "get_approval_status",
+    "get_approval_status",
+    "get_approval_status",
+    "get_approval_status",
+    "create_allocation",
+    "create_allocation",
+    "create_allocation",
+    "create_allocation",
+    "create_escalation_case",
+    "create_escalation_case",
+    "create_escalation_case",
+    "send_wholesaler_edi",
+    "send_wholesaler_edi",
+    "create_escalation_case"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND (STATUS<>'CLOSED' OR ACTUAL_SHIP_DT IS NULL OR PROMISED_SHIP_DT>='2026-09-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 1.63
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, s.SUPPLIER_NM, s.COUNTRY, s.TIER FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID IN (SELECT MATERIAL_ID FROM dbo.SUPPLIER_MATERIAL WHERE SUPPLIER_ID='S-104')",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT STATUS, COUNT(*) n, MIN(PROMISED_SHIP_DT) mn, MAX(PROMISED_SHIP_DT) mx FROM dbo.PURCH_ORD GROUP BY STATUS",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.92
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD WHERE PO_ID BETWEEN 'PO000360' AND 'PO000370' OR PO_ID BETWEEN 'PO000420' AND 'PO000432' OR PO_ID BETWEEN 'PO005785' AND 'PO005800' ORDER BY PO_ID",
+      "ok": true,
+      "rows": 21,
+      "error": null,
+      "elapsed_s": 1.0
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT TOP 20 * FROM dbo.PURCH_ORD_ARCHIVE WHERE SUPPLIER_ID='S-104' ORDER BY PROMISED_SHIP_DT DESC",
+      "ok": true,
+      "rows": 18,
+      "error": null,
+      "elapsed_s": 1.57
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.MATERIAL WHERE MATERIAL_ID IN ('RM-221','RM-222')",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.34
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH wu AS (\n SELECT PARENT_MATERIAL_ID, CHILD_MATERIAL_ID, CAST(QTY_PER AS decimal(18,6)) AS QTY_PER, 1 AS lvl, CAST(PARENT_MATERIAL_ID AS varchar(400)) AS path\n FROM dbo.BOM WHERE CHILD_MATERIAL_ID='RM-221' AND '2026-09-30' BETWEEN EFF_FROM AND EFF_TO\n UNION ALL\n SELECT b.PARENT_MATERIAL_ID, wu.CHILD_MATERIAL_ID, CAST(wu.QTY_PER*b.QTY_PER AS decimal(18,6)), wu.lvl+1, CAST(wu.path+'>'+b.PARENT_MATERIAL_ID AS varchar(400))\n FROM dbo.BOM b JOIN wu ON b.CHILD_MATERIAL_ID=wu.PARENT_MATERIAL_ID\n WHERE '2026-09-30' BETWEEN b.EFF_FROM AND b.EFF_TO AND wu.lvl<10)\nSELECT wu.*, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ FROM wu LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=wu.PARENT_MATERIAL_ID ORDER BY lvl, path",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 1.01
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.BOM WHERE CHILD_MATERIAL_ID='RM-221'",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.43
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT 'L2' lvl, b2.PARENT_MATERIAL_ID p2, b1.PARENT_MATERIAL_ID p1, b1.QTY_PER q1, b2.QTY_PER q2, b2.EFF_FROM, b2.EFF_TO\nFROM dbo.BOM b1 JOIN dbo.BOM b2 ON b2.CHILD_MATERIAL_ID=b1.PARENT_MATERIAL_ID\nWHERE b1.CHILD_MATERIAL_ID='RM-221' AND '2026-09-30' BETWEEN b1.EFF_FROM AND b1.EFF_TO",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.06
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b2.PARENT_MATERIAL_ID p2, b3.PARENT_MATERIAL_ID p3, b4.PARENT_MATERIAL_ID p4, b5.PARENT_MATERIAL_ID p5, b6.PARENT_MATERIAL_ID p6\nFROM dbo.BOM b2\nLEFT JOIN dbo.BOM b3 ON b3.CHILD_MATERIAL_ID=b2.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b3.EFF_FROM AND b3.EFF_TO\nLEFT JOIN dbo.BOM b4 ON b4.CHILD_MATERIAL_ID=b3.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b4.EFF_FROM AND b4.EFF_TO\nLEFT JOIN dbo.BOM b5 ON b5.CHILD_MATERIAL_ID=b4.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b5.EFF_FROM AND b5.EFF_TO\nLEFT JOIN dbo.BOM b6 ON b6.CHILD_MATERIAL_ID=b5.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b6.EFF_FROM AND b6.EFF_TO\nWHERE b2.CHILD_MATERIAL_ID IN ('CMP-310','INT-LC1011','INT-LC1035') AND '2026-09-30' BETWEEN b2.EFF_FROM AND b2.EFF_TO",
+      "ok": true,
+      "rows": 166,
+      "error": null,
+      "elapsed_s": 2.01
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DISTINCT b7.PARENT_MATERIAL_ID p7, b8.PARENT_MATERIAL_ID p8, b9.PARENT_MATERIAL_ID p9, b10.PARENT_MATERIAL_ID p10, b11.PARENT_MATERIAL_ID p11\nFROM dbo.BOM b7\nLEFT JOIN dbo.BOM b8 ON b8.CHILD_MATERIAL_ID=b7.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b8.EFF_FROM AND b8.EFF_TO\nLEFT JOIN dbo.BOM b9 ON b9.CHILD_MATERIAL_ID=b8.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b9.EFF_FROM AND b9.EFF_TO\nLEFT JOIN dbo.BOM b10 ON b10.CHILD_MATERIAL_ID=b9.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b10.EFF_FROM AND b10.EFF_TO\nLEFT JOIN dbo.BOM b11 ON b11.CHILD_MATERIAL_ID=b10.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b11.EFF_FROM AND b11.EFF_TO\nWHERE b7.CHILD_MATERIAL_ID LIKE 'INT-LC60%' AND '2026-09-30' BETWEEN b7.EFF_FROM AND b7.EFF_TO",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 1.13
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT LEFT(CHILD_MATERIAL_ID,6) c, LEFT(PARENT_MATERIAL_ID,6) p, COUNT(*) n FROM dbo.BOM WHERE CHILD_MATERIAL_ID LIKE 'INT-LC%' OR PARENT_MATERIAL_ID LIKE 'INT-LC%' GROUP BY LEFT(CHILD_MATERIAL_ID,6), LEFT(PARENT_MATERIAL_ID,6)",
+      "ok": true,
+      "rows": 17,
+      "error": null,
+      "elapsed_s": 0.4
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b.*, m.MATERIAL_DESC, m.MATERIAL_TYP, m.PACK_SZ, x.NDC FROM dbo.BOM b LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=b.PARENT_MATERIAL_ID LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=b.PARENT_MATERIAL_ID WHERE b.PARENT_MATERIAL_ID LIKE 'FG-%' AND (b.CHILD_MATERIAL_ID LIKE 'INT-LC%' OR b.CHILD_MATERIAL_ID LIKE 'FILL%') ORDER BY b.PARENT_MATERIAL_ID",
+      "ok": true,
+      "rows": 23,
+      "error": null,
+      "elapsed_s": 1.6
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT m.*, x.NDC, pm.PLANT_ID FROM dbo.MATERIAL m LEFT JOIN dbo.MATERIAL_NDC_XREF x ON x.MATERIAL_ID=m.MATERIAL_ID LEFT JOIN dbo.PLANT_MATERIAL pm ON pm.MATERIAL_ID=m.MATERIAL_ID WHERE m.MATERIAL_ID LIKE 'FG-%' OR m.MATERIAL_ID IN ('SEMI-031','SEMI-044','SEMI-045','FILL-1001','FILL-1002','FILL-1003','CMP-310','INT-LC1011','INT-LC1035','RM-221') ORDER BY m.MATERIAL_ID",
+      "ok": true,
+      "rows": 70,
+      "error": null,
+      "elapsed_s": 1.02
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH latest AS (SELECT DC_ID, MATERIAL_ID, MAX(SNAPSHOT_DT) dt FROM dbo.DC_INV GROUP BY DC_ID, MATERIAL_ID),\ninv AS (SELECT i.* FROM dbo.DC_INV i JOIN latest l ON l.DC_ID=i.DC_ID AND l.MATERIAL_ID=i.MATERIAL_ID AND l.dt=i.SNAPSHOT_DT),\ndem AS (SELECT DC_ID, MATERIAL_ID, SUM(UNITS)/13.0 wk_avg FROM dbo.WHSLR_SHIP WHERE SHIP_DT > DATEADD(week,-13,'2026-09-30') GROUP BY DC_ID, MATERIAL_ID)\nSELECT inv.DC_ID, inv.MATERIAL_ID, inv.SNAPSHOT_DT, inv.ON_HAND_UNITS, inv.SAFETY_STOCK_UNITS, dem.wk_avg, CAST(inv.ON_HAND_UNITS/NULLIF(dem.wk_avg,0) AS decimal(10,1)) wks_cover\nFROM inv LEFT JOIN dem ON dem.DC_ID=inv.DC_ID AND dem.MATERIAL_ID=inv.MATERIAL_ID\nWHERE inv.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003','FG-3001','FG-3002','FG-3003','FG-3004','FG-3005','FG-3006','FG-3007','FG-3008','FG-3009','FG-3010','FG-3011')\nORDER BY inv.MATERIAL_ID, inv.DC_ID",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.82
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DISTINCT MATERIAL_ID FROM dbo.DC_INV",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 0.36
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT>='2026-08-01' ORDER BY MATERIAL_ID, DC_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 48,
+      "error": null,
+      "elapsed_s": 1.66
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH wk AS (SELECT DISTINCT TOP 13 DATEADD(day, -((DATEPART(weekday,SHIP_DT)+5)%7), SHIP_DT) wk FROM dbo.WHSLR_SHIP ORDER BY 1 DESC)\nSELECT s.DC_ID, s.WHSLR_ID, w.WHSLR_NM, w.REGION, s.MATERIAL_ID, SUM(s.UNITS) units_13wk, COUNT(*) n_ship, MIN(SHIP_DT) mn, MAX(SHIP_DT) mx\nFROM dbo.WHSLR_SHIP s JOIN dbo.WHSLR w ON w.WHSLR_ID=s.WHSLR_ID\nWHERE DATEADD(day, -((DATEPART(weekday,SHIP_DT)+5)%7), SHIP_DT) IN (SELECT wk FROM wk) AND s.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003')\nGROUP BY s.DC_ID, s.WHSLR_ID, w.WHSLR_NM, w.REGION, s.MATERIAL_ID ORDER BY s.MATERIAL_ID, s.DC_ID, s.WHSLR_ID",
+      "ok": true,
+      "rows": 18,
+      "error": null,
+      "elapsed_s": 0.43
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PRODUCT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.24
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 44,
+    "output": 19357,
+    "cache_read": 604542,
+    "cache_write": 56837
+  },
+  "cost_usd": 0.7924,
+  "latency_s": 285.0,
+  "final_state": {
+    "allocation_plans": [
+      {
+        "plan_id": "AL-23EE2564",
+        "dc_id": "DC-EAST",
+        "ndc11": "99101010105",
+        "from_dc": "DC-CENTRAL",
+        "approval_id": "APR-71C0944E",
+        "basis": "Pro-rata to each DC-EAST wholesaler's share of FG-1001 shipments over last 13 weekly periods (W-01 1,490 = 47.0%; W-02 1,679 = 53.0%). Shipment history only; no commercial/Rx data used.",
+        "created_at": "2026-10-07T15:50:12+00:00",
+        "lines": [
+          {
+            "account_id": "W-01",
+            "units": 130
+          },
+          {
+            "account_id": "W-02",
+            "units": 146
+          }
+        ]
+      },
+      {
+        "plan_id": "AL-82D7F9C2",
+        "dc_id": "DC-EAST",
+        "ndc11": "99101010105",
+        "from_dc": "DC-WEST",
+        "approval_id": "APR-F9097D29",
+        "basis": "Pro-rata to each DC-EAST wholesaler's share of FG-1001 shipments over last 13 weekly periods (W-01 47.0%; W-02 53.0%). Shipment history only.",
+        "created_at": "2026-10-07T15:50:12+00:00",
+        "lines": [
+          {
+            "account_id": "W-01",
+            "units": 131
+          },
+          {
+            "account_id": "W-02",
+            "units": 147
+          }
+        ]
+      },
+      {
+        "plan_id": "AL-EE5A7EF8",
+        "dc_id": "DC-EAST",
+        "ndc11": "99101010110",
+        "from_dc": "DC-WEST",
+        "approval_id": "APR-859B7EA8",
+        "basis": "Pro-rata to each DC-EAST wholesaler's share of FG-1002 shipments over last 13 weekly periods (W-01 57.6%; W-02 42.4%). Shipment history only.",
+        "created_at": "2026-10-07T15:50:12+00:00",
+        "lines": [
+          {
+            "account_id": "W-01",
+            "units": 80
+          },
+          {
+            "account_id": "W-02",
+            "units": 59
+          }
+        ]
+      },
+      {
+        "plan_id": "AL-F21DEEE1",
+        "dc_id": "DC-EAST",
+        "ndc11": "99101010110",
+        "from_dc": "DC-CENTRAL",
+        "approval_id": "APR-D42CE6CA",
+        "basis": "Pro-rata to each DC-EAST wholesaler's share of FG-1002 shipments over last 13 weekly periods (W-01 872 = 57.6%; W-02 642 = 42.4%). Shipment history only.",
+        "created_at": "2026-10-07T15:50:12+00:00",
+        "lines": [
+          {
+            "account_id": "W-01",
+            "units": 81
+          },
+          {
+            "account_id": "W-02",
+            "units": 60
+          }
+        ]
+      }
+    ],
+    "purchase_requisitions": [],
+    "approvals": [
+      {
+        "approval_id": "APR-71C0944E",
+        "kind": "stock_transfer",
+        "dc_id": "DC-EAST",
+        "ndc11": "99101010105",
+        "from_dc": "DC-CENTRAL",
+        "units": 276,
+        "amount_usd": 0.0,
+        "summary": "Lacrivia 0.1% 5 mL (FG-1001). S-104 (Delmar) will miss PO005791 (RM-221 Polysorbate 80, 4,200 units, promised 2026-10-07); RM-221 is the sole-qualified emulsifier input to Lacrivia at PL-01, no approved alternate (S-131 NOT_APPROVED). DC-EAST on hand 46 vs safety stock 471 (0.2 wks cover, 13-wk avg 237/wk). Rebalance to equal network cover (~2.5 wks): DC-CENTRAL 677 -> 401 (SS 314). Amount_usd = 0 because no unit cost/price is available in the data; Finance to value.",
+        "status": "approved",
+        "decided_by": "Supply Planning lead (oracle)",
+        "decision_note": null,
+        "created_at": "2026-10-07T15:49:59+00:00",
+        "decided_at": "2026-10-07T15:50:01+00:00"
+      },
+      {
+        "approval_id": "APR-F9097D29",
+        "kind": "stock_transfer",
+        "dc_id": "DC-EAST",
+        "ndc11": "99101010105",
+        "from_dc": "DC-WEST",
+        "units": 278,
+        "amount_usd": 0.0,
+        "summary": "Lacrivia 0.1% 5 mL (FG-1001). S-104 will miss PO005791 (RM-221, 4,200, due 2026-10-07); no approved alternate source. DC-EAST on hand 46 vs SS 471 (0.2 wks). Rebalance to equal network cover (~2.5 wks): DC-WEST 593 -> 315 (SS 261). Amount_usd = 0: no unit cost in data; Finance to value.",
+        "status": "approved",
+        "decided_by": "Supply Planning lead (oracle)",
+        "decision_note": null,
+        "created_at": "2026-10-07T15:49:59+00:00",
+        "decided_at": "2026-10-07T15:50:01+00:00"
+      },
+      {
+        "approval_id": "APR-D42CE6CA",
+        "kind": "stock_transfer",
+        "dc_id": "DC-EAST",
+        "ndc11": "99101010110",
+        "from_dc": "DC-CENTRAL",
+        "units": 141,
+        "amount_usd": 0.0,
+        "summary": "Lacrivia 0.1% 10 mL (FG-1002). S-104 will miss PO005791 (RM-221, 4,200, due 2026-10-07); no approved alternate source. DC-EAST on hand 34 vs SS 233 (0.3 wks, 13-wk avg 110/wk). Rebalance to equal network cover (~2.8 wks): DC-CENTRAL 351 -> 210 (SS 155). Amount_usd = 0: no unit cost in data; Finance to value.",
+        "status": "approved",
+        "decided_by": "Supply Planning lead (oracle)",
+        "decision_note": null,
+        "created_at": "2026-10-07T15:49:59+00:00",
+        "decided_at": "2026-10-07T15:50:01+00:00"
+      },
+      {
+        "approval_id": "APR-859B7EA8",
+        "kind": "stock_transfer",
+        "dc_id": "DC-EAST",
+        "ndc11": "99101010110",
+        "from_dc": "DC-WEST",
+        "units": 139,
+        "amount_usd": 0.0,
+        "summary": "Lacrivia 0.1% 10 mL (FG-1002). S-104 will miss PO005791 (RM-221, 4,200, due 2026-10-07); no approved alternate source. DC-EAST on hand 34 vs SS 233 (0.3 wks). Rebalance to equal network cover (~2.8 wks): DC-WEST 324 -> 185 (SS 129). Amount_usd = 0: no unit cost in data; Finance to value.",
+        "status": "approved",
+        "decided_by": "Supply Planning lead (oracle)",
+        "decision_note": null,
+        "created_at": "2026-10-07T15:49:59+00:00",
+        "decided_at": "2026-10-07T15:50:01+00:00"
+      }
+    ],
+    "crm_tasks": [],
+    "edi_messages": [],
+    "escalation_cases": [
+      {
+        "case_id": "CASE-840A01F0",
+        "owner": "Procurement / Supplier Management",
+        "subject": "S-104 Delmar will miss PO005791 (RM-221 Polysorbate 80, 4,200 units, due 2026-10-07): expedite and get a revised date",
+        "details": "S-104 (Delmar Specialty Chemicals, IN; ACTIVE, the only qualified and primary source for RM-221) will miss its next ship date: PO005791, RM-221 Polysorbate 80 NF low-peroxide, qty 4,200, promised ship date 2026-10-07. Note that PO005791 has an out-of-sequence ID (the rest of the RM-221 series is PO00036x), so please check it is valid and not a duplicate. Also at risk: PO000369 (RM-221, 3,300, due 2026-10-29) and PO000430 (RM-222, 2,600, due 2026-10-26). S-104's recent record includes late RM-221 shipments: PO000360 was 14 days late and PO000363 8 days late. Asks: (1) get a confirmed revised ship date and the root cause; (2) push for a partial or expedited shipment (air freight) to PL-01 and PL-03, which are the approved sites; (3) say whether PO000369 is also affected. No purchase requisition was raised: the only other listed RM-221 source, S-131 Pinecrest, is NOT_APPROVED in the supplier portal, and re-ordering from S-104 would not fix the delay. Impact: RM-221 goes via CMP-310 / SEMI-031 into Lacrivia 0.1% 5 mL and 10 mL and Cyclosporine 0.05% 5 mL at PL-01, and via INT-LC1011 / INT-LC1035 into lens-care intermediates at PL-03 (FG-3001 to FG-3011). DC-EAST Lacrivia was already below safety stock; 834 units are being rebalanced from DC-CENTRAL and DC-WEST under approvals APR-71C0944E, APR-F9097D29, APR-D42CE6CA and APR-859B7EA8.",
+        "related_ids": "[\"S-104\", \"PO005791\", \"PO000369\", \"PO000430\", \"RM-221\"]",
+        "created_at": "2026-10-07T15:50:33+00:00"
+      },
+      {
+        "case_id": "CASE-482A9E1C",
+        "owner": "Quality / Supplier Qualification",
+        "subject": "RM-221 Polysorbate 80 is single-sourced (S-104); assess an urgent alternate qualification",
+        "details": "S-104 Delmar is missing its 2026-10-07 shipment of RM-221 (PO005791, 4,200 units). RM-221 has no approved alternate. S-131 Pinecrest Chemical Trading (CN) is listed for RM-221 but is NOT_APPROVED in the supplier portal, with no approved sites. Please assess whether an expedited qualification of S-131, or of another low-peroxide PS80 NF source, is feasible for PL-01 (Lacrivia / cyclosporine emulsions) and PL-03 (lens-care intermediates). Planning will not buy from an unapproved source.",
+        "related_ids": "[\"RM-221\", \"S-104\", \"S-131\", \"PO005791\"]",
+        "created_at": "2026-10-07T15:50:33+00:00"
+      },
+      {
+        "case_id": "CASE-AD99E0BC",
+        "owner": "Production Planning (PL-01 Riverside, PL-03 Harborside)",
+        "subject": "RM-221 supply gap from 2026-10-07: check on-hand cover and re-sequence Lacrivia and cyclosporine batches",
+        "details": "PO005791 (RM-221, 4,200 units) from S-104 will miss its 2026-10-07 ship date. The supply data has no plant raw-material inventory, so please confirm RM-221 on-hand cover at PL-01 and PL-03. Then prioritize RM-221 for PL-01 emulsion batches (CMP-310 into SEMI-031, then FG-1001, FG-1002 and FG-1003) ahead of PL-03 lens-care intermediates (INT-LC1011 and INT-LC1035). Lacrivia network cover after the DC rebalance is only about 2.5 weeks for 5 mL and about 2.8 weeks for 10 mL. DC-EAST was at 46 units of 5 mL and 34 of 10 mL on 2026-09-25.",
+        "related_ids": "[\"RM-221\", \"PO005791\", \"FG-1001\", \"FG-1002\", \"FG-1003\"]",
+        "created_at": "2026-10-07T15:50:33+00:00"
+      },
+      {
+        "case_id": "CASE-1E1A4FAB",
+        "owner": "Trade Relations / Customer Service",
+        "subject": "Send Lacrivia allocation notices to W-01 Keystone and W-02 Atlas (EDI gateway can't send outbound)",
+        "details": "The EDI gateway returned 501 (no outbound notice API), so these notices could not be sent. Please tell the wholesalers that Lacrivia 0.1% (NDC 99101-0101-05 and 99101-0101-10) is on allocation from DC-EAST because of a raw-material delay. W-01 Keystone: 261 units of 5 mL and 161 units of 10 mL. W-02 Atlas: 293 units of 5 mL and 119 units of 10 mL. Allocation plans: AL-23EE2564, AL-82D7F9C2, AL-F21DEEE1, AL-EE5A7EF8. The split is pro-rata to each wholesaler's shipments over the last 13 weeks. Do not name the supplier. Also: the wholesaler inventory feed (get_wholesaler_inventory) returned 503 because the feed has not been ingested, so wholesaler-level stock could not be included. Please ask W-01 and W-02 for their on-hand Lacrivia.",
+        "related_ids": "[\"W-01\", \"W-02\", \"AL-23EE2564\", \"AL-82D7F9C2\", \"AL-F21DEEE1\", \"AL-EE5A7EF8\"]",
+        "created_at": "2026-10-07T15:50:40+00:00"
+      }
+    ],
+    "tool_calls": [
+      {
+        "seq": 1,
+        "tool": "request_approval",
+        "args": "{\"kind\": \"stock_transfer\", \"dc_id\": \"DC-EAST\", \"from_dc\": \"DC-CENTRAL\", \"ndc11\": \"99101010105\", \"units\": 276, \"amount_usd\": 0, \"summary\": \"Lacrivia 0.1% 5 mL (FG-1001). S-104 (Delmar) will miss PO005791 (RM-221 Polysorbate 80, 4,200 units, promised 2026-10-07); RM-221 is the sole-qualified emulsifier input to Lacrivia at PL-01, no approved alternate (S-131 NOT_APPROVED). DC-EAST on hand 46 vs safety stock 471 (0.2 wks cover, 13-wk avg 237/wk). Rebalance to equal network cover (~2.5 wks): DC-CENTRAL 677 -> 401 (SS 314). Amount_usd = 0 because no unit cost/price is available in the data; Finance to value.\"}",
+        "accepted": 1,
+        "result": "{\"approval_id\": \"APR-71C0944E\", \"status\": \"pending\", \"approver\": \"Supply Planning lead\"}",
+        "created_at": "2026-10-07T15:49:59+00:00"
+      },
+      {
+        "seq": 2,
+        "tool": "request_approval",
+        "args": "{\"kind\": \"stock_transfer\", \"dc_id\": \"DC-EAST\", \"from_dc\": \"DC-WEST\", \"ndc11\": \"99101010105\", \"units\": 278, \"amount_usd\": 0, \"summary\": \"Lacrivia 0.1% 5 mL (FG-1001). S-104 will miss PO005791 (RM-221, 4,200, due 2026-10-07); no approved alternate source. DC-EAST on hand 46 vs SS 471 (0.2 wks). Rebalance to equal network cover (~2.5 wks): DC-WEST 593 -> 315 (SS 261). Amount_usd = 0: no unit cost in data; Finance to value.\"}",
+        "accepted": 1,
+        "result": "{\"approval_id\": \"APR-F9097D29\", \"status\": \"pending\", \"approver\": \"Supply Planning lead\"}",
+        "created_at": "2026-10-07T15:49:59+00:00"
+      },
+      {
+        "seq": 3,
+        "tool": "request_approval",
+        "args": "{\"kind\": \"stock_transfer\", \"dc_id\": \"DC-EAST\", \"from_dc\": \"DC-CENTRAL\", \"ndc11\": \"99101010110\", \"units\": 141, \"amount_usd\": 0, \"summary\": \"Lacrivia 0.1% 10 mL (FG-1002). S-104 will miss PO005791 (RM-221, 4,200, due 2026-10-07); no approved alternate source. DC-EAST on hand 34 vs SS 233 (0.3 wks, 13-wk avg 110/wk). Rebalance to equal network cover (~2.8 wks): DC-CENTRAL 351 -> 210 (SS 155). Amount_usd = 0: no unit cost in data; Finance to value.\"}",
+        "accepted": 1,
+        "result": "{\"approval_id\": \"APR-D42CE6CA\", \"status\": \"pending\", \"approver\": \"Supply Planning lead\"}",
+        "created_at": "2026-10-07T15:49:59+00:00"
+      },
+      {
+        "seq": 4,
+        "tool": "request_approval",
+        "args": "{\"kind\": \"stock_transfer\", \"dc_id\": \"DC-EAST\", \"from_dc\": \"DC-WEST\", \"ndc11\": \"99101010110\", \"units\": 139, \"amount_usd\": 0, \"summary\": \"Lacrivia 0.1% 10 mL (FG-1002). S-104 will miss PO005791 (RM-221, 4,200, due 2026-10-07); no approved alternate source. DC-EAST on hand 34 vs SS 233 (0.3 wks). Rebalance to equal network cover (~2.8 wks): DC-WEST 324 -> 185 (SS 129). Amount_usd = 0: no unit cost in data; Finance to value.\"}",
+        "accepted": 1,
+        "result": "{\"approval_id\": \"APR-859B7EA8\", \"status\": \"pending\", \"approver\": \"Supply Planning lead\"}",
+        "created_at": "2026-10-07T15:49:59+00:00"
+      },
+      {
+        "seq": 5,
+        "tool": "create_allocation",
+        "args": "{\"dc_id\": \"DC-EAST\", \"ndc11\": \"99101010105\", \"from_dc\": \"DC-CENTRAL\", \"approval_id\": \"APR-71C0944E\", \"lines\": [{\"account_id\": \"W-01\", \"units\": 130}, {\"account_id\": \"W-02\", \"units\": 146}], \"basis\": \"Pro-rata to each DC-EAST wholesaler's share of FG-1001 shipments over last 13 weekly periods (W-01 1,490 = 47.0%; W-02 1,679 = 53.0%). Shipment history only; no commercial/Rx data used.\"}",
+        "accepted": 1,
+        "result": "{\"plan_id\": \"AL-23EE2564\", \"status\": \"recorded\", \"lines\": 2, \"units\": 276}",
+        "created_at": "2026-10-07T15:50:12+00:00"
+      },
+      {
+        "seq": 6,
+        "tool": "create_allocation",
+        "args": "{\"dc_id\": \"DC-EAST\", \"ndc11\": \"99101010105\", \"from_dc\": \"DC-WEST\", \"approval_id\": \"APR-F9097D29\", \"lines\": [{\"account_id\": \"W-01\", \"units\": 131}, {\"account_id\": \"W-02\", \"units\": 147}], \"basis\": \"Pro-rata to each DC-EAST wholesaler's share of FG-1001 shipments over last 13 weekly periods (W-01 47.0%; W-02 53.0%). Shipment history only.\"}",
+        "accepted": 1,
+        "result": "{\"plan_id\": \"AL-82D7F9C2\", \"status\": \"recorded\", \"lines\": 2, \"units\": 278}",
+        "created_at": "2026-10-07T15:50:12+00:00"
+      },
+      {
+        "seq": 7,
+        "tool": "create_allocation",
+        "args": "{\"dc_id\": \"DC-EAST\", \"ndc11\": \"99101010110\", \"from_dc\": \"DC-CENTRAL\", \"approval_id\": \"APR-D42CE6CA\", \"lines\": [{\"account_id\": \"W-01\", \"units\": 81}, {\"account_id\": \"W-02\", \"units\": 60}], \"basis\": \"Pro-rata to each DC-EAST wholesaler's share of FG-1002 shipments over last 13 weekly periods (W-01 872 = 57.6%; W-02 642 = 42.4%). Shipment history only.\"}",
+        "accepted": 1,
+        "result": "{\"plan_id\": \"AL-F21DEEE1\", \"status\": \"recorded\", \"lines\": 2, \"units\": 141}",
+        "created_at": "2026-10-07T15:50:12+00:00"
+      },
+      {
+        "seq": 8,
+        "tool": "create_allocation",
+        "args": "{\"dc_id\": \"DC-EAST\", \"ndc11\": \"99101010110\", \"from_dc\": \"DC-WEST\", \"approval_id\": \"APR-859B7EA8\", \"lines\": [{\"account_id\": \"W-01\", \"units\": 80}, {\"account_id\": \"W-02\", \"units\": 59}], \"basis\": \"Pro-rata to each DC-EAST wholesaler's share of FG-1002 shipments over last 13 weekly periods (W-01 57.6%; W-02 42.4%). Shipment history only.\"}",
+        "accepted": 1,
+        "result": "{\"plan_id\": \"AL-EE5A7EF8\", \"status\": \"recorded\", \"lines\": 2, \"units\": 139}",
+        "created_at": "2026-10-07T15:50:12+00:00"
+      },
+      {
+        "seq": 9,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Procurement / Supplier Management\", \"subject\": \"S-104 Delmar will miss PO005791 (RM-221 Polysorbate 80, 4,200 units, due 2026-10-07): expedite and get a revised date\", \"details\": \"S-104 (Delmar Specialty Chemicals, IN; ACTIVE, the only qualified and primary source for RM-221) will miss its next ship date: PO005791, RM-221 Polysorbate 80 NF low-peroxide, qty 4,200, promised ship date 2026-10-07. Note that PO005791 has an out-of-sequence ID (the rest of the RM-221 series is PO00036x), so please check it is valid and not a duplicate. Also at risk: PO000369 (RM-221, 3,300, due 2026-10-29) and PO000430 (RM-222, 2,600, due 2026-10-26). S-104's recent record includes late RM-221 shipments: PO000360 was 14 days late and PO000363 8 days late. Asks: (1) get a confirmed revised ship date and the root cause; (2) push for a partial or expedited shipment (air freight) to PL-01 and PL-03, which are the approved sites; (3) say whether PO000369 is also affected. No purchase requisition was raised: the only other listed RM-221 source, S-131 Pinecrest, is NOT_APPROVED in the supplier portal, and re-ordering from S-104 would not fix the delay. Impact: RM-221 goes via CMP-310 / SEMI-031 into Lacrivia 0.1% 5 mL and 10 mL and Cyclosporine 0.05% 5 mL at PL-01, and via INT-LC1011 / INT-LC1035 into lens-care intermediates at PL-03 (FG-3001 to FG-3011). DC-EAST Lacrivia was already below safety stock; 834 units are being rebalanced from DC-CENTRAL and DC-WEST under approvals APR-71C0944E, APR-F9097D29, APR-D42CE6CA and APR-859B7EA8.\", \"related_ids\": [\"S-104\", \"PO005791\", \"PO000369\", \"PO000430\", \"RM-221\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-840A01F0\", \"status\": \"open\", \"owner\": \"Procurement / Supplier Management\"}",
+        "created_at": "2026-10-07T15:50:33+00:00"
+      },
+      {
+        "seq": 10,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Quality / Supplier Qualification\", \"subject\": \"RM-221 Polysorbate 80 is single-sourced (S-104); assess an urgent alternate qualification\", \"details\": \"S-104 Delmar is missing its 2026-10-07 shipment of RM-221 (PO005791, 4,200 units). RM-221 has no approved alternate. S-131 Pinecrest Chemical Trading (CN) is listed for RM-221 but is NOT_APPROVED in the supplier portal, with no approved sites. Please assess whether an expedited qualification of S-131, or of another low-peroxide PS80 NF source, is feasible for PL-01 (Lacrivia / cyclosporine emulsions) and PL-03 (lens-care intermediates). Planning will not buy from an unapproved source.\", \"related_ids\": [\"RM-221\", \"S-104\", \"S-131\", \"PO005791\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-482A9E1C\", \"status\": \"open\", \"owner\": \"Quality / Supplier Qualification\"}",
+        "created_at": "2026-10-07T15:50:33+00:00"
+      },
+      {
+        "seq": 11,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Production Planning (PL-01 Riverside, PL-03 Harborside)\", \"subject\": \"RM-221 supply gap from 2026-10-07: check on-hand cover and re-sequence Lacrivia and cyclosporine batches\", \"details\": \"PO005791 (RM-221, 4,200 units) from S-104 will miss its 2026-10-07 ship date. The supply data has no plant raw-material inventory, so please confirm RM-221 on-hand cover at PL-01 and PL-03. Then prioritize RM-221 for PL-01 emulsion batches (CMP-310 into SEMI-031, then FG-1001, FG-1002 and FG-1003) ahead of PL-03 lens-care intermediates (INT-LC1011 and INT-LC1035). Lacrivia network cover after the DC rebalance is only about 2.5 weeks for 5 mL and about 2.8 weeks for 10 mL. DC-EAST was at 46 units of 5 mL and 34 of 10 mL on 2026-09-25.\", \"related_ids\": [\"RM-221\", \"PO005791\", \"FG-1001\", \"FG-1002\", \"FG-1003\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-AD99E0BC\", \"status\": \"open\", \"owner\": \"Production Planning (PL-01 Riverside, PL-03 Harborside)\"}",
+        "created_at": "2026-10-07T15:50:33+00:00"
+      },
+      {
+        "seq": 12,
+        "tool": "send_wholesaler_edi",
+        "args": "{\"wholesaler_id\": \"W-01\", \"message\": \"Supply notice: Lacrivia 0.1% ophthalmic emulsion (NDC 99101-0101-05 and 99101-0101-10) is on allocation from East DC because of a raw-material supply delay. Allocated quantities for Keystone Drug Distributors: 261 units of 5 mL and 161 units of 10 mL, coming from stock being transferred into East DC. Allocation is based on your recent order history. We will send updates as supply recovers.\"}",
+        "accepted": 0,
+        "result": "{\"error\": \"HTTP 501 Not Implemented: the EDI gateway has no API for outbound notices\"}",
+        "created_at": "2026-10-07T15:50:33+00:00"
+      },
+      {
+        "seq": 13,
+        "tool": "send_wholesaler_edi",
+        "args": "{\"wholesaler_id\": \"W-02\", \"message\": \"Supply notice: Lacrivia 0.1% ophthalmic emulsion (NDC 99101-0101-05 and 99101-0101-10) is on allocation from East DC because of a raw-material supply delay. Allocated quantities for Atlas Pharma Supply: 293 units of 5 mL and 119 units of 10 mL, coming from stock being transferred into East DC. Allocation is based on your recent order history. We will send updates as supply recovers.\"}",
+        "accepted": 0,
+        "result": "{\"error\": \"HTTP 501 Not Implemented: the EDI gateway has no API for outbound notices\"}",
+        "created_at": "2026-10-07T15:50:33+00:00"
+      },
+      {
+        "seq": 14,
+        "tool": "create_escalation_case",
+        "args": "{\"owner\": \"Trade Relations / Customer Service\", \"subject\": \"Send Lacrivia allocation notices to W-01 Keystone and W-02 Atlas (EDI gateway can't send outbound)\", \"details\": \"The EDI gateway returned 501 (no outbound notice API), so these notices could not be sent. Please tell the wholesalers that Lacrivia 0.1% (NDC 99101-0101-05 and 99101-0101-10) is on allocation from DC-EAST because of a raw-material delay. W-01 Keystone: 261 units of 5 mL and 161 units of 10 mL. W-02 Atlas: 293 units of 5 mL and 119 units of 10 mL. Allocation plans: AL-23EE2564, AL-82D7F9C2, AL-F21DEEE1, AL-EE5A7EF8. The split is pro-rata to each wholesaler's shipments over the last 13 weeks. Do not name the supplier. Also: the wholesaler inventory feed (get_wholesaler_inventory) returned 503 because the feed has not been ingested, so wholesaler-level stock could not be included. Please ask W-01 and W-02 for their on-hand Lacrivia.\", \"related_ids\": [\"W-01\", \"W-02\", \"AL-23EE2564\", \"AL-82D7F9C2\", \"AL-F21DEEE1\", \"AL-EE5A7EF8\"]}",
+        "accepted": 1,
+        "result": "{\"case_id\": \"CASE-1E1A4FAB\", \"status\": \"open\", \"owner\": \"Trade Relations / Customer Service\"}",
+        "created_at": "2026-10-07T15:50:40+00:00"
+      }
+    ]
+  },
+  "discovery": false,
+  "trusted_playbooks_offered": {},
+  "execution_trace": null
+}

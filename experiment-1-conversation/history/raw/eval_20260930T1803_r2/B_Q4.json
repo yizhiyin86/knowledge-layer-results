@@ -1,0 +1,86 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "B",
+  "qid": "Q4",
+  "question": "Which high-decile dry-eye prescribers have had no call from any team in the last 90 days?",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "**20 high-decile dry-eye prescribers have had no call from any team (TEAL, CORAL or INDIGO) in the last 90 days.** That's calls on or after 2026-07-02, with data as of 2026-09-30. 14 are decile 10, 1 is decile 9 and 5 are decile 8. 16 are optometrists and 4 are ophthalmologists.\n\n| # | Prescriber (ID) | Specialty | Decile | Territory / District | Dry-eye TRx, last 13 wks | Dry-eye TRx, 12 mo | Last call (team) |\n|---|---|---|---|---|---|---|---|\n| 1 | Jordan Stroud (ME7001005713) | OPT | 10 | T011 / D-01 | 307 | 1,155 | 2026-07-01 (CORAL)* |\n| 2 | Sage Kendall (ME7002724136) | OPT | 10 | T033 / D-03 | 292 | 1,142 | 2026-06-29 (TEAL) |\n| 3 | Jordan Mercer (ME7000451383) | OPT | 10 | T024 / D-02 | 291 | 1,139 | 2026-06-18 (TEAL) |\n| 4 | Yael Brandt (ME7000071271) | OPT | 10 | T033 / D-03 | 290 | 1,114 | 2026-06-15 (TEAL) |\n| 5 | Avery Abbott (ME7000514735) | OPT | 10 | T043 / D-04 | 288 | 1,107 | 2026-06-23 (CORAL) |\n| 6 | Indy Pruitt (ME7000293003) | OPT | 10 | T044 / D-04 | 283 | 1,124 | 2026-06-26 (TEAL) |\n| 7 | Parker Whitlock (ME7001963912) | OPT | 10 | T052 / D-05 | 282 | 1,136 | 2026-06-19 (TEAL) |\n| 8 | Avery Dunmore (ME7001924317) | OPT | 10 | T011 / D-01 | 270 | 1,111 | 2026-06-21 (TEAL) |\n| 9 | Quinn Lowry (ME7002177725) | OPH | 10 | T032 / D-03 | 268 | 1,085 | 2026-06-19 (TEAL) |\n| 10 | Casey Lowry (ME7001029470) | OPH | 10 | T053 / D-05 | 253 | 1,114 | 2026-06-19 (TEAL) |\n| 11 | Kai Iverson (ME7001607557) | OPH | 10 | T023 / D-02 | 252 | 1,068 | 2026-06-16 (TEAL) |\n| 12 | Tatum Brandt (ME7002708298) | OPH | 10 | T044 / D-04 | 250 | 1,118 | 2026-06-28 (TEAL) |\n| 13 | Taylor Mercer (ME7002359862) | OPT | 10 | T031 / D-03 | 246 | 1,105 | 2026-07-01 (INDIGO)* |\n| 14 | Dana Iverson (ME7003151762) | OPT | 10 | T021 / D-02 | 246 | 1,115 | 2026-06-24 (TEAL) |\n| 15 | Zion Fairley (ME7000142542) | OPT | 9 | T063 / D-06 | 247 | 1,057 | 2026-06-29 (TEAL) |\n| 16 | Taylor Calder (ME7001742180) | OPT | 8 | T013 / D-01 | 244 | 905 | 2026-06-09 (TEAL) |\n| 17 | Wren Rourke (ME7000617682) | OPT | 8 | T012 / D-01 | 240 | 890 | 2026-06-28 (TEAL) |\n| 18 | Tatum Bishop (ME7000118785) | OPT | 8 | T014 / D-01 | 229 | 922 | 2026-06-15 (CORAL) |\n| 19 | Harper Iverson (ME7001314554) | OPT | 8 | T064 / D-06 | 226 | 874 | 2026-06-26 (TEAL) |\n| 20 | Avery Vance (ME7001560043) | OPT | 8 | T054 / D-05 | 208 | 903 | 2026-06-25 (TEAL) |\n\n\\* Called one day before the window started. If you count 91 days, the list drops to 18.\n\n**What stands out:**\n- **This is a recent gap:** every one of these prescribers was called at some point in the year, most recently between June 9 and July 1, 2026.\n- **The problem is calls not being made, not missing coverage:** every one of these territories has both a TEAL (dry-eye) rep and a CORAL (breadth) rep assigned.\n- **High overlap:** 14 of the 36 decile-10 dry-eye prescribers (39%) are on this list. No prescriber in deciles 1\u20137 is.\n- **By district:** D-01 has the most (5). D-03 has 4, D-02, D-04 and D-05 have 3 each, and D-06 has 2. (The decision log I saved says D-01 has 6; the correct number is 5.)\n\n**Sources and definitions (knowledge layer):**\n- **Concepts:** Prescriber, Call (\"a rep interaction with a prescriber, from any team\"), SalesRep, TherapeuticMarket.\n- **Data product:** Field Force (ratified), using these tables:\n  - `CORE.PRESCRIBER` (decile, territory)\n  - `CORE.CALL_ACT` (all-team call activity)\n  - `CORE.REP_ROSTER` (team)\n  - `CORE.TERRITORY` (district)\n- **Dry-eye market:** `BIZ.MKT_DEF_DRIVER`, MKT_DEF = 'DRY_EYE' (7 NDCs, effective-dated), applied to `RAW_3P.RXT_WKLY`.\n- **Rep-to-prescriber link:** the \"SalesRep to Prescriber\" join path.\n- **Policy:** check_policy returned \"allow\" for FIELD_SALES, with no masking.\n- **Decision log:** trace aab910c1.\n\n**Assumptions:**\n- **\"High decile\":** deciles 8\u201310 of the ratified `PRESCRIBER.DECILE`. The knowledge layer has no formal cutoff.\n- **\"Dry-eye prescriber\":** anyone with at least one dry-eye TRx in the 12 months of data. 61 of the 65 prescribers in deciles 8\u201310 qualify.\n- **Calls:** all call types count (for example detail, lunch, sample drop), from any team.",
+  "stop_reason": "end_turn",
+  "model_turns": 11,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_concept",
+    "get_concept",
+    "get_data_product",
+    "get_business_rules",
+    "list_deprecated_tables",
+    "get_concept",
+    "check_policy",
+    "describe_table",
+    "describe_table",
+    "get_business_rules",
+    "get_metric",
+    "get_join_path",
+    "list_tables",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT DECILE, COUNT(*) n, (SELECT MAX(CALL_DT) FROM PHARMA_DEMO.CORE.CALL_ACT) max_call, (SELECT MIN(CALL_DT) FROM PHARMA_DEMO.CORE.CALL_ACT) min_call FROM PHARMA_DEMO.CORE.PRESCRIBER GROUP BY DECILE ORDER BY DECILE",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 3.87
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) calls, COUNT(DISTINCT c.PRSCRBR_ME) prs, SUM(IFF(p.PRSCRBR_ME IS NULL,1,0)) unmatched, COUNT(DISTINCT c.REP_ID) reps, SUM(IFF(r.REP_ID IS NULL,1,0)) rep_unmatched\nFROM PHARMA_DEMO.CORE.CALL_ACT c LEFT JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME = c.PRSCRBR_ME\nLEFT JOIN PHARMA_DEMO.CORE.REP_ROSTER r ON r.REP_ID = c.REP_ID",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 2.27
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT MKT_DEF, COUNT(*) n, MIN(EFF_FROM), MAX(EFF_TO) FROM PHARMA_DEMO.BIZ.MKT_DEF_DRIVER GROUP BY 1",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.42
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH de AS (\n  SELECT r.PRSCRBR_ME, SUM(r.TRX_QTY) trx_12m,\n         SUM(IFF(r.WK_END_DT > (SELECT DATEADD(week,-13,MAX(WK_END_DT)) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY), r.TRX_QTY,0)) trx_13w\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n  JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11 = r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\n  GROUP BY 1),\ncalls AS (\n  SELECT c.PRSCRBR_ME, MAX(c.CALL_DT) last_call,\n         SUM(IFF(c.CALL_DT >= '2026-07-02',1,0)) calls_90d,\n         LISTAGG(DISTINCT IFF(c.CALL_DT >= '2026-07-02', rr.TEAM, NULL), ',') teams_90d\n  FROM PHARMA_DEMO.CORE.CALL_ACT c JOIN PHARMA_DEMO.CORE.REP_ROSTER rr ON rr.REP_ID=c.REP_ID GROUP BY 1)\nSELECT p.DECILE, COUNT(*) n_pr, SUM(IFF(de.PRSCRBR_ME IS NOT NULL AND de.trx_12m>0,1,0)) dry_eye_writers,\n       SUM(IFF(de.trx_12m>0 AND COALESCE(ca.calls_90d,0)=0,1,0)) uncalled_de\nFROM PHARMA_DEMO.CORE.PRESCRIBER p LEFT JOIN de ON de.PRSCRBR_ME=p.PRSCRBR_ME LEFT JOIN calls ca ON ca.PRSCRBR_ME=p.PRSCRBR_ME\nGROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 6.48
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH de AS (\n  SELECT r.PRSCRBR_ME, SUM(r.TRX_QTY) trx_12m,\n         SUM(IFF(r.WK_END_DT > (SELECT DATEADD(week,-13,MAX(WK_END_DT)) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY), r.TRX_QTY,0)) trx_13w\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n  JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11 = r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE' AND r.WK_END_DT BETWEEN m.EFF_FROM AND m.EFF_TO\n  GROUP BY 1),\ncalls AS (\n  SELECT c.PRSCRBR_ME, MAX(c.CALL_DT) last_call, SUM(IFF(c.CALL_DT >= '2026-07-02',1,0)) calls_90d,\n         MAX_BY(rr.TEAM, c.CALL_DT) last_team\n  FROM PHARMA_DEMO.CORE.CALL_ACT c JOIN PHARMA_DEMO.CORE.REP_ROSTER rr ON rr.REP_ID=c.REP_ID GROUP BY 1)\nSELECT p.PRSCRBR_ME, p.PRSCRBR_NM, p.SPCLTY, p.DECILE, p.TERR_ID, t.DISTRICT_ID, de.trx_13w, de.trx_12m, ca.last_call, ca.last_team,\n  (SELECT LISTAGG(DISTINCT rr.TEAM, ',') FROM PHARMA_DEMO.CORE.REP_ROSTER rr WHERE rr.TERR_ID = p.TERR_ID) terr_teams\nFROM PHARMA_DEMO.CORE.PRESCRIBER p JOIN de ON de.PRSCRBR_ME=p.PRSCRBR_ME AND de.trx_12m>0\nLEFT JOIN calls ca ON ca.PRSCRBR_ME=p.PRSCRBR_ME\nLEFT JOIN PHARMA_DEMO.CORE.TERRITORY t ON t.TERR_ID=p.TERR_ID\nWHERE p.DECILE >= 8 AND COALESCE(ca.calls_90d,0)=0\nORDER BY p.DECILE DESC, de.trx_13w DESC",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 3.74
+    }
+  ],
+  "usage": {
+    "input": 24,
+    "output": 8619,
+    "cache_read": 167009,
+    "cache_write": 27101
+  },
+  "cost_usd": 0.3414,
+  "latency_s": 128.6,
+  "cypher_queries": 78
+}

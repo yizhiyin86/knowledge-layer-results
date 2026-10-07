@@ -1,0 +1,112 @@
+{
+  "run_id": "eval_20261001T2144_r2",
+  "agent": "B",
+  "qid": "Q7",
+  "question": "Is DC-EAST at risk of a Lacrivia stockout given the recent TRx demand trend?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**Yes. DC-EAST is about to stock out of Lacrivia in both pack sizes, within roughly 1\u20132 days of the 2026-09-30 data date.** Inventory has fallen far below safety stock while TRx demand in the DC-EAST states is rising.\n\n**1. Inventory and days of supply (ratified `days_of_supply` metric)**\n\n| DC-EAST | On hand 2026-08-14 | On hand 2026-09-25 | Safety stock | Units shipped, last 28 days | Days of supply |\n|---|---|---|---|---|---|\n| FG-1001 Lacrivia 0.1% 5 mL | 1,227 | **46** | 471 | 1,027 (36.7 per day) | **1.3 days** |\n| FG-1002 Lacrivia 0.1% 10 mL | 572 | **34** | 233 | 423 (15.1 per day) | **2.3 days** |\n\n- Stock was stable at about 1,100\u20131,230 units (5 mL) and 530\u2013590 units (10 mL) from June to mid-August. It then fell every week, which means restocking into DC-EAST largely stopped.\n- One week looks odd: between 2026-09-04 and 2026-09-11 stock dropped by about 540 units (5 mL), but only about 280 were shipped. Some stock may have been put on hold, written off or moved. Check this with the DC.\n\n**2. Demand trend (TRx from prescribers whose clinics are in DC-EAST states: NY, NJ, PA, MA, FL, GA, NC, OH)**\n\n| Pack | Last 13 weeks | Prior 13 weeks | Change | Last 4 weeks, per week |\n|---|---|---|---|---|\n| 5 mL | 3,473 | 3,201 | **+8.5%** | 287 (13-week average 267) |\n| 10 mL | 1,697 | 1,560 | **+8.8%** | 137 (13-week average 131) |\n\nDemand is speeding up just as stock runs out. Weekly shipments are steady at about 230\u2013280 units (5 mL) and 100\u2013130 units (10 mL), so there is nothing to cover the higher pull.\n\n**3. The problem is specific to DC-EAST.** The other two DCs are still above safety stock (2026-09-25):\n- **5 mL:** DC-CENTRAL 677 (safety stock 314), DC-WEST 593 (261). Together that is about 695 units above safety stock, roughly 2.7 weeks of DC-EAST shipments.\n- **10 mL:** DC-CENTRAL 351 (155), DC-WEST 324 (129). That is about 391 units above safety stock, roughly 3.7 weeks.\n\n**4. How long recovery takes.** Some Lacrivia component orders have been late:\n- 10 mL dropper bottles (CMP-502) from supplier S-105 shipped 20 days late on 2026-09-22.\n- CMP-510 and CMP-540 shipped 6\u20138 days late.\n- Many component and raw-material orders are still open, due 2026-10-01 to 2026-10-30.\n\nUnder the recovery lead-time rule (BR-LEAD-01), even a component that has already arrived takes about **25 days** to reach the DC: 3 days transit, 3 days fill and QC, then 19 days for finished-good QC release (including the 14-day sterility test) and DC transit. New production therefore can't reach DC-EAST before late October. That leaves a gap of at least 3\u20134 weeks.\n\n**Recommended actions**\n1. **Transfer stock from DC-CENTRAL and DC-WEST to DC-EAST.** Moves between DCs need Supply Planning approval (BR-ALLOC-01). The units above safety stock at those two DCs would cover about 3 weeks for DC-EAST.\n2. **Allocate what DC-EAST has left using the shortage rule (BR-ALLOC-01):** Tier A contract health systems first, then Tier B, then everyone else pro rata by last-13-week TRx.\n3. **Substitute product (BR-SUB-01):** Cyclosporine OS 0.05% is the approved substitute, but first confirm it doesn't depend on the same failing supply chain. I didn't check this. If it is affected, Medical Affairs guides alternatives.\n4. **Find out why restocking into DC-EAST stopped in mid-August**, including the unexplained September drop.\n\n**Sources and definitions**\n- **Knowledge layer:** `get_context` (ratified `days_of_supply` metric, DC-to-demand join path, BR-ALLOC-01, BR-SUB-01, BR-LEAD-01); `get_reference` sets `ndc_crosswalk` (FG-1001 = 99101010105, FG-1002 = 99101010110) and `dc_service_regions` (the DC-EAST states); `get_lead_times` (CMP-502 \u2192 FG-1002).\n- **Fabric:**\n  - `dbo.DC_INV`: stock on hand and safety stock.\n  - `dbo.WHSLR_SHIP`: shipments in the 28 days to 2026-09-30.\n  - `dbo.BOM`: current Lacrivia recipe, 3 levels.\n  - `dbo.PURCH_ORD`: late and open component orders.\n- **Snowflake:** `RAW_3P.RXT_WKLY` joined to `CORE.PRESCRIBER` and `CORE.ACCOUNT` to filter by state. \"Last 13 weeks\" means the 13 most recent weekly periods (through 2026-09-25). No restricted tables were used; `CORE.IC_GOAL` is blocked for this role and wasn't needed.\n\n**Assumptions**\n- Prescriber demand is assigned to a DC by the state of the prescriber's clinic. I didn't map wholesalers to regions.\n- TRx counts prescriptions, not units, so I used it only to show the trend. Days of supply uses shipped units, as the ratified metric defines.\n- The recovery estimate (about 25 days at minimum) starts when a component arrives. I only traced lead times for CMP-502; the actual root cause hasn't been confirmed.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "get_context",
+    "get_reference",
+    "get_reference",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "get_lead_times"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT >= '2026-06-01' ORDER BY MATERIAL_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 34,
+      "error": null,
+      "elapsed_s": 2.23
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, DATEADD(week, DATEDIFF(week, '2026-01-02', SHIP_DT), '2026-01-02') AS wk, SUM(UNITS) units, COUNT(*) n FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT >= '2026-04-01' GROUP BY MATERIAL_ID, DATEADD(week, DATEDIFF(week, '2026-01-02', SHIP_DT), '2026-01-02') ORDER BY MATERIAL_ID, wk",
+      "ok": true,
+      "rows": 52,
+      "error": null,
+      "elapsed_s": 0.56
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT r.WK_END_DT, r.PROD_NDC11, SUM(r.TRX_QTY) trx_east, COUNT(DISTINCT r.PRSCRBR_ME) prescribers\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\nJOIN PHARMA_DEMO.CORE.PRESCRIBER p ON r.PRSCRBR_ME=p.PRSCRBR_ME\nJOIN PHARMA_DEMO.CORE.ACCOUNT a ON p.ACCOUNT_ID=a.ACCOUNT_ID\nWHERE r.PROD_NDC11 IN ('99101010105','99101010110') AND a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH')\nAND r.WK_END_DT >= DATEADD(week,-26,(SELECT MAX(WK_END_DT) FROM PHARMA_DEMO.RAW_3P.RXT_WKLY))\nGROUP BY 1,2 ORDER BY 2,1",
+      "ok": true,
+      "rows": 54,
+      "error": null,
+      "elapsed_s": 1.59
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, SUM(UNITS) units_28d, SUM(UNITS)/28.0 avg_daily, MIN(SHIP_DT) mn, MAX(SHIP_DT) mx FROM dbo.WHSLR_SHIP WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT > DATEADD(day,-28,'2026-09-30') AND SHIP_DT <= '2026-09-30' GROUP BY MATERIAL_ID",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 2.35
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH mx AS (SELECT MAX(WK_END_DT) m FROM PHARMA_DEMO.RAW_3P.RXT_WKLY)\nSELECT r.PROD_NDC11,\n SUM(CASE WHEN r.WK_END_DT > DATEADD(week,-13,mx.m) THEN r.TRX_QTY END) trx_l13,\n SUM(CASE WHEN r.WK_END_DT <= DATEADD(week,-13,mx.m) AND r.WK_END_DT > DATEADD(week,-26,mx.m) THEN r.TRX_QTY END) trx_p13,\n SUM(CASE WHEN r.WK_END_DT > DATEADD(week,-4,mx.m) THEN r.TRX_QTY END) trx_l4\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\nJOIN PHARMA_DEMO.CORE.PRESCRIBER p ON r.PRSCRBR_ME=p.PRSCRBR_ME\nJOIN PHARMA_DEMO.CORE.ACCOUNT a ON p.ACCOUNT_ID=a.ACCOUNT_ID\nCROSS JOIN mx\nWHERE r.PROD_NDC11 IN ('99101010105','99101010110') AND a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH')\nGROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 4.06
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE STATUS <> 'CLOSED' OR (ACTUAL_SHIP_DT > PROMISED_SHIP_DT AND PROMISED_SHIP_DT >= '2026-07-01') OR (ACTUAL_SHIP_DT IS NULL AND PROMISED_SHIP_DT < '2026-09-30') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 200,
+      "error": null,
+      "elapsed_s": 1.73
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS FROM dbo.DC_INV i WHERE i.MATERIAL_ID IN ('FG-1001','FG-1002','FG-2001','FG-2002','FG-3001') AND i.SNAPSHOT_DT = (SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) ORDER BY i.MATERIAL_ID, i.DC_ID",
+      "ok": false,
+      "rows": null,
+      "error": "('HY000', '[HY000] [Microsoft][ODBC Driver 18 for SQL Server]Connection is busy with results for another command (0) (SQLExecDirectW)')",
+      "elapsed_s": 0.42
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS FROM dbo.DC_INV i WHERE i.MATERIAL_ID IN ('FG-1001','FG-1002') AND i.SNAPSHOT_DT IN ('2026-08-14','2026-09-25') ORDER BY i.MATERIAL_ID, i.DC_ID, i.SNAPSHOT_DT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.11
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH l1 AS (SELECT PARENT_MATERIAL_ID fg, CHILD_MATERIAL_ID c FROM dbo.BOM WHERE PARENT_MATERIAL_ID IN ('FG-1001','FG-1002') AND EFF_TO >= '2026-09-30' AND EFF_FROM <= '2026-09-30'),\nl2 AS (SELECT l1.fg, b.CHILD_MATERIAL_ID c FROM l1 JOIN dbo.BOM b ON b.PARENT_MATERIAL_ID=l1.c AND b.EFF_TO >= '2026-09-30' AND b.EFF_FROM <= '2026-09-30'),\nl3 AS (SELECT l2.fg, b.CHILD_MATERIAL_ID c FROM l2 JOIN dbo.BOM b ON b.PARENT_MATERIAL_ID=l2.c AND b.EFF_TO >= '2026-09-30' AND b.EFF_FROM <= '2026-09-30'),\nallc AS (SELECT fg,c,1 lvl FROM l1 UNION SELECT fg,c,2 FROM l2 UNION SELECT fg,c,3 FROM l3)\nSELECT a.fg, a.lvl, a.c, p.SUPPLIER_ID, p.PO_ID, p.PROMISED_SHIP_DT, p.ACTUAL_SHIP_DT, p.STATUS\nFROM allc a LEFT JOIN dbo.PURCH_ORD p ON p.MATERIAL_ID=a.c AND p.PROMISED_SHIP_DT >= '2026-07-15' AND (p.ACTUAL_SHIP_DT IS NULL OR p.ACTUAL_SHIP_DT > p.PROMISED_SHIP_DT)\nORDER BY a.fg, a.lvl, a.c, p.PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 79,
+      "error": null,
+      "elapsed_s": 1.28
+    }
+  ],
+  "cypher_queries": 18,
+  "usage": {
+    "input": 22,
+    "output": 7952,
+    "cache_read": 165975,
+    "cache_write": 32334
+  },
+  "cost_usd": 0.354,
+  "latency_s": 100.9
+}

@@ -1,0 +1,120 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "A",
+  "qid": "Q14",
+  "question": "What did we conclude last time about exposure to supplier S-104, and has its next ship date changed since?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "I can't tell you what we concluded last time. I don't keep a memory of past conversations, and I found no saved notes or earlier analysis in the supply chain warehouse. I also can't tell whether S-104's ship date has changed: the PO tables only hold each PO's current promised date, with no history of revisions. So everything below is how things stand now (as of 2026-09-30), not a comparison with before.\n\n**Next ship dates for S-104 (Delmar Specialty Chemicals, India, Tier 2)**\n| PO | Material | Ordered | Promised ship | Qty |\n|---|---|---|---|---|\n| **PO005791** | RM-221 Polysorbate 80 NF | 2026-09-02 | **2026-10-07 (next ship)** | 4,200 |\n| PO000430 | RM-222 Benzalkonium chloride 50% | 2026-10-02 | 2026-10-26 | 2,600 |\n| PO000369 | RM-221 | 2026-10-02 | 2026-10-29 | 3,300 |\n\n**Signs the 10-07 date may have been pushed back (not confirmed)**\n- **Longer lead time than usual:** RM-221 POs from S-104 are normally promised 27 days after the order date. PO005791 is promised 35 days after, about 8 days later than that pattern would give (about 2026-09-29).\n- **Odd PO numbering:** S-104's POs are normally numbered PO0003xx and PO0004xx. PO005791 is far outside that range. The expected numbers PO000365\u2013368 and PO000427\u2013429 don't appear in either the current or the archive PO table. That could mean orders were cancelled and replaced, but the data can't show it.\n- **Order dates after the cutoff:** PO000369 and PO000430 have order dates of 2026-10-02, two days after the data's as-of date. Please check these against the source system.\n\n**Exposure**\n- **RM-221 has only one usable supplier.** S-104 is the only qualified source. The one alternative, S-131 (Pinecrest Chemical Trading, China), isn't qualified. It feeds 14 finished goods: Lacrivia 0.1% ophthalmic emulsion (5 mL and 10 mL), Cyclosporine 0.05% ophthalmic emulsion 5 mL, and 11 lens care solutions (FG-3001 to FG-3011).\n- **RM-222 has a backup.** S-130 (Oakridge Chemicals, US) is qualified but not primary. It feeds 2 finished goods: Oculon 0.005% ophthalmic solution, 2.5 mL and 5 mL.\n- **Recent late shipments:** by my count, 6 of the 25 POs promised to ship in July\u2013September went out late, by 3 to 17 days. The worst were PO000423 (17 days) and PO000360 (14 days).\n\n**Next steps**\n- If you share the earlier conclusion or the ship date we noted then, I can compare it directly.\n- For a proper change history, PO snapshots over time or an ERP change log (for example SAP's change-document tables) would be needed.\n- Ask the buyer whether PO005791 replaced a cancelled order.\n\n**Sources and assumptions**\n- **Tables used:** SUPPLIER, SUPPLIER_MATERIAL, PURCH_ORD, PURCH_ORD_ARCHIVE, BOM and MATERIAL in the Fabric warehouse (SUPPLY_DEMO).\n- **Next ship date:** the earliest promised ship date among S-104's open POs.\n- **Late:** shipped after the promised ship date.\n- **BOM:** only links in effect on 2026-09-30, traced up to 10 levels. The full trace finished within that limit.\n- **Not checked:** stock on hand and demand, so I haven't worked out how many weeks of cover you have. I also didn't use the Snowflake commercial data, since this is a supply question.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.SUPPLIER WHERE SUPPLIER_ID='S-104';\n",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' ORDER BY PROMISED_SHIP_DT DESC;\n",
+      "ok": true,
+      "rows": 99,
+      "error": null,
+      "elapsed_s": 0.39
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, m.* FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=sm.MATERIAL_ID WHERE sm.SUPPLIER_ID='S-104';\n",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.36
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD_ARCHIVE WHERE SUPPLIER_ID='S-104' OR PO_ID IN ('PO005791','PO000369','PO000430') OR (MATERIAL_ID IN ('RM-221','RM-222') AND ORDER_DT>='2026-06-01') ORDER BY ORDER_DT DESC;\n",
+      "ok": true,
+      "rows": 18,
+      "error": null,
+      "elapsed_s": 1.45
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.SUPPLIER_ID, s.SUPPLIER_NM, s.COUNTRY, s.TIER, sm.MATERIAL_ID, sm.QUALIFIED_FLG, sm.PRIMARY_FLG FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID IN ('RM-221','RM-222');\n",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.61
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH up AS (\n SELECT b.CHILD_MATERIAL_ID AS RM, b.PARENT_MATERIAL_ID AS PARENT, 1 AS LVL, CAST(b.CHILD_MATERIAL_ID + '>' + b.PARENT_MATERIAL_ID AS varchar(400)) AS PATH\n FROM dbo.BOM b WHERE b.CHILD_MATERIAL_ID IN ('RM-221','RM-222') AND '2026-09-30' BETWEEN b.EFF_FROM AND b.EFF_TO\n UNION ALL\n SELECT u.RM, b.PARENT_MATERIAL_ID, u.LVL+1, CAST(u.PATH + '>' + b.PARENT_MATERIAL_ID AS varchar(400))\n FROM up u JOIN dbo.BOM b ON b.CHILD_MATERIAL_ID=u.PARENT AND '2026-09-30' BETWEEN b.EFF_FROM AND b.EFF_TO\n WHERE u.LVL<8)\nSELECT u.RM, u.PARENT, u.LVL, u.PATH, m.MATERIAL_DESC, m.MATERIAL_TYP FROM up u LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=u.PARENT ORDER BY u.RM, u.LVL, u.PARENT;\n",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 0.86
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b1.CHILD_MATERIAL_ID RM, b1.PARENT_MATERIAL_ID L1, m1.MATERIAL_TYP T1, b2.PARENT_MATERIAL_ID L2, m2.MATERIAL_TYP T2, b3.PARENT_MATERIAL_ID L3, m3.MATERIAL_TYP T3, b4.PARENT_MATERIAL_ID L4\nFROM dbo.BOM b1\nLEFT JOIN dbo.MATERIAL m1 ON m1.MATERIAL_ID=b1.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b2 ON b2.CHILD_MATERIAL_ID=b1.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b2.EFF_FROM AND b2.EFF_TO\nLEFT JOIN dbo.MATERIAL m2 ON m2.MATERIAL_ID=b2.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b3 ON b3.CHILD_MATERIAL_ID=b2.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b3.EFF_FROM AND b3.EFF_TO\nLEFT JOIN dbo.MATERIAL m3 ON m3.MATERIAL_ID=b3.PARENT_MATERIAL_ID\nLEFT JOIN dbo.BOM b4 ON b4.CHILD_MATERIAL_ID=b3.PARENT_MATERIAL_ID AND '2026-09-30' BETWEEN b4.EFF_FROM AND b4.EFF_TO\nWHERE b1.CHILD_MATERIAL_ID IN ('RM-221','RM-222') AND '2026-09-30' BETWEEN b1.EFF_FROM AND b1.EFF_TO\nORDER BY 1,2,4,6;\n",
+      "ok": true,
+      "rows": 36,
+      "error": null,
+      "elapsed_s": 1.78
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH B AS (SELECT DISTINCT CHILD_MATERIAL_ID c, PARENT_MATERIAL_ID p FROM dbo.BOM WHERE '2026-09-30' BETWEEN EFF_FROM AND EFF_TO),\nL1 AS (SELECT DISTINCT c AS rm, p FROM B WHERE c IN ('RM-221','RM-222')),\nL2 AS (SELECT DISTINCT l.rm, b.p FROM L1 l JOIN B b ON b.c=l.p),\nL3 AS (SELECT DISTINCT l.rm, b.p FROM L2 l JOIN B b ON b.c=l.p),\nL4 AS (SELECT DISTINCT l.rm, b.p FROM L3 l JOIN B b ON b.c=l.p),\nL5 AS (SELECT DISTINCT l.rm, b.p FROM L4 l JOIN B b ON b.c=l.p),\nL6 AS (SELECT DISTINCT l.rm, b.p FROM L5 l JOIN B b ON b.c=l.p),\nL7 AS (SELECT DISTINCT l.rm, b.p FROM L6 l JOIN B b ON b.c=l.p),\nL8 AS (SELECT DISTINCT l.rm, b.p FROM L7 l JOIN B b ON b.c=l.p),\nL9 AS (SELECT DISTINCT l.rm, b.p FROM L8 l JOIN B b ON b.c=l.p),\nL10 AS (SELECT DISTINCT l.rm, b.p FROM L9 l JOIN B b ON b.c=l.p),\nA AS (SELECT * FROM L1 UNION SELECT * FROM L2 UNION SELECT * FROM L3 UNION SELECT * FROM L4 UNION SELECT * FROM L5 UNION SELECT * FROM L6 UNION SELECT * FROM L7 UNION SELECT * FROM L8 UNION SELECT * FROM L9 UNION SELECT * FROM L10)\nSELECT a.rm, m.MATERIAL_TYP, COUNT(DISTINCT a.p) n, (SELECT COUNT(*) FROM L10) l10_rows\nFROM A a JOIN dbo.MATERIAL m ON m.MATERIAL_ID=a.p GROUP BY a.rm, m.MATERIAL_TYP ORDER BY 1,2;\n",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 3.1
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH B AS (SELECT DISTINCT CHILD_MATERIAL_ID c, PARENT_MATERIAL_ID p FROM dbo.BOM WHERE '2026-09-30' BETWEEN EFF_FROM AND EFF_TO),\nL1 AS (SELECT DISTINCT c AS rm, p FROM B WHERE c IN ('RM-221','RM-222')),\nL2 AS (SELECT DISTINCT l.rm, b.p FROM L1 l JOIN B b ON b.c=l.p),\nL3 AS (SELECT DISTINCT l.rm, b.p FROM L2 l JOIN B b ON b.c=l.p),\nL4 AS (SELECT DISTINCT l.rm, b.p FROM L3 l JOIN B b ON b.c=l.p),\nL5 AS (SELECT DISTINCT l.rm, b.p FROM L4 l JOIN B b ON b.c=l.p),\nL6 AS (SELECT DISTINCT l.rm, b.p FROM L5 l JOIN B b ON b.c=l.p),\nL7 AS (SELECT DISTINCT l.rm, b.p FROM L6 l JOIN B b ON b.c=l.p),\nL8 AS (SELECT DISTINCT l.rm, b.p FROM L7 l JOIN B b ON b.c=l.p),\nL9 AS (SELECT DISTINCT l.rm, b.p FROM L8 l JOIN B b ON b.c=l.p),\nA AS (SELECT * FROM L1 UNION SELECT * FROM L2 UNION SELECT * FROM L3 UNION SELECT * FROM L4 UNION SELECT * FROM L5 UNION SELECT * FROM L6 UNION SELECT * FROM L7 UNION SELECT * FROM L8 UNION SELECT * FROM L9)\nSELECT m.MATERIAL_ID, m.MATERIAL_DESC, m.PACK_SZ, STRING_AGG(a.rm, ',') rms\nFROM A a JOIN dbo.MATERIAL m ON m.MATERIAL_ID=a.p WHERE m.MATERIAL_TYP='FG' GROUP BY m.MATERIAL_ID, m.MATERIAL_DESC, m.PACK_SZ ORDER BY 1;\n",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 2.53
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, COUNT(*) n, MIN(PROMISED_SHIP_DT) min_p, MAX(PROMISED_SHIP_DT) max_p, MAX(SUPPLIER_ID) sup FROM (SELECT PO_ID, PROMISED_SHIP_DT, SUPPLIER_ID FROM dbo.PURCH_ORD UNION ALL SELECT PO_ID, PROMISED_SHIP_DT, SUPPLIER_ID FROM dbo.PURCH_ORD_ARCHIVE) x WHERE PO_ID IN ('PO005791','PO000369','PO000430','PO000365','PO000366','PO000367','PO000368','PO000427','PO000428','PO000429') GROUP BY PO_ID;\n",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.5
+    }
+  ],
+  "usage": {
+    "input": 22,
+    "output": 8384,
+    "cache_read": 106257,
+    "cache_write": 22066
+  },
+  "cost_usd": 0.2993,
+  "latency_s": 103.2
+}

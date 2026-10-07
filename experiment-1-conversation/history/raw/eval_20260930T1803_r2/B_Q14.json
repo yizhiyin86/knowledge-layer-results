@@ -1,0 +1,46 @@
+{
+  "run_id": "eval_20260930T1803_r2",
+  "agent": "B",
+  "qid": "Q14",
+  "question": "What did we conclude last time about exposure to supplier S-104, and has its next ship date changed since?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "S-104's next ship date has not changed. It is still PO005791: 4,200 units of RM-221 (Polysorbate 80 low-peroxide), promised for 2026-10-07 and still open with no actual ship date.\n\n**What we concluded last time (analyses logged 2026-09-30)**\n- **The weak point is RM-221.** S-104 (Delmar Specialty Chemicals) is the only qualified supplier. S-131 (Pinecrest) is on file but not qualified.\n- **RM-221 feeds these products** (through CMP-310, which also has only one supplier, S-201):\n  - Lacrivia 0.1% 5 mL (NDC 99101010105): 7,017 prescriptions in the last 13 weeks\n  - Lacrivia 0.1% 10 mL (99101010110): 3,425\n  - Cyclosporine OS 0.05% 5 mL (99101020205): 3,544\n  - Total: **13,986 prescriptions**, plus 11 lens-care products that aren't in the commercial database\n- **There's no approved substitute.** Cyclosporine OS, the fallback for Lacrivia, depends on the same material, so substitution rule BR-SUB-01 gives no alternative.\n- **Recovery would take 50 days** from the material arriving to product reaching the distribution centre.\n- **Customer concentration:**\n  - The top 10 accounts made up 80.5% of those prescriptions (11,264), led by Oak Hollow HS (1,731) and Riverbend HS (1,609).\n  - The top 10 payers made up 79.7% (11,149), led by Northstar (1,635) and Bluecrest (1,630).\n- **Oculon is not at risk.** Its material, RM-222, has a qualified backup supplier (S-130 Oakridge).\n\n**Re-check today (current as of 2026-09-30)**\n\n| PO | Material | Qty | Promised ship | Status |\n|---|---|---|---|---|\n| PO005791 | RM-221 | 4,200 | **2026-10-07 (unchanged)** | Open |\n| PO000430 | RM-222 | 2,600 | 2026-10-26 (unchanged) | Open |\n| PO000369 | RM-221 | 3,300 | 2026-10-29 | Open |\n\n- Supplier qualification for both materials is also unchanged: RM-221 still has only S-104, and RM-222 still has S-104 plus S-130. So the earlier conclusion stands.\n- S-104's recent RM-221 orders mostly shipped within a day of their promised date. One (PO000363) was 8 days late, and one RM-222 order (PO000423) was 17 days late. The 10-07 date is about a week away, so it's worth confirming with the supplier.\n\n**Sources and assumptions**\n- The earlier conclusions come from two logged analyses (both on 2026-09-30) found in the knowledge layer's history of past answers.\n- I re-checked the purchase-order, supplier-material and supplier tables in the supply warehouse. The policy check allowed this for your role.\n- \"Changed since\" was judged only against the current purchase-order data. There's no change-history table: the archive table holds old orders, not revisions. So I can't rule out that a date was changed and then changed back.\n- I did not re-run the prescription and customer figures. They are the ones from the earlier analysis.\n- Two open orders, PO000430 and PO000369, show an order date of 2026-10-02, which is after the data's as-of date. This looks like a data-entry issue and doesn't affect the ship-date answer.\n- This check is logged as trace f97a40b1.",
+  "stop_reason": "end_turn",
+  "model_turns": 7,
+  "tool_calls": [
+    "similar_past_decisions",
+    "check_policy",
+    "run_sql",
+    "list_tables",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND (ACTUAL_SHIP_DT IS NULL OR PROMISED_SHIP_DT >= '2026-09-01') ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 1.99
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.MATERIAL_ID, sm.SUPPLIER_ID, s.SUPPLIER_NM, sm.QUALIFIED_FLG, sm.PRIMARY_FLG FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID = sm.SUPPLIER_ID WHERE sm.MATERIAL_ID IN ('RM-221','RM-222') ORDER BY sm.MATERIAL_ID, sm.SUPPLIER_ID",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 2.09
+    }
+  ],
+  "usage": {
+    "input": 16,
+    "output": 3396,
+    "cache_read": 61195,
+    "cache_write": 13284
+  },
+  "cost_usd": 0.1466,
+  "latency_s": 50.5,
+  "cypher_queries": 13
+}

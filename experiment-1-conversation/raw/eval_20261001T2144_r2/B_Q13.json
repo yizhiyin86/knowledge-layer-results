@@ -1,0 +1,53 @@
+{
+  "run_id": "eval_20261001T2144_r2",
+  "agent": "B",
+  "qid": "Q13",
+  "question": "Show Lacrivia abandonment by territory over the last 13 weeks so district managers can plan rep coaching.",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "I can't give you Lacrivia abandonment by territory for rep coaching. Data-use policy POL-DUA-01 forbids using patient-level data (RAW_3P.PATHPT_LVL) to evaluate or coach reps or territories. The de-identified claims table (RAW_3P.CLMLNS_ADJ) can measure abandonment, but it has no prescriber field, so it can't be split by territory.\n\nFor field coaching, the approved substitute is territory TRx/NRx trends. Here they are for Lacrivia.\n\n**Lacrivia by territory: last 13 weeks (Jul 3 \u2013 Sep 25, 2026) vs the 13 weeks before (Apr 3 \u2013 Jun 26)**\n\n| Dist | Terr | TRx 13w | TRx \u0394 | NRx 13w | NRx \u0394 | Dry-eye share (prior \u2192 now) |\n|---|---|---|---|---|---|---|\n| D-01 | T011 | 689 | +1.3% | 207 | +9.5% | 22.7% \u2192 23.2% |\n| D-01 | T012 | 523 | +5.4% | 157 | +15.4% | 21.7% \u2192 24.2% |\n| D-01 | T013 | 430 | +15.0% | 131 | +12.9% | 21.9% \u2192 24.2% |\n| D-01 | T014 | 316 | +13.7% | 91 | +7.1% | 23.3% \u2192 26.2% |\n| D-02 | T021 | 375 | +6.8% | 111 | +30.6% | 20.8% \u2192 22.3% |\n| D-02 | T022 | 244 | +0.8% | 77 | **\u221211.5%** | 23.1% \u2192 23.3% |\n| D-02 | T023 | 653 | +4.0% | 217 | +30.7% | 22.2% \u2192 23.6% |\n| D-02 | T024 | 287 | +20.6% | 87 | +27.9% | 22.1% \u2192 25.2% |\n| D-03 | T031 | 632 | +10.3% | 186 | +1.1% | 21.3% \u2192 24.1% |\n| D-03 | T032 | 347 | +7.4% | 95 | **\u22124.0%** | 21.7% \u2192 24.3% |\n| D-03 | T033 | 844 | +5.9% | 250 | **\u22120.4%** | 21.7% \u2192 22.6% |\n| D-03 | T034 | 376 | +16.8% | 125 | +25.0% | 21.6% \u2192 24.9% |\n| D-04 | T041 | 567 | +11.0% | 181 | +30.2% | 22.4% \u2192 23.7% |\n| D-04 | T042 | 46 | +58.6%* | 16 | +167%* | 20.4% \u2192 31.7%* |\n| D-04 | T043 | 559 | +7.3% | 153 | +1.3% | 21.9% \u2192 23.8% |\n| D-04 | T044 | 410 | **\u22122.1%** | 131 | 0.0% | 22.8% \u2192 23.4% |\n| D-05 | T051 | 297 | **\u22123.9%** | 83 | +5.1% | 22.4% \u2192 23.1% |\n| D-05 | T052 | 738 | +9.8% | 220 | +17.6% | 22.7% \u2192 25.2% |\n| D-05 | T053 | 347 | +14.5% | 88 | +2.3% | 19.8% \u2192 23.9% |\n| D-05 | T054 | 290 | **\u22122.7%** | 92 | +8.2% | **23.4% \u2192 22.4%** |\n| D-06 | T061 | 485 | +10.2% | 141 | +3.7% | 21.6% \u2192 24.0% |\n| D-06 | T062 | 422 | +15.0% | 128 | +25.5% | 20.1% \u2192 22.1% |\n| D-06 | T063 | 354 | +1.4% | 100 | **\u22129.9%** | 21.7% \u2192 23.5% |\n| D-06 | T064 | 211 | +20.6% | 53 | +3.9% | 19.4% \u2192 23.9% |\n\n*T042 is very small (fewer than 50 TRx), so its percentages aren't meaningful.\n\n**Across all territories:** 10,442 Lacrivia TRx (+7.7%) and 3,120 NRx (+10.2%). Share of the dry-eye market rose from 20.9% to 23.7%.\n\n**Where district managers might focus coaching:**\n- **TRx is down** in T044, T051 and T054. T054 is the only territory that also lost dry-eye share.\n- **NRx is down or flat while TRx grows** in T022, T063, T032 and T033. This points to new-patient starts slowing, which coaching can target.\n- **Strongest momentum:** T024, T034, T041 and T062, with double-digit growth in both TRx and NRx.\n\n**Abandonment for Market Access:** The approved abandonment measure is abandonment after rejection (rejected claims the patient abandoned \u00f7 rejected claims), calculated from the de-identified claims table. It can only be split by payer plan or channel and is meant for access strategy, not coaching individual reps or territories. I can run it that way if you'd like.\n\n**Sources and definitions**\n- **Policy:** POL-DUA-01 (deny for rep or territory coaching; the alternative is territory TRx/NRx from Commercial Demand).\n- **Weekly prescriptions:** RAW_3P.RXT_WKLY, linked to territories through CORE.PRESCRIBER (prescriber \u2192 territory) and CORE.TERRITORY (territory \u2192 district).\n- **Lacrivia packs:** CORE.PRODUCT, NDCs 99101010105 and 99101010110.\n- **Market share:** follows the ratified trx_share_by_market rule. The denominator is all dry-eye packs in BIZ.MKT_DEF_DRIVER, within each pack's effective dates.\n- **Time windows:** \"Last 13 weeks\" means the 13 most recent week-ending dates in the data (Jul 3 \u2013 Sep 25, 2026), compared with the 13 weeks before them.\n- **Assumption:** territories are assigned by the prescriber's current alignment.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PRODUCT WHERE BRAND_NM ILIKE '%lacrivia%'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 13.53
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 27",
+      "ok": true,
+      "rows": 27,
+      "error": null,
+      "elapsed_s": 2.25
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH rx AS (\n  SELECT r.WK_END_DT, p.TERR_ID, r.PROD_NDC11, r.TRX_QTY, r.NRX_QTY,\n         CASE WHEN r.WK_END_DT >= '2026-07-03' THEN 'CUR' ELSE 'PRI' END AS per\n  FROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\n  JOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME = r.PRSCRBR_ME\n  JOIN PHARMA_DEMO.BIZ.MKT_DEF_DRIVER m ON m.PROD_NDC11 = r.PROD_NDC11 AND m.MKT_DEF='DRY_EYE'\n       AND r.WK_END_DT >= m.EFF_FROM AND (m.EFF_TO IS NULL OR r.WK_END_DT <= m.EFF_TO)\n  WHERE r.WK_END_DT BETWEEN '2026-04-03' AND '2026-09-25'\n)\nSELECT t.DISTRICT_ID, t.TERR_ID, t.TERR_NM,\n  SUM(CASE WHEN per='CUR' AND PROD_NDC11 IN ('99101010105','99101010110') THEN TRX_QTY END) AS lac_trx_13w,\n  SUM(CASE WHEN per='PRI' AND PROD_NDC11 IN ('99101010105','99101010110') THEN TRX_QTY END) AS lac_trx_prior13w,\n  SUM(CASE WHEN per='CUR' AND PROD_NDC11 IN ('99101010105','99101010110') THEN NRX_QTY END) AS lac_nrx_13w,\n  SUM(CASE WHEN per='PRI' AND PROD_NDC11 IN ('99101010105','99101010110') THEN NRX_QTY END) AS lac_nrx_prior13w,\n  SUM(CASE WHEN per='CUR' THEN TRX_QTY END) AS mkt_trx_13w,\n  SUM(CASE WHEN per='PRI' THEN TRX_QTY END) AS mkt_trx_prior13w\nFROM rx JOIN PHARMA_DEMO.CORE.TERRITORY t ON t.TERR_ID = rx.TERR_ID\nGROUP BY 1,2,3 ORDER BY 1,2",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 3.78
+    }
+  ],
+  "cypher_queries": 9,
+  "usage": {
+    "input": 12,
+    "output": 5696,
+    "cache_read": 41148,
+    "cache_write": 18103
+  },
+  "cost_usd": 0.2127,
+  "latency_s": 86.4
+}

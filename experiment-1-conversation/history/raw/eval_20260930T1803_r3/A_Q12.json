@@ -1,0 +1,284 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "A",
+  "qid": "Q12",
+  "question": "If S-104's next RM-221 shipment ships two weeks late, when will DC-EAST run out of Lacrivia, when will supply recover there, and which customers get supply first under our allocation rules?",
+  "role": "SUPPLY_PLANNER",
+  "effort": "high",
+  "answer": "**The short version:** DC-EAST is already running out of Lacrivia, and a two-week slip on S-104's next RM-221 shipment doesn't cause that. The slip delays the fix. The data doesn't let me put a firm date on recovery, and there are no allocation rules stored anywhere, so I can't say which customers get supply first.\n\n**1. When DC-EAST runs out: about 26\u201329 Sep 2026, before the RM-221 order was due anyway**\n\n| Pack | On hand 25 Sep | Safety stock | Weekly demand (last 13 wks) | Weekly restock now (usual \u2248240 / \u2248115) | Runs out |\n|---|---|---|---|---|---|\n| FG-1001, 5 mL | 46 | 471 | 244 | about 123 | about 27\u201328 Sep |\n| FG-1002, 10 mL | 34 | 233 | 116 | about 60 | about 29 Sep |\n\n- Both packs have been below safety stock since the 11 Sep snapshot.\n- Restocking into DC-EAST roughly halved from the week ending 21 Aug. That week there was also a one-off unexplained drop of about 260 (5 mL) and 120 (10 mL) units, which could be a quarantine, write-off or transfer.\n- That drop started before the recent late RM-221 shipment (order PO000360, promised 27 Aug, shipped 10 Sep). The other two warehouses are healthy, so this looks like a DC-EAST supply problem, not an RM-221 problem.\n- **Quick fix:** DC-CENTRAL and DC-WEST hold about 695 units (5 mL) and 391 units (10 mL) above their safety stock. That's about 3 weeks of DC-EAST demand and could be moved across now.\n\n**2. When supply recovers: not before mid-November, and the exact date can't be worked out from the data**\n- The next S-104 shipment is order PO005791: 4,200 units, promised 7 Oct. Two weeks late means it ships **21 Oct**. The following order (PO000369) is due 29 Oct.\n- RM-221 reaches Lacrivia in four steps. It goes into an emulsifier premix (CMP-310) made by Larchmont (S-201), then two bulk emulsion stages at the Riverside plant (PL-01), then filled bottles, then packed Lacrivia.\n- Larchmont's premix orders take about 22 days from order to shipment, so the late lot can't leave Larchmont before about **12 Nov**. After that come plant production, QC release and shipping to DC-EAST. None of these lead times are in the data.\n- Larchmont has open premix orders through 30 Oct, which suggests RM-221 already in the pipeline covers October. Its RM-221 stock isn't in the data, though. The two-week slip probably pushes recovery back by up to two weeks, likely landing in late November or December.\n- To rebuild safety stock, DC-EAST needs about 470 units of the 5 mL and 230 of the 10 mL, plus any backorders.\n- S-104 context: 12 of its last 48 orders shipped late, by 12 days on average and up to 20 days. The only other RM-221 supplier (S-131, Pinecrest) isn't qualified.\n\n**3. Who gets supply first: I can't tell you from the data**\nNeither database holds an allocation policy or customer priority table. I didn't build a ranking from sales, prescription or claims data, because that isn't an agreed allocation rule and may be off-limits for supply planning. Here is the neutral fact base. DC-EAST serves only two wholesalers:\n\n| Wholesaler | 5 mL share (13 wks) | 10 mL share (13 wks) |\n|---|---|---|\n| W-02 Atlas Pharma Supply | 53% (1,679 units) | 42% (642 units) |\n| W-01 Keystone Drug Distributors | 47% (1,490 units) | 58% (872 units) |\n\nIf your rule is to split in proportion to recent demand, these are the shares to use. For an actual priority order, I need the allocation policy from supply or commercial leadership.\n\n**Sources and assumptions**\n- **Sources:** all from the supply chain warehouse (SUPPLY_DEMO): MATERIAL and MATERIAL_NDC_XREF (Lacrivia = FG-1001 and FG-1002), BOM, PLANT_MATERIAL, SUPPLIER and SUPPLIER_MATERIAL, PURCH_ORD, DC_INV (weekly snapshots through 25 Sep), WHSLR and WHSLR_SHIP. On the commercial side (PHARMA_DEMO) I only used product and schema lookups to confirm no allocation table exists.\n- **Last 13 weeks:** the weeks ending 3 Jul through 25 Sep 2026.\n- **Weekly restock:** there's no table of deliveries into the warehouses, so I calculated it as the change in stock plus shipments out. The \"now\" rate averages the last 5 weeks and leaves out the one-off drop in the week ending 11 Sep.\n- **\"Runs out\":** assumes demand and restocking continue at those rates, with no backorder netting. Even with no restocking at all, stock-out comes about 1\u20132 days earlier.\n- **Other assumptions:** units of measure along the recipe aren't consistent, so I didn't convert the 4,200 units of RM-221 into bottles. I assumed nothing else limits production, since the other components are on normal order schedules.",
+  "stop_reason": "end_turn",
+  "model_turns": 13,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.MATERIAL WHERE MATERIAL_DESC LIKE '%Lacrivia%' OR MATERIAL_ID='RM-221' OR MATERIAL_TYP<>'FG'",
+      "ok": true,
+      "rows": 200,
+      "error": null,
+      "elapsed_s": 0.34
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.MATERIAL WHERE MATERIAL_DESC LIKE '%Lacriv%' OR MATERIAL_ID IN ('RM-221') OR MATERIAL_ID LIKE 'FG-1%' OR MATERIAL_ID LIKE 'FG-2%'",
+      "ok": true,
+      "rows": 8,
+      "error": null,
+      "elapsed_s": 0.95
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.MATERIAL_NDC_XREF",
+      "ok": true,
+      "rows": 60,
+      "error": null,
+      "elapsed_s": 0.94
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.SUPPLIER WHERE SUPPLIER_ID='S-104'; ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.36
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH x AS (\n SELECT PARENT_MATERIAL_ID, CHILD_MATERIAL_ID, QTY_PER, EFF_FROM, EFF_TO, 1 AS lvl FROM dbo.BOM WHERE CHILD_MATERIAL_ID='RM-221'\n UNION ALL\n SELECT b.PARENT_MATERIAL_ID, b.CHILD_MATERIAL_ID, b.QTY_PER, b.EFF_FROM, b.EFF_TO, x.lvl+1 FROM dbo.BOM b JOIN x ON b.CHILD_MATERIAL_ID=x.PARENT_MATERIAL_ID WHERE x.lvl<10)\nSELECT x.*, m.MATERIAL_DESC FROM x LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=x.PARENT_MATERIAL_ID ORDER BY lvl",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 0.89
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b.*, m.MATERIAL_DESC FROM dbo.BOM b LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=b.CHILD_MATERIAL_ID WHERE b.PARENT_MATERIAL_ID IN ('FG-1001','FG-1002','FILL-1001','FILL-1002')",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 0.36
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.SUPPLIER_MATERIAL WHERE MATERIAL_ID='RM-221'",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.32
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD WHERE MATERIAL_ID='RM-221' ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 50,
+      "error": null,
+      "elapsed_s": 0.33
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT b.*, m.MATERIAL_DESC, mp.MATERIAL_DESC AS PARENT_DESC FROM dbo.BOM b LEFT JOIN dbo.MATERIAL m ON m.MATERIAL_ID=b.CHILD_MATERIAL_ID LEFT JOIN dbo.MATERIAL mp ON mp.MATERIAL_ID=b.PARENT_MATERIAL_ID WHERE b.PARENT_MATERIAL_ID IN ('SEMI-044') OR b.CHILD_MATERIAL_ID IN ('RM-221','SEMI-044') OR b.PARENT_MATERIAL_ID IN (SELECT CHILD_MATERIAL_ID FROM dbo.BOM WHERE PARENT_MATERIAL_ID='SEMI-044')",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.69
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD_ARCHIVE WHERE MATERIAL_ID='RM-221' AND (STATUS<>'CLOSED' OR PROMISED_SHIP_DT>='2026-09-01')",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.BOM_FLAT_LEGACY WHERE COMPONENT_MATERIAL_ID='RM-221' OR FG_MATERIAL_ID IN ('FG-1001','FG-1002')",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.39
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, SAFETY_STOCK_UNITS FROM dbo.DC_INV WHERE MATERIAL_ID IN ('FG-1001','FG-1002') AND SNAPSHOT_DT>='2026-06-15' ORDER BY DC_ID, MATERIAL_ID, SNAPSHOT_DT",
+      "ok": true,
+      "rows": 90,
+      "error": null,
+      "elapsed_s": 1.28
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, WHSLR_ID, DATEPART(year,SHIP_DT) y, DATEPART(month,SHIP_DT) m, COUNT(*) n, SUM(UNITS) u FROM dbo.WHSLR_SHIP WHERE MATERIAL_ID IN ('FG-1001','FG-1002') AND SHIP_DT>='2026-04-01' GROUP BY DC_ID, MATERIAL_ID, WHSLR_ID, DATEPART(year,SHIP_DT), DATEPART(month,SHIP_DT) ORDER BY 1,2,3,4,5",
+      "ok": true,
+      "rows": 72,
+      "error": null,
+      "elapsed_s": 0.39
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT pm.*, p.PLANT_NM FROM dbo.PLANT_MATERIAL pm JOIN dbo.PLANT p ON p.PLANT_ID=pm.PLANT_ID WHERE MATERIAL_ID IN ('FG-1001','FG-1002','FILL-1001','FILL-1002','SEMI-044','SEMI-031','CMP-310','RM-221')",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 0.35
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH inv AS (SELECT MATERIAL_ID, SNAPSHOT_DT, ON_HAND_UNITS, LAG(ON_HAND_UNITS) OVER (PARTITION BY MATERIAL_ID ORDER BY SNAPSHOT_DT) prev_oh, LAG(SNAPSHOT_DT) OVER (PARTITION BY MATERIAL_ID ORDER BY SNAPSHOT_DT) prev_dt FROM dbo.DC_INV WHERE DC_ID='DC-EAST' AND MATERIAL_ID IN ('FG-1001','FG-1002'))\nSELECT i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.prev_oh, (SELECT ISNULL(SUM(UNITS),0) FROM dbo.WHSLR_SHIP s WHERE s.DC_ID='DC-EAST' AND s.MATERIAL_ID=i.MATERIAL_ID AND s.SHIP_DT>i.prev_dt AND s.SHIP_DT<=i.SNAPSHOT_DT) shipped\nFROM inv i WHERE i.SNAPSHOT_DT>='2026-05-01' ORDER BY 1,2",
+      "ok": true,
+      "rows": 44,
+      "error": null,
+      "elapsed_s": 1.87
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MIN(SNAPSHOT_DT) mn, MAX(SNAPSHOT_DT) mx, COUNT(DISTINCT SNAPSHOT_DT) n FROM dbo.DC_INV; ",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.59
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MAX(SHIP_DT) mx, MIN(SHIP_DT) mn FROM dbo.WHSLR_SHIP",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT sm.*, s.SUPPLIER_NM, s.COUNTRY, s.TIER FROM dbo.SUPPLIER_MATERIAL sm LEFT JOIN dbo.SUPPLIER s ON s.SUPPLIER_ID=sm.SUPPLIER_ID WHERE sm.MATERIAL_ID IN ('CMP-310','SEMI-031','RM-101','RM-103','RM-221','CMP-501','CMP-502','CMP-510','KIT-100')",
+      "ok": true,
+      "rows": 13,
+      "error": null,
+      "elapsed_s": 1.74
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MATERIAL_ID, SUPPLIER_ID, STATUS, COUNT(*) n, MIN(PROMISED_SHIP_DT) mn, MAX(PROMISED_SHIP_DT) mx, AVG(DATEDIFF(day,ORDER_DT,PROMISED_SHIP_DT)) lt, SUM(CASE WHEN ACTUAL_SHIP_DT>PROMISED_SHIP_DT THEN 1 ELSE 0 END) late FROM dbo.PURCH_ORD WHERE MATERIAL_ID IN ('CMP-310','RM-101','RM-103','RM-221','CMP-501','CMP-502','CMP-510','KIT-100') GROUP BY MATERIAL_ID, SUPPLIER_ID, STATUS ORDER BY 1,2,3",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 0.35
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.PURCH_ORD WHERE MATERIAL_ID IN ('CMP-310','RM-101','RM-103','CMP-501','CMP-502','CMP-510','KIT-100') AND (STATUS<>'CLOSED' OR PROMISED_SHIP_DT>='2026-08-01') ORDER BY MATERIAL_ID, PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 91,
+      "error": null,
+      "elapsed_s": 0.36
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT table_schema, table_name, column_name, comment FROM PHARMA_DEMO.INFORMATION_SCHEMA.COLUMNS WHERE column_name ILIKE '%ALLOC%' OR column_name ILIKE '%PRIOR%' OR column_name ILIKE '%WHSLR%' OR column_name ILIKE '%DC%' OR comment ILIKE '%alloc%' OR comment ILIKE '%restrict%' OR comment ILIKE '%supply%'",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 1.89
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES ORDER BY 1,2",
+      "ok": true,
+      "rows": 27,
+      "error": null,
+      "elapsed_s": 1.68
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT OBJECT_NAME(major_id) obj, name, CAST(value AS nvarchar(4000)) val FROM sys.extended_properties",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.33
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT table_schema, table_name, table_type, comment FROM PHARMA_DEMO.INFORMATION_SCHEMA.TABLES WHERE table_schema<>'INFORMATION_SCHEMA' AND (table_type<>'BASE TABLE' OR table_name ILIKE '%ALLOC%' OR table_name ILIKE '%RULE%' OR table_name ILIKE '%POLICY%')",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 2.23
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT s.WHSLR_ID, w.WHSLR_NM, w.REGION, s.MATERIAL_ID, COUNT(*) n_ship, SUM(s.UNITS) units_13w, CAST(SUM(s.UNITS)/13.0 AS decimal(8,1)) avg_wk\nFROM dbo.WHSLR_SHIP s JOIN dbo.WHSLR w ON w.WHSLR_ID=s.WHSLR_ID\nWHERE s.DC_ID='DC-EAST' AND s.MATERIAL_ID IN ('FG-1001','FG-1002') AND s.SHIP_DT>'2026-06-26' AND s.SHIP_DT<='2026-09-25'\nGROUP BY s.WHSLR_ID, w.WHSLR_NM, w.REGION, s.MATERIAL_ID ORDER BY 4,1",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.67
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.WHSLR",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 0.36
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE PO_ID IN ('PO000365','PO000366','PO000367','PO000368') OR PO_ID LIKE 'PO005%' UNION ALL SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD_ARCHIVE WHERE PO_ID IN ('PO000365','PO000366','PO000367','PO000368','PO005791')",
+      "ok": true,
+      "rows": 200,
+      "error": null,
+      "elapsed_s": 1.36
+    }
+  ],
+  "usage": {
+    "input": 28,
+    "output": 15791,
+    "cache_read": 318222,
+    "cache_write": 60649
+  },
+  "cost_usd": 0.6828,
+  "latency_s": 211.7
+}

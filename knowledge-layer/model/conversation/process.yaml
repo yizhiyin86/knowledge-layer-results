@@ -1,0 +1,10 @@
+# Business-process ontology (light): one end-to-end process. Q7's reasoning walks it:
+# a Source-step failure (supplier) propagates through Make and Distribute to Dispense (customers, payers).
+processes:
+  - name: Source to Patient
+    description: "How supply turns into dispensed prescriptions: source materials, make product, distribute to the trade, dispense and reimburse."
+    steps:
+      - {name: Source, description: "Buy raw materials and components from qualified suppliers.", involves: [Supplier, PurchaseOrder, Material]}
+      - {name: Make, description: "Plants convert materials into bulk and finished goods through the bill of materials.", involves: [Plant, BillOfMaterials, Material]}
+      - {name: Distribute, description: "DCs stock finished goods and ship to wholesalers.", involves: [DistributionCenter, InventorySnapshot, Shipment, Wholesaler]}
+      - {name: Dispense, description: "Prescribers write, pharmacies dispense, plans adjudicate claims.", involves: [Prescription, Claim, Plan, Prescriber, Account]}

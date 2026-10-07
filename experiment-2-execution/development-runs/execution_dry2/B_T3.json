@@ -1,0 +1,205 @@
+{
+  "run_id": "execution_dry2",
+  "agent": "B",
+  "task": "T3",
+  "qid": "T3",
+  "question": "During the S-104 delay, DC-EAST can't cover its Tier A accounts for Lacrivia 0.1% 5 mL. Transfer 200 units from DC-CENTRAL to DC-EAST and allocate them to those accounts.",
+  "role": "SUPPLY_PLANNER",
+  "badge": "Supply Response Agent",
+  "effort": "high",
+  "answer": "The 200-unit transfer from DC-CENTRAL to DC-EAST was approved, and the units are now allocated to DC-EAST's three Tier A accounts. All three account teams have been notified.\n\n**Findings**\n- **The delay:** S-104 supplies RM-221 (Polysorbate 80), which goes into Lacrivia 5 mL (FG-1001). No other supplier can cover it: S-131 is the only alternate and is \"NOT_APPROVED\" for RM-221 in the supplier portal. Open purchase orders are PO005791 (promised 2026-10-07) and PO000369 (promised 2026-10-29).\n- **Stock (2026-09-25 snapshot):** DC-EAST has 46 units on hand against a safety stock of 471. DC-CENTRAL has 677 against 314, so after the transfer it keeps 477 and stays above safety stock.\n- **Recovery time:** About 50 days after RM-221 arrives before finished stock reaches the DC (MES standard times, BR-LEAD-01). If PO005791 ships on time, that means late November 2026 at the earliest.\n- **Substitutes:** None to offer. Lacrivia 10 mL is also below safety stock at DC-EAST (34 vs 233). Cyclosporine OS 0.05% is made with the same RM-221 (BR-SUB-01/02).\n\n**How the 200 units were split** (Tier A only, pro rata by each account's prescriptions of this NDC over the last 13 weeks, 07-03 to 09-25, in DC-EAST states, rolled up to the parent health system; BR-ALLOC-01/02, BR-CUST-01, BR-REGION-01)\n\n| Account | 13-week prescriptions | Units |\n|---|---|---|\n| AC00059 Riverbend Health System | 565 | 82 (81 plus the 1 leftover unit, which goes to the largest account) |\n| AC00038 Oak Hollow Health System | 471 | 67 |\n| AC00117 Northfield Health System | 359 | 51 |\n\nNo account received more than its 13-week prescription count.\n\n**Actions taken**\n1. **Approval APR-37981BF2:** Requested a stock transfer of 200 units worth $84,000 at the $420 list price. Approval was required because the plan moves stock between DCs and is over $50,000 (BR-APPR-01). The Supply Planning lead approved it.\n2. **Allocation AL-E519C4C1:** Recorded at DC-EAST for NDC 99101010105, sourced from DC-CENTRAL, with the approval id on the plan. It has 3 lines totalling 200 units.\n3. **Account team notices:** Each covers the allocation, expected recovery and the lack of a substitute: CRM-631853A6 (AC00059), CRM-FE6BEB03 (AC00038), CRM-86FC8416 (AC00117).\n\n**Not done, and why**\n- **DC-EAST's own 46 units:** I didn't allocate them because you asked only about the 200 transferred units. They are also below safety stock, so a separate DC-EAST plan is needed under BR-ALLOC-02. It wouldn't need approval because it's under $50,000. Note that if the 200 and the 46 had been split together, the per-account numbers would round slightly differently.\n- **Other DC-EAST accounts and wholesalers:** Tier B accounts, other DC-EAST accounts, and wholesalers have not been notified. Those steps (SDR-4.1 for the other accounts, SDR-4.2 for wholesalers) are outside this request. Wholesaler notices can't go out automatically (there is no EDI connection), so they would have to be raised as a case with Trade Relations.\n- **No purchase requisition:** There is no approved alternate supplier for RM-221.\n\n**Assumptions**\n- I took the S-104 delay as given. As of 2026-09-30, PO005791 isn't past its promised date yet.\n- Each prescriber's region comes from the state of the account they belong to.\n\n**Sources:** Supply Disruption Response process (SDR-1.1 to 4.1); reference sets supply_contracts, list_prices and dc_service_regions; trace_supply_exposure and get_lead_times. No trusted playbook matched this situation.",
+  "stop_reason": "end_turn",
+  "model_turns": 11,
+  "tool_calls": [
+    "get_process",
+    "find_playbooks",
+    "get_context",
+    "run_sql",
+    "trace_supply_exposure",
+    "get_reference",
+    "get_reference",
+    "get_reference",
+    "run_sql",
+    "get_supplier_status",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "get_lead_times",
+    "run_sql",
+    "request_approval",
+    "get_approval_status",
+    "create_allocation",
+    "notify_account_team",
+    "notify_account_team",
+    "notify_account_team"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT PO_ID, SUPPLIER_ID, MATERIAL_ID, ORDER_DT, PROMISED_SHIP_DT, ACTUAL_SHIP_DT, QTY, STATUS FROM dbo.PURCH_ORD WHERE SUPPLIER_ID='S-104' AND (STATUS='OPEN' OR ACTUAL_SHIP_DT > PROMISED_SHIP_DT) ORDER BY PROMISED_SHIP_DT",
+      "ok": true,
+      "rows": 34,
+      "error": null,
+      "elapsed_s": 2.96
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT i.DC_ID, i.MATERIAL_ID, i.SNAPSHOT_DT, i.ON_HAND_UNITS, i.SAFETY_STOCK_UNITS FROM dbo.DC_INV i WHERE i.MATERIAL_ID IN ('FG-1001','FG-1002','FG-1003') AND i.SNAPSHOT_DT = (SELECT MAX(SNAPSHOT_DT) FROM dbo.DC_INV) ORDER BY i.MATERIAL_ID, i.DC_ID",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.92
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT DC_ID, MATERIAL_ID, SUM(UNITS) AS UNITS_28D FROM dbo.WHSLR_SHIP WHERE MATERIAL_ID='FG-1001' AND SHIP_DT > DATEADD(day,-28,(SELECT MAX(SHIP_DT) FROM dbo.WHSLR_SHIP)) GROUP BY DC_ID, MATERIAL_ID",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.8
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH RECURSIVE h AS (\n  SELECT ACCOUNT_ID, ACCOUNT_ID AS TOP_ID, PARENT_ACCOUNT_ID FROM PHARMA_DEMO.CORE.ACCOUNT\n  UNION ALL\n  SELECT h.ACCOUNT_ID, a.ACCOUNT_ID, a.PARENT_ACCOUNT_ID FROM h JOIN PHARMA_DEMO.CORE.ACCOUNT a ON a.ACCOUNT_ID = h.PARENT_ACCOUNT_ID\n), top AS (SELECT ACCOUNT_ID, TOP_ID FROM h WHERE PARENT_ACCOUNT_ID IS NULL),\nwk AS (SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 13)\nSELECT t.TOP_ID, ta.ACCOUNT_NM, CASE WHEN a.STATE IN ('NY','NJ','PA','MA','FL','GA','NC','OH') THEN 'EAST' ELSE 'OTHER' END AS REG,\n  SUM(r.TRX_QTY) AS TRX13, MIN(r.WK_END_DT) AS FROM_WK, MAX(r.WK_END_DT) AS TO_WK\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\nJOIN wk ON wk.WK_END_DT = r.WK_END_DT\nJOIN PHARMA_DEMO.CORE.PRESCRIBER p ON p.PRSCRBR_ME = r.PRSCRBR_ME\nJOIN PHARMA_DEMO.CORE.ACCOUNT a ON a.ACCOUNT_ID = p.ACCOUNT_ID\nJOIN top t ON t.ACCOUNT_ID = p.ACCOUNT_ID\nJOIN PHARMA_DEMO.CORE.ACCOUNT ta ON ta.ACCOUNT_ID = t.TOP_ID\nWHERE r.PROD_NDC11 = '99101010105' AND t.TOP_ID IN ('AC00117','AC00038','AC00059','AC00001','AC00138')\nGROUP BY 1,2,3 ORDER BY 1,3",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 3.0
+    }
+  ],
+  "cypher_queries": 37,
+  "usage": {
+    "input": 24,
+    "output": 8391,
+    "cache_read": 240491,
+    "cache_write": 34092
+  },
+  "cost_usd": 0.3865,
+  "latency_s": 121.4,
+  "final_state": {
+    "allocation_plans": [
+      {
+        "plan_id": "AL-E519C4C1",
+        "dc_id": "DC-EAST",
+        "ndc11": "99101010105",
+        "from_dc": "DC-CENTRAL",
+        "approval_id": "APR-37981BF2",
+        "basis": "BR-ALLOC-01/02: 200 units transferred from DC-CENTRAL to DC-EAST (approved APR-37981BF2, BR-APPR-01). Tier A (supply_contracts) only; pro rata by last-13-week TRx of NDC 99101010105 (wk 2026-07-03..2026-09-25) from prescribers in DC-EAST service states, rolled up to the top-level account; rounded down, remainder (1) to largest account; all below 13-wk TRx cap. TRx: AC00059 565, AC00038 471, AC00117 359.",
+        "created_at": "2026-10-07T15:47:40+00:00",
+        "lines": [
+          {
+            "account_id": "AC00038",
+            "units": 67
+          },
+          {
+            "account_id": "AC00059",
+            "units": 82
+          },
+          {
+            "account_id": "AC00117",
+            "units": 51
+          }
+        ]
+      }
+    ],
+    "purchase_requisitions": [],
+    "approvals": [
+      {
+        "approval_id": "APR-37981BF2",
+        "kind": "stock_transfer",
+        "dc_id": "DC-EAST",
+        "ndc11": "99101010105",
+        "from_dc": "DC-CENTRAL",
+        "units": 200,
+        "amount_usd": 84000.0,
+        "summary": "S-104 disruption (RM-221 Polysorbate 80, single-source; alternate S-131 NOT_APPROVED; open PO PO005791). Transfer 200 units Lacrivia 0.1% 5 mL (FG-1001 / NDC 99101010105) DC-CENTRAL -> DC-EAST and allocate to DC-EAST Tier A accounts per BR-ALLOC-01/02 (pro rata by last-13-wk TRx of this NDC from DC-EAST-state prescribers, 2026-07-03..2026-09-25): AC00059 Riverbend 82 (TRx 565), AC00038 Oak Hollow 67 (TRx 471), AC00117 Northfield 51 (TRx 359). Latest snapshot 2026-09-25: DC-EAST on hand 46 vs SS 471; DC-CENTRAL on hand 677 vs SS 314 -> 477 after transfer, still above SS. Value 200 x $420 list = $84,000 (>= $50k and inter-DC transfer -> BR-APPR-01). Recovery ~50 days after RM-221 arrival (get_lead_times).",
+        "status": "approved",
+        "decided_by": "Supply Planning lead (oracle)",
+        "decision_note": null,
+        "created_at": "2026-10-07T15:47:33+00:00",
+        "decided_at": "2026-10-07T15:47:35+00:00"
+      }
+    ],
+    "crm_tasks": [
+      {
+        "task_id": "CRM-631853A6",
+        "account_id": "AC00059",
+        "subject": "Lacrivia 0.1% 5 mL supply allocation \u2013 DC-EAST (S-104 delay)",
+        "message": "Because supplier S-104 is late on a critical raw material, DC-EAST is short on Lacrivia 0.1% 5 mL (NDC 99101-0101-05). Supply Planning approved moving 200 units from DC-CENTRAL to DC-EAST (approval APR-37981BF2). Riverbend Health System is a Tier A contract account and gets 82 units (allocation AL-E519C4C1). Expected recovery: the replacement material is on open PO PO005791, promised to ship 2026-10-07. Full supply reaches the DC about 50 days after that material arrives, so late November 2026 at the earliest. No company substitute is available. Lacrivia 10 mL is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% depends on the same failing material (BR-SUB-01/02). Medical Affairs can advise on therapeutic alternatives.",
+        "created_at": "2026-10-07T15:47:55+00:00"
+      },
+      {
+        "task_id": "CRM-FE6BEB03",
+        "account_id": "AC00038",
+        "subject": "Lacrivia 0.1% 5 mL supply allocation \u2013 DC-EAST (S-104 delay)",
+        "message": "Because supplier S-104 is late on a critical raw material, DC-EAST is short on Lacrivia 0.1% 5 mL (NDC 99101-0101-05). Supply Planning approved moving 200 units from DC-CENTRAL to DC-EAST (approval APR-37981BF2). Oak Hollow Health System is a Tier A contract account and gets 67 units (allocation AL-E519C4C1). Expected recovery: the replacement material is on open PO PO005791, promised to ship 2026-10-07. Full supply reaches the DC about 50 days after that material arrives, so late November 2026 at the earliest. No company substitute is available. Lacrivia 10 mL is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% depends on the same failing material (BR-SUB-01/02). Medical Affairs can advise on therapeutic alternatives.",
+        "created_at": "2026-10-07T15:47:55+00:00"
+      },
+      {
+        "task_id": "CRM-86FC8416",
+        "account_id": "AC00117",
+        "subject": "Lacrivia 0.1% 5 mL supply allocation \u2013 DC-EAST (S-104 delay)",
+        "message": "Because supplier S-104 is late on a critical raw material, DC-EAST is short on Lacrivia 0.1% 5 mL (NDC 99101-0101-05). Supply Planning approved moving 200 units from DC-CENTRAL to DC-EAST (approval APR-37981BF2). Northfield Health System is a Tier A contract account and gets 51 units (allocation AL-E519C4C1). Expected recovery: the replacement material is on open PO PO005791, promised to ship 2026-10-07. Full supply reaches the DC about 50 days after that material arrives, so late November 2026 at the earliest. No company substitute is available. Lacrivia 10 mL is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% depends on the same failing material (BR-SUB-01/02). Medical Affairs can advise on therapeutic alternatives.",
+        "created_at": "2026-10-07T15:47:55+00:00"
+      }
+    ],
+    "edi_messages": [],
+    "escalation_cases": [],
+    "tool_calls": [
+      {
+        "seq": 1,
+        "tool": "request_approval",
+        "args": "{\"kind\": \"stock_transfer\", \"dc_id\": \"DC-EAST\", \"from_dc\": \"DC-CENTRAL\", \"ndc11\": \"99101010105\", \"units\": 200, \"amount_usd\": 84000, \"summary\": \"S-104 disruption (RM-221 Polysorbate 80, single-source; alternate S-131 NOT_APPROVED; open PO PO005791). Transfer 200 units Lacrivia 0.1% 5 mL (FG-1001 / NDC 99101010105) DC-CENTRAL -> DC-EAST and allocate to DC-EAST Tier A accounts per BR-ALLOC-01/02 (pro rata by last-13-wk TRx of this NDC from DC-EAST-state prescribers, 2026-07-03..2026-09-25): AC00059 Riverbend 82 (TRx 565), AC00038 Oak Hollow 67 (TRx 471), AC00117 Northfield 51 (TRx 359). Latest snapshot 2026-09-25: DC-EAST on hand 46 vs SS 471; DC-CENTRAL on hand 677 vs SS 314 -> 477 after transfer, still above SS. Value 200 x $420 list = $84,000 (>= $50k and inter-DC transfer -> BR-APPR-01). Recovery ~50 days after RM-221 arrival (get_lead_times).\"}",
+        "accepted": 1,
+        "result": "{\"approval_id\": \"APR-37981BF2\", \"status\": \"pending\", \"approver\": \"Supply Planning lead\"}",
+        "created_at": "2026-10-07T15:47:33+00:00"
+      },
+      {
+        "seq": 2,
+        "tool": "create_allocation",
+        "args": "{\"dc_id\": \"DC-EAST\", \"ndc11\": \"99101010105\", \"from_dc\": \"DC-CENTRAL\", \"approval_id\": \"APR-37981BF2\", \"basis\": \"BR-ALLOC-01/02: 200 units transferred from DC-CENTRAL to DC-EAST (approved APR-37981BF2, BR-APPR-01). Tier A (supply_contracts) only; pro rata by last-13-week TRx of NDC 99101010105 (wk 2026-07-03..2026-09-25) from prescribers in DC-EAST service states, rolled up to the top-level account; rounded down, remainder (1) to largest account; all below 13-wk TRx cap. TRx: AC00059 565, AC00038 471, AC00117 359.\", \"lines\": [{\"account_id\": \"AC00059\", \"units\": 82}, {\"account_id\": \"AC00038\", \"units\": 67}, {\"account_id\": \"AC00117\", \"units\": 51}]}",
+        "accepted": 1,
+        "result": "{\"plan_id\": \"AL-E519C4C1\", \"status\": \"recorded\", \"lines\": 3, \"units\": 200}",
+        "created_at": "2026-10-07T15:47:40+00:00"
+      },
+      {
+        "seq": 3,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00059\", \"subject\": \"Lacrivia 0.1% 5 mL supply allocation \\u2013 DC-EAST (S-104 delay)\", \"message\": \"Because supplier S-104 is late on a critical raw material, DC-EAST is short on Lacrivia 0.1% 5 mL (NDC 99101-0101-05). Supply Planning approved moving 200 units from DC-CENTRAL to DC-EAST (approval APR-37981BF2). Riverbend Health System is a Tier A contract account and gets 82 units (allocation AL-E519C4C1). Expected recovery: the replacement material is on open PO PO005791, promised to ship 2026-10-07. Full supply reaches the DC about 50 days after that material arrives, so late November 2026 at the earliest. No company substitute is available. Lacrivia 10 mL is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% depends on the same failing material (BR-SUB-01/02). Medical Affairs can advise on therapeutic alternatives.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-631853A6\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:47:55+00:00"
+      },
+      {
+        "seq": 4,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00038\", \"subject\": \"Lacrivia 0.1% 5 mL supply allocation \\u2013 DC-EAST (S-104 delay)\", \"message\": \"Because supplier S-104 is late on a critical raw material, DC-EAST is short on Lacrivia 0.1% 5 mL (NDC 99101-0101-05). Supply Planning approved moving 200 units from DC-CENTRAL to DC-EAST (approval APR-37981BF2). Oak Hollow Health System is a Tier A contract account and gets 67 units (allocation AL-E519C4C1). Expected recovery: the replacement material is on open PO PO005791, promised to ship 2026-10-07. Full supply reaches the DC about 50 days after that material arrives, so late November 2026 at the earliest. No company substitute is available. Lacrivia 10 mL is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% depends on the same failing material (BR-SUB-01/02). Medical Affairs can advise on therapeutic alternatives.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-FE6BEB03\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:47:55+00:00"
+      },
+      {
+        "seq": 5,
+        "tool": "notify_account_team",
+        "args": "{\"account_id\": \"AC00117\", \"subject\": \"Lacrivia 0.1% 5 mL supply allocation \\u2013 DC-EAST (S-104 delay)\", \"message\": \"Because supplier S-104 is late on a critical raw material, DC-EAST is short on Lacrivia 0.1% 5 mL (NDC 99101-0101-05). Supply Planning approved moving 200 units from DC-CENTRAL to DC-EAST (approval APR-37981BF2). Northfield Health System is a Tier A contract account and gets 51 units (allocation AL-E519C4C1). Expected recovery: the replacement material is on open PO PO005791, promised to ship 2026-10-07. Full supply reaches the DC about 50 days after that material arrives, so late November 2026 at the earliest. No company substitute is available. Lacrivia 10 mL is also below safety stock at DC-EAST, and Cyclosporine OS 0.05% depends on the same failing material (BR-SUB-01/02). Medical Affairs can advise on therapeutic alternatives.\"}",
+        "accepted": 1,
+        "result": "{\"task_id\": \"CRM-86FC8416\", \"status\": \"open\"}",
+        "created_at": "2026-10-07T15:47:55+00:00"
+      }
+    ]
+  },
+  "discovery": false,
+  "trusted_playbooks_offered": {},
+  "execution_trace": {
+    "trace_id": "50526de7-8f95-4c03-9b56-d8ad40228732",
+    "followed": [
+      "SDR-1.2",
+      "SDR-2.1",
+      "SDR-2.4",
+      "SDR-3.2",
+      "SDR-3.3",
+      "SDR-4.1"
+    ],
+    "seeded_asset": null
+  }
+}

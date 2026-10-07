@@ -1,0 +1,87 @@
+{
+  "run_id": "eval_20260930T1803_r3",
+  "agent": "B",
+  "qid": "Q13",
+  "question": "Show Lacrivia abandonment by territory over the last 13 weeks so district managers can plan rep coaching.",
+  "role": "FIELD_SALES",
+  "effort": "high",
+  "answer": "**Short answer: I can't give you Lacrivia abandonment by territory. The data doesn't allow it and the data-use agreement forbids it.**\n\n- **Claims data can't be split by territory.** The approved abandonment source, the claims table (`RAW_3P.CLMLNS_ADJ`), is anonymised and has no prescriber on it. So there's no way to tie an abandoned claim to a territory or a rep.\n- **The patient-level data isn't allowed for this.** The only table that could make that link is `RAW_3P.PATHPT_LVL`. The policy check refused it for your role and this purpose. Policy POL-DUA-01, under the data licence DUA-3P-07, bars patient-level data from being used to evaluate or coach reps or territories. A territory abandonment view for coaching would break that, so I didn't run it.\n\nBelow are two approved alternatives for the last 13 weeks (weeks ending 3 Jul \u2013 25 Sep 2026).\n\n**1. Lacrivia abandonment, national and by payer channel** (for access context, not for judging territories)\n\n| Channel | Rejected claims | Abandoned after rejection | Abandonment rate | Rejection rate |\n|---|---|---|---|---|\n| **All** | **2,367** | **601** | **25.4%** | **18.5%** |\n| Commercial | 1,216 | 318 | 26.2% | 17.7% |\n| Medicare Part D | 542 | 128 | 23.6% | 19.9% |\n| Managed Medicaid | 309 | 76 | 24.6% | 23.6% |\n| Health Exchange | 224 | 56 | 25.0% | 27.6% |\n| Medicaid (state-run, not managed plans) | 76 | 23 | 30.3% | 14.8% |\n\nAbout 1 in 4 rejected Lacrivia claims ends in abandonment, fairly evenly across channels. That makes it an access and payer issue for Market Access, not something reps in particular territories are causing.\n\n**2. For coaching: Lacrivia total and new prescriptions by territory (last 13 weeks vs the 13 weeks before)**\n\nMost territories are growing. These are the ones worth a coaching conversation:\n\n- **New prescriptions falling:** T022 (District 02) \u221211.5% (77 vs 87), T063 (District 06) \u22129.9% (100 vs 111), T032 (District 03) \u22124.0%, T033 (District 03) \u22120.4%. T033 is still the biggest territory with 844 total prescriptions, so this is flat new-patient growth.\n- **Total prescriptions falling:** T051 \u22123.9%, T054 \u22122.7% (both District 05), T044 (District 04) \u22122.2%.\n- **Strongest new-prescription growth:** T023 +30.7%, T021 +30.6%, T041 +30.2%, T024 +27.9%. T042 is +167%, but that's only 16 vs 6.\n\nI have the full 24-territory table and can send it.\n\n**Sources and definitions**\n- **Abandonment:** the approved metric \"abandonment after rejection\" (Market Access) = rejected claims the patient abandoned \u00f7 all rejected claims. Rejection rate = rejected \u00f7 (paid + rejected); reversed claims are left out.\n- **Tables:** the claims table and the payer and channel lookups for part 1. Weekly prescriptions (`RXT_WKLY`) \u2192 prescriber \u2192 territory for part 2, using the approved link from prescriber to territory.\n- **Policies:** the policy check (POL-DUA-01, DUA-3P-07) refused the patient-level data. POL-PHI-02 says patient IDs must never appear in results.\n\n**Assumptions**\n- Lacrivia means both packs (0.1% in 5 mL and 10 mL).\n- The 13 weeks run through the week ending 25 Sep 2026, the latest full week. Claims were matched to the same window (27 Jun \u2013 25 Sep).\n- Territory is the prescriber's assigned territory.\n- Claims from 26\u201330 Sep fall in an incomplete week and were left out.\n\nIf you need abandonment tracked at territory level, you'd need a data-use agreement that allows it. Market Access would have to ask for that. This decision is logged as trace a096d4cf.",
+  "stop_reason": "end_turn",
+  "model_turns": 13,
+  "tool_calls": [
+    "similar_past_decisions",
+    "get_metric",
+    "get_concept",
+    "get_join_path",
+    "check_policy",
+    "get_business_rules",
+    "describe_table",
+    "get_data_product",
+    "get_concept",
+    "list_tables",
+    "list_deprecated_tables",
+    "check_policy",
+    "check_policy",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "log_trace"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM PHARMA_DEMO.CORE.PRODUCT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.57
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT DISTINCT WK_END_DT FROM PHARMA_DEMO.RAW_3P.RXT_WKLY ORDER BY WK_END_DT DESC LIMIT 27",
+      "ok": true,
+      "rows": 27,
+      "error": null,
+      "elapsed_s": 3.68
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT MIN(CLM_DT), MAX(CLM_DT), COUNT(*) FROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ WHERE PROD_NDC11 IN ('99101010105','99101010110')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.28
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COALESCE(ch.CHNL_NM, s.CHNL_CD, 'ALL') AS CHANNEL,\n  SUM(CASE WHEN c.ADJ_STAT='R' THEN 1 ELSE 0 END) AS REJECTED,\n  SUM(CASE WHEN c.ADJ_STAT='R' AND c.ABNDN_FLG='Y' THEN 1 ELSE 0 END) AS REJ_ABANDONED,\n  ROUND(SUM(CASE WHEN c.ADJ_STAT='R' AND c.ABNDN_FLG='Y' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN c.ADJ_STAT='R' THEN 1 ELSE 0 END),0),4) AS ABANDON_AFTER_REJ,\n  ROUND(SUM(CASE WHEN c.ADJ_STAT='R' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN c.ADJ_STAT IN ('P','R') THEN 1 ELSE 0 END),0),4) AS REJECTION_RATE\nFROM PHARMA_DEMO.RAW_3P.CLMLNS_ADJ c\nLEFT JOIN PHARMA_DEMO.CORE.PAYER_SPINE s ON c.PLAN_ID = s.PLAN_ID\nLEFT JOIN PHARMA_DEMO.REF.CHNL ch ON s.CHNL_CD = ch.CHNL_CD\nWHERE c.PROD_NDC11 IN ('99101010105','99101010110')\n  AND c.CLM_DT BETWEEN '2026-06-27' AND '2026-09-25'\nGROUP BY GROUPING SETS ((ch.CHNL_NM, s.CHNL_CD), ())\nORDER BY REJECTED DESC",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 3.09
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT t.DISTRICT_ID, t.TERR_ID, t.TERR_NM,\n  SUM(CASE WHEN r.WK_END_DT >= '2026-07-03' THEN r.TRX_QTY ELSE 0 END) AS TRX_L13,\n  SUM(CASE WHEN r.WK_END_DT <  '2026-07-03' THEN r.TRX_QTY ELSE 0 END) AS TRX_P13,\n  ROUND(SUM(CASE WHEN r.WK_END_DT >= '2026-07-03' THEN r.TRX_QTY ELSE 0 END) / NULLIF(SUM(CASE WHEN r.WK_END_DT < '2026-07-03' THEN r.TRX_QTY ELSE 0 END),0) - 1, 4) AS TRX_CHG,\n  SUM(CASE WHEN r.WK_END_DT >= '2026-07-03' THEN r.NRX_QTY ELSE 0 END) AS NRX_L13,\n  SUM(CASE WHEN r.WK_END_DT <  '2026-07-03' THEN r.NRX_QTY ELSE 0 END) AS NRX_P13,\n  ROUND(SUM(CASE WHEN r.WK_END_DT >= '2026-07-03' THEN r.NRX_QTY ELSE 0 END) / NULLIF(SUM(CASE WHEN r.WK_END_DT < '2026-07-03' THEN r.NRX_QTY ELSE 0 END),0) - 1, 4) AS NRX_CHG\nFROM PHARMA_DEMO.RAW_3P.RXT_WKLY r\nJOIN PHARMA_DEMO.CORE.PRESCRIBER p ON r.PRSCRBR_ME = p.PRSCRBR_ME\nJOIN PHARMA_DEMO.CORE.TERRITORY t ON p.TERR_ID = t.TERR_ID\nWHERE r.PROD_NDC11 IN ('99101010105','99101010110')\n  AND r.WK_END_DT BETWEEN '2026-04-03' AND '2026-09-25'\nGROUP BY 1,2,3 ORDER BY 1,2",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 2.2
+    }
+  ],
+  "usage": {
+    "input": 28,
+    "output": 7148,
+    "cache_read": 204665,
+    "cache_write": 27215
+  },
+  "cost_usd": 0.3201,
+  "latency_s": 135.6,
+  "cypher_queries": 69
+}

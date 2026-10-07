@@ -1,0 +1,48 @@
+# Approved join paths (technical-ontology extension): ordered steps, key transforms and depth limits
+# that a warehouse can't declare, especially across platforms.
+join_paths:
+  - name: Material to PackagedProduct (cross-platform)
+    from_concept: Material
+    to_concept: PackagedProduct
+    platforms: [FABRIC, SNOWFLAKE]
+    transform: "strip dashes: REPLACE(MATERIAL_NDC_XREF.NDC, '-', '') = PRODUCT.PROD_NDC11"
+    description: "Finished goods in Fabric map to NDCs in dashed 5-4-2 form; Snowflake stores 11 digits without dashes. Strip dashes before filtering Snowflake."
+    steps: [SUPPLY_DEMO.dbo.MATERIAL.MATERIAL_ID, SUPPLY_DEMO.dbo.MATERIAL_NDC_XREF.MATERIAL_ID, SUPPLY_DEMO.dbo.MATERIAL_NDC_XREF.NDC, PHARMA_DEMO.CORE.PRODUCT.PROD_NDC11]
+  - name: Supplier to finished goods (multi-level BOM)
+    from_concept: Supplier
+    to_concept: Material
+    platforms: [FABRIC]
+    max_depth: 10
+    transform: "walk current BOM (EFF_TO >= today) child -> parent up to 10 levels (no recursive CTEs in Fabric); use trace_supply_exposure"
+    description: "A supplier supplies a material (SUPPLIER_MATERIAL); follow current BOM edges from CHILD_MATERIAL_ID to PARENT_MATERIAL_ID repeatedly until MATERIAL_TYP = 'FG'. Depth varies by franchise (up to 10); tier-2 raw materials reach ophthalmic finished goods at depth 5. Ignore superseded rows (EFF_TO < today). Do not use BOM_FLAT_LEGACY."
+    steps: [SUPPLY_DEMO.dbo.SUPPLIER_MATERIAL.SUPPLIER_ID, SUPPLY_DEMO.dbo.SUPPLIER_MATERIAL.MATERIAL_ID, SUPPLY_DEMO.dbo.BOM.CHILD_MATERIAL_ID, SUPPLY_DEMO.dbo.BOM.PARENT_MATERIAL_ID, SUPPLY_DEMO.dbo.MATERIAL.MATERIAL_TYP]
+  - name: PackagedProduct to customers and payers
+    from_concept: PackagedProduct
+    to_concept: Account
+    platforms: [SNOWFLAKE]
+    description: "Exposure of a pack: RXT_WKLY by PROD_NDC11, then PRESCRIBER.ACCOUNT_ID for accounts (roll up with PARENT_ACCOUNT_ID) and PAYER_SPINE.PLAN_ID for payers. Rank by TRx over the last 13 weeks."
+    steps: [PHARMA_DEMO.RAW_3P.RXT_WKLY.PROD_NDC11, PHARMA_DEMO.RAW_3P.RXT_WKLY.PRSCRBR_ME, PHARMA_DEMO.CORE.PRESCRIBER.ACCOUNT_ID, PHARMA_DEMO.CORE.ACCOUNT.ACCOUNT_ID, PHARMA_DEMO.RAW_3P.RXT_WKLY.PLAN_ID, PHARMA_DEMO.CORE.PAYER_SPINE.PAYER_NM]
+  - name: Prescription to TherapeuticMarket
+    from_concept: Prescription
+    to_concept: TherapeuticMarket
+    platforms: [SNOWFLAKE]
+    description: "Market share denominator: join RXT_WKLY to BIZ.MKT_DEF_DRIVER on PROD_NDC11 and filter MKT_DEF to the brand's market, within EFF_FROM/EFF_TO."
+    steps: [PHARMA_DEMO.RAW_3P.RXT_WKLY.PROD_NDC11, PHARMA_DEMO.BIZ.MKT_DEF_DRIVER.PROD_NDC11, PHARMA_DEMO.BIZ.MKT_DEF_DRIVER.MKT_DEF]
+  - name: Claim to ClaimRejection group
+    from_concept: Claim
+    to_concept: ClaimRejection
+    platforms: [SNOWFLAKE]
+    description: "Decode CLMLNS_ADJ.REJ_RSN_CD through REF.REJ_CODE to get REJ_GRP (7 groups)."
+    steps: [PHARMA_DEMO.RAW_3P.CLMLNS_ADJ.REJ_RSN_CD, PHARMA_DEMO.REF.REJ_CODE.REJ_RSN_CD, PHARMA_DEMO.REF.REJ_CODE.REJ_GRP]
+  - name: SalesRep to Prescriber
+    from_concept: SalesRep
+    to_concept: Prescriber
+    platforms: [SNOWFLAKE]
+    description: "TEAL and CORAL reps cover prescribers in their territory (REP_ROSTER.TERR_ID = PRESCRIBER.TERR_ID); INDIGO reps cover their district via CORE.TERRITORY.DISTRICT_ID."
+    steps: [PHARMA_DEMO.CORE.REP_ROSTER.TERR_ID, PHARMA_DEMO.CORE.PRESCRIBER.TERR_ID]
+  - name: DistributionCenter to demand
+    from_concept: DistributionCenter
+    to_concept: Shipment
+    platforms: [FABRIC]
+    description: "Days of supply: latest DC_INV.ON_HAND_UNITS for a DC and material over the average daily WHSLR_SHIP.UNITS from the same DC over the last 28 days."
+    steps: [SUPPLY_DEMO.dbo.DC_INV.DC_ID, SUPPLY_DEMO.dbo.DC_INV.MATERIAL_ID, SUPPLY_DEMO.dbo.WHSLR_SHIP.DC_ID, SUPPLY_DEMO.dbo.WHSLR_SHIP.MATERIAL_ID]

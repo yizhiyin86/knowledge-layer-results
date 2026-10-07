@@ -1,0 +1,17 @@
+# Approver oracle for T6 (benchmark mode): fixed human decisions so every replicate is reproducible.
+approval: {decision: approved, by: "Supply Planning lead (oracle)"}
+# Review of the proposed playbook seeded by a LOW-confidence (discovery) run. The reviewer approves with a correction:
+# the generalized situation and the steps every similar case should follow.
+review:
+  decision: approve
+  by: "Supply Planning lead (oracle)"
+  name: "Alternate supplier approved at only some plants"
+  situation: "A supplier will miss a shipment of a material used at several plants, and the qualified alternate supplier is approved by the supplier portal at only some of those plants."
+  reason: "Requisition only for the approved sites; qualification for the other sites goes to Quality; no allocation unless a pack made at an uncovered plant is below safety stock."
+  steps:
+    - {order: 1, task: SDR-1.2, tool: trace_supply_exposure, do: "Trace the material to every finished good and the plant that makes each one."}
+    - {order: 2, task: SDR-2.1, tool: get_supplier_status, do: "Read the alternate's approved_sites for the material in the supplier portal; check it is not on hold."}
+    - {order: 3, task: SDR-2.2, tool: create_purchase_requisition, do: "Raise a requisition with the alternate for the late quantity, ship-to each approved plant only."}
+    - {order: 4, task: SDR-2.2, tool: create_escalation_case, do: "Open a case for QUALITY_ASSURANCE to qualify the alternate at each plant it is not approved for."}
+    - {order: 5, task: SDR-2.4, tool: run_sql, do: "Check DC stock vs safety stock for packs made at the uncovered plants (latest DC_INV snapshot)."}
+    - {order: 6, task: SDR-3.1, tool: create_allocation, do: "Only if such a pack is below safety stock: allocate it per BR-ALLOC-01/02 (approval per BR-APPR-01) and notify account teams."}
