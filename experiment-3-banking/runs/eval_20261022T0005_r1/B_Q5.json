@@ -1,0 +1,61 @@
+{
+  "run_id": "eval_20261022T0005_r1",
+  "agent": "B",
+  "qid": "Q5",
+  "question": "How has revolving-line utilization trended over the last six months by industry sector, and where is it rising?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "Revolving-line utilization went from 46.2% to 49.8% over the six months to 30 Sep 2026. Almost all of that rise comes from two sectors, **Manufacturing and Wholesale Distribution**. Utilization in both has climbed about 3.5 points every month since April and now stands near 69%. The other ten sectors have stayed flat at 45\u201347%.\n\n**Utilization by sector (drawn \u00f7 commitment, active revolving lines)**\n\n| Sector | Mar-26 (baseline) | Apr | May | Jun | Jul | Aug | **Sep-26** | Change |\n|---|---|---|---|---|---|---|---|---|\n| **Manufacturing** | 46.0% | 51.6% | 55.1% | 58.6% | 62.1% | 65.6% | **69.1%** | **+23.1 pts** |\n| **Wholesale Distribution** | 45.4% | 51.0% | 54.5% | 58.0% | 61.5% | 65.1% | **68.6%** | **+23.2 pts** |\n| CRE Multifamily | 44.5% | 44.5% | 45.0% | 44.3% | 45.8% | 45.3% | 46.2% | +1.6 pts (small book, $41M) |\n| Healthcare Services | 45.9% | 46.1% | 45.9% | 45.9% | 45.8% | 45.8% | 46.4% | +0.5 pts |\n| Holding & Financial | 46.3% | 46.2% | 46.3% | 46.2% | 46.2% | 46.4% | 46.4% | +0.1 pts |\n| Technology | 46.1% | 46.2% | 46.6% | 46.7% | 46.1% | 46.4% | 46.3% | +0.2 pts |\n| CRE Office | 46.3% | 46.6% | 46.6% | 46.6% | 46.4% | 46.0% | 46.1% | \u20130.2 pts |\n| Public & Not-for-Profit | 46.5% | 46.6% | 46.8% | 46.5% | 46.7% | 46.4% | 46.4% | \u20130.1 pts |\n| Transportation & Logistics | 46.2% | 46.2% | 46.4% | 46.4% | 46.1% | 46.5% | 46.2% | ~0 |\n| Professional Services | 46.5% | 46.5% | 46.3% | 46.1% | 46.6% | 46.3% | 46.3% | \u20130.2 pts |\n| Retail | 46.4% | 46.2% | 46.1% | 45.9% | 46.0% | 46.6% | 46.2% | \u20130.2 pts |\n| Energy | 45.9% | 45.6% | 45.3% | 45.9% | 46.0% | 46.2% | 45.8% | \u20130.0 pts |\n| **Whole book** | 46.2% | 47.1% | 47.7% | 48.3% | 48.8% | 49.4% | **49.8%** | +3.7 pts |\n\n**Where it's rising and why it matters**\n- **Existing borrowers are drawing more; new lines aren't the cause.** I tracked only the lines open in both March and September: 65 in Manufacturing and 44 in Wholesale Distribution. Their utilization rose from about 46% to about 69%, and every one of those lines rose by more than 15 points. New lines in these sectors are also coming on at 69\u201371% drawn, well above the 45\u201348% seen on new lines elsewhere.\n- **Size of the move:** drawn balances rose $142M in Manufacturing (to $367M of $531M committed) and $82M in Wholesale Distribution (to $231M of $337M committed).\n- **The rest of the book is flat.** Without these two sectors, utilization was 46.3% in both March and September. Book growth from July onward came from new lines, which were drawn at normal levels.\n- **No sign of distress yet.** No line in either sector is above 80% drawn, and none is 30 or more days past due. If the steady climb continues, they would reach about 80% around the end of Q4 2026. The pattern fits a broad working-capital or inventory build in goods-producing and distribution borrowers. These sectors should be on the watch list: check borrowing-base and covenant headroom and review ratings for the most heavily drawn names.\n\n**Sources and definitions (knowledge layer)**\n- **Metric:** the ratified `revolver_utilization` definition, which is drawn balance \u00f7 commitment for active revolving lines at each month end.\n- **Tables:**\n  - `BANK_DEMO.LENDING.FACILITY` for product, commitment, status and origination date.\n  - `BANK_DEMO.LENDING.FACILITY_BAL_MTHLY` for month-end drawn balances and days past due.\n- **Sector mapping:** the approved \"Client to IndustrySector\" path, from `CORE.CLIENT` to `BIZ.SECTOR_MAP` (the bank's sector groups, not NAICS 2-digit codes). Each industry code maps to one sector and the mapping didn't change over the period.\n- **Policy:** analysis use by a Credit Analyst is allowed. I used no restricted tables (`RM_GOAL` was not needed).\n\n**Assumptions**\n- \"Last six months\" means April to September 2026, with 31 March 2026 as the starting point for the change column.\n- As the ratified definition requires, only lines active today are counted. This leaves out a few lines repaid during the period (7 lines worth $34M committed in March, none by September), which doesn't change the trend.\n- Commitments come from the facility table. Drawn plus undrawn balances matched them in every month.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT NAICS_CD, COUNT(*) n, COUNT(DISTINCT SECTOR) ns, MIN(EFF_FROM), MAX(EFF_TO), LISTAGG(SECTOR||'|'||EFF_FROM||'|'||COALESCE(EFF_TO::string,'null'), '; ') FROM BANK_DEMO.BIZ.SECTOR_MAP GROUP BY 1 ORDER BY n DESC LIMIT 50",
+      "ok": true,
+      "rows": 33,
+      "error": null,
+      "elapsed_s": 3.7
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT b.SNAP_DT, f.FACILITY_STATUS, COUNT(*) n, SUM(b.DRAWN_AMT) drawn, SUM(f.COMMIT_AMT) commit, SUM(b.DRAWN_AMT+b.UNDRAWN_AMT) bal_commit FROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID WHERE f.PRODUCT_CD='RLOC' AND b.SNAP_DT BETWEEN '2026-03-31' AND '2026-09-30' GROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 2.83
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COALESCE(s.SECTOR,'(unmapped)') sector, b.SNAP_DT, COUNT(*) n, SUM(b.DRAWN_AMT) drawn, SUM(f.COMMIT_AMT) commit, SUM(b.DRAWN_AMT)/NULLIF(SUM(f.COMMIT_AMT),0) util\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nJOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nLEFT JOIN BANK_DEMO.BIZ.SECTOR_MAP s ON s.NAICS_CD=c.NAICS_CD AND b.SNAP_DT BETWEEN s.EFF_FROM AND s.EFF_TO\nWHERE f.PRODUCT_CD='RLOC' AND f.FACILITY_STATUS='ACTIVE' AND b.SNAP_DT BETWEEN '2026-03-31' AND '2026-09-30'\nGROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 84,
+      "error": null,
+      "elapsed_s": 1.54
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH x AS (\nSELECT s.SECTOR, f.FACILITY_ID, f.COMMIT_AMT,\n MAX(CASE WHEN b.SNAP_DT='2026-03-31' THEN b.DRAWN_AMT END) d_mar,\n MAX(CASE WHEN b.SNAP_DT='2026-09-30' THEN b.DRAWN_AMT END) d_sep,\n MAX(CASE WHEN b.SNAP_DT='2026-09-30' THEN b.DPD END) dpd_sep,\n MAX(f.ORIG_DT) orig\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nJOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nJOIN BANK_DEMO.BIZ.SECTOR_MAP s ON s.NAICS_CD=c.NAICS_CD AND b.SNAP_DT BETWEEN s.EFF_FROM AND s.EFF_TO\nWHERE f.PRODUCT_CD='RLOC' AND f.FACILITY_STATUS='ACTIVE' AND b.SNAP_DT IN ('2026-03-31','2026-09-30')\nGROUP BY 1,2,3)\nSELECT SECTOR,\n COUNT_IF(d_mar IS NOT NULL AND d_sep IS NOT NULL) n_same,\n SUM(IFF(d_mar IS NOT NULL AND d_sep IS NOT NULL, d_mar,0))/NULLIF(SUM(IFF(d_mar IS NOT NULL AND d_sep IS NOT NULL, COMMIT_AMT,0)),0) same_mar,\n SUM(IFF(d_mar IS NOT NULL AND d_sep IS NOT NULL, d_sep,0))/NULLIF(SUM(IFF(d_mar IS NOT NULL AND d_sep IS NOT NULL, COMMIT_AMT,0)),0) same_sep,\n COUNT_IF(d_mar IS NOT NULL AND d_sep IS NOT NULL AND (d_sep-d_mar)/COMMIT_AMT>0.15) n_up15,\n COUNT_IF(d_mar IS NULL) n_new,\n SUM(IFF(d_mar IS NULL,d_sep,0))/NULLIF(SUM(IFF(d_mar IS NULL,COMMIT_AMT,0)),0) new_util,\n COUNT_IF(d_sep/COMMIT_AMT>=0.8) n_ge80_sep,\n COUNT_IF(dpd_sep>=30) n_dpd30\nFROM x GROUP BY 1 ORDER BY same_sep-same_mar DESC",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.7
+    }
+  ],
+  "cypher_queries": 7,
+  "usage": {
+    "input": 12,
+    "output": 5091,
+    "cache_read": 39110,
+    "cache_write": 18280
+  },
+  "cost_usd": 0.2011,
+  "latency_s": 61.6
+}

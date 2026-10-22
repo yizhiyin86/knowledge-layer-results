@@ -1,0 +1,85 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "A",
+  "qid": "Q1",
+  "question": "What were our commercial deposit balances by client segment at each of the last six month-ends, and which segments are growing or shrinking?",
+  "role": "FINANCE_ANALYST",
+  "effort": "high",
+  "answer": "Total on-balance-sheet commercial deposits were basically flat over the last six month-ends: **$23.61B on Apr-30 and $23.58B on Sep-30, down $34M (-0.1%)**. Middle Market is the only segment growing, and fast enough to offset small or moderate declines in every other segment.\n\n**On-balance-sheet deposit balances by segment, month-end ($M)**\n\n| Segment | Apr-30 | May-31 | Jun-30 | Jul-31 | Aug-31 | Sep-30 | Change Apr\u2013Sep | % | Share Sep |\n|---|---|---|---|---|---|---|---|---|---|\n| Large Corporate (LC) | 16,949.6 | 16,938.5 | 16,753.2 | 16,773.5 | 16,721.1 | 16,710.5 | -239.2 | -1.4% | 70.9% |\n| Middle Market (MM) | 3,471.6 | 3,536.5 | 3,590.7 | 3,654.4 | 3,710.1 | 3,758.4 | **+286.8** | **+8.3%** | 15.9% |\n| Public Sector & NFP (PUB) | 2,387.9 | 2,388.0 | 2,383.7 | 2,360.9 | 2,360.7 | 2,358.1 | -29.9 | -1.3% | 10.0% |\n| Commercial Real Estate (CRE) | 585.4 | 576.9 | 567.5 | 556.6 | 545.8 | 536.6 | **-48.8** | **-8.3%** | 2.3% |\n| Business Banking (BB) | 218.2 | 217.2 | 216.7 | 216.7 | 215.8 | 215.0 | -3.2 | -1.5% | 0.9% |\n| **Total** | **23,612.9** | **23,657.1** | **23,511.8** | **23,562.1** | **23,553.6** | **23,578.7** | **-34.2** | **-0.1%** | 100% |\n\n**Which segments are growing or shrinking**\n- **Growing: Middle Market.** It rose every month, by roughly $50\u201365M a month, for +8.3% overall. Its account count actually fell from 812 to 801, so the growth comes from higher balances in existing accounts, not new accounts.\n- **Shrinking steadily: Commercial Real Estate.** It fell every month, by about $9\u201311M a month, for -8.3%. This is the steepest decline in percentage terms, though the segment is small.\n- **Drifting down slightly:**\n  - **Large Corporate (-1.4%):** Most of the $239M decline came in June (-$185M). The other months were flat to slightly down. Because LC is 71% of the book, it is the largest decline in dollars.\n  - **Public Sector & NFP (-1.3%):** Most of the decline came in July (-$23M).\n  - **Business Banking (-1.5%):** A slow, steady decline, with account count down from 714 to 704.\n- **Net effect:** Middle Market's $287M gain almost exactly offsets the $321M combined decline in the other four segments.\n\n**Sources and definitions**\n- **Main source:** BANK_DEMO.MART.DEP_BAL_SEG_MTH (month-end on-balance-sheet deposit balances by segment). Segment names come from REF.SEGMENT.\n- **Check against account-level data:** I rebuilt the figures from DEPOSITS.DEP_BAL_MTHLY, DEP_ACCT and CORE.CLIENT. Every segment and month matches the mart exactly, with no duplicate rows and no accounts missing a segment.\n- **What counts as a deposit:** Checking (DDA), money market (MMDA) and CDs, the products REF.PRODUCT marks as on-balance-sheet. I left out the off-balance-sheet investment sweep (SWP). It holds about $7.9B for LC and $1.8B for MM, and none in the other segments. Including it would overstate deposits.\n- **Old version of the mart not used:** I didn't use MART.DEP_BAL_SEG_MTH_OLD. It includes the sweep balances and has no CRE segment; CRE balances appear to be counted under MM. Its figures will not match the table above.\n- **Assumptions:**\n  - \"Last six month-ends\" means Apr-30 through Sep-30, 2026.\n  - Each client is assigned to their current segment in CORE.CLIENT. No segment history is available.\n  - \"Growing\" or \"shrinking\" is judged on the Apr-to-Sep change and how consistent the month-to-month direction is.",
+  "stop_reason": "end_turn",
+  "model_turns": 6,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select * from BANK_DEMO.REF.PRODUCT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.34
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select m.snap_dt, m.segment_cd, m.on_bs_bal_amt, m.acct_cnt, o.tot_bal from BANK_DEMO.MART.DEP_BAL_SEG_MTH m left join BANK_DEMO.MART.DEP_BAL_SEG_MTH_OLD o on o.snap_dt=m.snap_dt and o.segment_cd=m.segment_cd where m.snap_dt>='2026-04-01' order by 2,1",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 1.52
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select snap_dt, count(*), count(distinct segment_cd) from BANK_DEMO.MART.DEP_BAL_SEG_MTH group by 1 order by 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.74
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with b as (\n select b.snap_dt, c.segment_cd, a.product_cd, b.bal_amt, b.account_id\n from BANK_DEMO.DEPOSITS.DEP_BAL_MTHLY b\n join BANK_DEMO.DEPOSITS.DEP_ACCT a on a.account_id=b.account_id\n left join BANK_DEMO.CORE.CLIENT c on c.cif_no=a.cif_no\n where b.snap_dt>='2026-04-30')\nselect snap_dt, segment_cd, sum(iff(product_cd in ('DDA','MMDA','CD'),bal_amt,0)) on_bs, sum(iff(product_cd='SWP',bal_amt,0)) swp, sum(bal_amt) tot, count(distinct iff(product_cd<>'SWP',account_id,null)) n_onbs, count(*) n_rows, count(distinct account_id) n_acct\nfrom b group by 1,2 order by 2,1",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 1.74
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select segment_cd, client_status, count(*) from BANK_DEMO.CORE.CLIENT group by 1,2 order by 1,2",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.2
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with m as (select snap_dt, segment_cd, on_bs_bal_amt bal from BANK_DEMO.MART.DEP_BAL_SEG_MTH where snap_dt between '2026-04-30' and '2026-09-30'\n union all select snap_dt,'TOTAL',sum(on_bs_bal_amt) from BANK_DEMO.MART.DEP_BAL_SEG_MTH where snap_dt between '2026-04-30' and '2026-09-30' group by 1)\nselect segment_cd,\n max(iff(snap_dt='2026-04-30',bal,null))/1e6 apr, max(iff(snap_dt='2026-05-31',bal,null))/1e6 may, max(iff(snap_dt='2026-06-30',bal,null))/1e6 jun,\n max(iff(snap_dt='2026-07-31',bal,null))/1e6 jul, max(iff(snap_dt='2026-08-31',bal,null))/1e6 aug, max(iff(snap_dt='2026-09-30',bal,null))/1e6 sep,\n (sep-apr) chg_mm, (sep/apr-1)*100 pct_chg,\n max(iff(snap_dt='2026-09-30',bal,null))/ (select sum(on_bs_bal_amt) from BANK_DEMO.MART.DEP_BAL_SEG_MTH where snap_dt='2026-09-30')*100 sep_share\nfrom m group by 1 order by sep desc",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.38
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 14,
+    "output": 4101,
+    "cache_read": 29450,
+    "cache_write": 12261
+  },
+  "cost_usd": 0.1493,
+  "latency_s": 86.8
+}

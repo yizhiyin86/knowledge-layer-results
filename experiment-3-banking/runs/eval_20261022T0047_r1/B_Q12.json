@@ -1,0 +1,62 @@
+{
+  "run_id": "eval_20261022T0047_r1",
+  "agent": "B",
+  "qid": "Q12",
+  "question": "After Halvorsen's downgrade to CCC+, which facilities have rating-trigger covenants that are now breached, what internal risk rating should the group move to, and who has to approve the credit response?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "Two facilities have now breached their rating triggers: **F0000003 and F0000007**. The group should move to **internal rating 8 (Substandard)**, and the credit response must be approved by the **Senior Credit Committee**, chaired by the Chief Risk Officer.\n\n**1. Rating-trigger covenants** (rule BR-COV-01: a breach means the parent's rating is *below* the threshold; equal to it is not a breach)\n\nHalvorsen Industrial Group Inc (LE-10001), the top parent of the group, is now rated CCC+ by AGY1 (action dated 2026-09-28, negative outlook). AGY2 still has it at B (2026-06-10, negative outlook).\n\n| Facility | Borrower | Product | Commitment | Trigger (AGY1) | Status |\n|---|---|---|---|---|---|\n| F0000003 | Halvorsen Supply Co | ABL | $45.0M | B | **BREACHED** (CCC+ is 3 notches below) |\n| F0000007 | Kestrel Tooling Inc | Term loan | $50.0M | B- | **BREACHED** (CCC+ is 1 notch below) |\n| F0000002 | Halvorsen Precision Parts Inc | Term loan | $35.0M | CCC | Not breached, but only 1 notch above the trigger |\n\nThe two breaches cover $95M of commitments. They let the bank stop further drawings, and they must be reported to the approver. The two financial covenants were last tested on 2026-06-30 and both passed: leverage of 4.10x against a 4.50x maximum on F0000004, and debt-service coverage of 1.31x against a 1.25x minimum on F0000001. Both results predate the downgrade.\n\n**2. Internal risk rating: 8 (Substandard)**\nUnder rule BR-RATE-01, the group takes the lower of its two agency ratings, which is CCC+. CCC+ maps to internal rating 8, and that rating applies to every member. All 10 active facilities are still rated **5 (Pass)** in the loan system. Policy requires them to be re-rated within 5 business days of the rating action, which by my count means by about **2026-10-05**.\n\n**3. Approver: Senior Credit Committee (rule BR-DLA-01)**\nThree separate conditions each send this to the committee:\n- **The rating:** 8 or worse goes to the committee.\n- **Exposure size:** total group exposure is **$344.3M**, above the $250M threshold. That is $308.0M committed across the 10 active facilities plus $36.3M of trading (derivatives) exposure at 2026-09-30.\n- **Group limit:** exposure exceeds the approved **$300M group limit**, at 114.8% utilization ($44.3M over).\n\nTwo further points belong in the committee paper:\n- **Legal lending limit:** exposure is $15.7M below the $360M legal lending limit (rule BR-LLL-01). That leaves very little room for any new money.\n- **Guarantees:** only the $30M Northcastle Mutual guarantee (rated A+) on F0000008 reduces exposure. That leaves $314.3M after the guarantee, still over the $300M limit. The parent's $50M guarantee on F0000007 and the holding company's $45M guarantee on F0000003 come from inside the group, so they don't reduce exposure (rule BR-GUAR-01). The Brandvold guarantee on F0000004 expired on 2026-06-30.\n\n**Data issue to flag:** six facilities (F0000001\u2013F0000006) are marked ACTIVE but have maturity dates that have already passed, between 2024-06 and 2026-03. Their status should be confirmed (extension, renewal or forbearance) before the committee paper goes out.\n\n**Sources and definitions**\n- **Knowledge-layer lookups:** the ownership trace found 24 group members (LE-10001). It left out the 40% Kito joint venture (not controlled) and Halvorsen Marine Logistics (sold 2025-11-30). Rules applied: BR-COV-01, BR-RATE-01, BR-DLA-01, BR-EXP-01, BR-GUAR-01, BR-LLL-01, plus the Credit Event Response process steps.\n- **Tables:** Fabric `dbo.COVENANT`, `dbo.RATING` (latest rating per agency), `dbo.CM_EXPOSURE` (2026-09-30 snapshot only) and the group limit from `CREDIT_LIMIT`. Snowflake `BANK_DEMO.LENDING.FACILITY` (ACTIVE commitments).\n- **Assumption:** exposure is gross commitments plus current trading exposure, as the group exposure definition requires. The guarantee is shown only as a separate mitigation view.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT COVENANT_ID, FACILITY_ID, COV_TYP, THRESHOLD_VAL, AGENCY, LAST_TEST_VAL, LAST_TEST_DT FROM dbo.COVENANT WHERE FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010') ORDER BY COV_TYP, FACILITY_ID",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 2.13
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT r.ENTITY_ID, r.AGENCY, r.RATING, r.RATING_DT, r.OUTLOOK FROM dbo.RATING r WHERE r.ENTITY_ID='LE-10001' AND r.RATING_DT = (SELECT MAX(RATING_DT) FROM dbo.RATING r2 WHERE r2.ENTITY_ID=r.ENTITY_ID AND r2.AGENCY=r.AGENCY)",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 2.28
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SNAP_DT, SUM(CURRENT_EXPOSURE) AS cm_exp, COUNT(*) n FROM dbo.CM_EXPOSURE WHERE SNAP_DT=(SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AND ENTITY_ID IN ('LE-10001','LE-10002','LE-10003','LE-10004','LE-10022','LE-10023','LE-10005','LE-10006','LE-10008','LE-10009','LE-10010','LE-10011','LE-10012','LE-10024','LE-10014','LE-10015','LE-10016','LE-10026','LE-10017','LE-10018','LE-10025','LE-10019','LE-10020','LE-10021') GROUP BY SNAP_DT",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.49
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT FACILITY_ID, CIF_NO, PRODUCT_CD, COMMIT_AMT, FACILITY_STATUS, RISK_RATING, MATURITY_DT FROM BANK_DEMO.LENDING.FACILITY WHERE CIF_NO IN ('0000041000','0000041002','0000041007','0000041009','0000041014','0000041017','0000041020','0000041022','0000041025','0000041027') ORDER BY FACILITY_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 6.89
+    }
+  ],
+  "cypher_queries": 9,
+  "usage": {
+    "input": 8,
+    "output": 3509,
+    "cache_read": 15772,
+    "cache_write": 15311
+  },
+  "cost_usd": 0.1499,
+  "latency_s": 50.0
+}

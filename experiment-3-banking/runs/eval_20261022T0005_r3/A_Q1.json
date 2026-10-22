@@ -1,0 +1,67 @@
+{
+  "run_id": "eval_20261022T0005_r3",
+  "agent": "A",
+  "qid": "Q1",
+  "question": "What were our commercial deposit balances by client segment at each of the last six month-ends, and which segments are growing or shrinking?",
+  "role": "FINANCE_ANALYST",
+  "effort": "high",
+  "answer": "Total on-balance-sheet commercial deposits were **$23.58B at 30 Sep 2026**, almost unchanged from $23.61B at 30 Apr 2026 (\u2212$34M, \u22120.15%). Middle Market is the only segment that grew. Commercial Real Estate is shrinking the fastest, and Large Corporate, Public Sector and Business Banking are down slightly.\n\n**Month-end balances by client segment ($M, on-balance-sheet)**\n\n| Segment | Apr-26 | May-26 | Jun-26 | Jul-26 | Aug-26 | Sep-26 | Change Apr\u2192Sep | % | Trend |\n|---|---|---|---|---|---|---|---|---|---|\n| Large Corporate (LC) | 16,949.6 | 16,938.5 | 16,753.2 | 16,773.5 | 16,721.1 | 16,710.5 | \u2212239.2 | \u22121.4% | Shrinking |\n| Middle Market (MM) | 3,471.6 | 3,536.5 | 3,590.7 | 3,654.4 | 3,710.1 | 3,758.4 | **+286.8** | **+8.3%** | **Growing** |\n| Public Sector & NFP (PUB) | 2,387.9 | 2,388.0 | 2,383.7 | 2,360.9 | 2,360.7 | 2,358.1 | \u221229.9 | \u22121.3% | Shrinking slightly |\n| Commercial Real Estate (CRE) | 585.4 | 576.9 | 567.5 | 556.6 | 545.8 | 536.6 | **\u221248.8** | **\u22128.3%** | **Shrinking** |\n| Business Banking (BB) | 218.2 | 217.2 | 216.7 | 216.7 | 215.8 | 215.0 | \u22123.2 | \u22121.5% | Shrinking slightly |\n| **Total** | **23,612.9** | **23,657.1** | **23,511.8** | **23,562.1** | **23,553.6** | **23,578.7** | **\u221234.2** | **\u22120.15%** | Flat |\n\n**Growing or shrinking:**\n- **Middle Market is growing.** It rose every month, by $48M to $65M each time. Its share of total balances went from 14.7% to 15.9%. This happened even though its account count fell from 812 to 801, so the growth comes from bigger balances in existing accounts, not new accounts.\n- **Commercial Real Estate is shrinking steadily.** It fell every month, by about $9M to $11M each time, for an 8.3% drop. This is the clearest outflow trend.\n- **Large Corporate is down $239M (\u22121.4%).** About $185M of that came in June alone, when the account count went from 510 to 506. Since then it has been roughly flat. Because it is 71% of the book, its June drop wiped out most of Middle Market's gain.\n- **Public Sector & NFP is down 1.3%.** Most of that is a single $23M drop in July. **Business Banking** is drifting down slowly (\u22121.5%).\n- **Account counts fell in every segment:** 2,620 accounts in total in April, 2,587 in September.\n\n**Sources and definitions**\n- I used the reporting table of month-end on-balance-sheet deposits by segment (`BANK_DEMO.MART.DEP_BAL_SEG_MTH`). I rebuilt the six months from the account-level data (deposit accounts, monthly balances, client segment and product codes), and the numbers matched exactly for every segment and month, including account counts.\n- \"Commercial deposits\" means the on-balance-sheet products: checking (DDA), money market (MMDA) and CDs. **Off-balance-sheet investment sweeps (SWP) are excluded.** For reference, sweeps were about $7.9B for Large Corporate and $1.8B for Middle Market at September. The older reporting table (`MART.DEP_BAL_SEG_MTH_OLD`) includes sweeps, so its Large Corporate and Middle Market totals are higher. I didn't use it.\n- The last six month-ends are 30 Apr to 30 Sep 2026. Changes are measured from the April month-end to the September month-end.\n\n**Assumptions:** Clients are grouped by the segment on their record today. The data has no segment history, so a client that changed segment during the period would show its balances under its current segment for all six months. I found no balances on accounts after they closed and no accounts without a matching client.",
+  "stop_reason": "end_turn",
+  "model_turns": 6,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select * from BANK_DEMO.REF.PRODUCT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.09
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select snap_dt, count(*), sum(on_bs_bal_amt) from BANK_DEMO.MART.DEP_BAL_SEG_MTH group by 1 order by 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.09
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with raw as (\n select b.snap_dt, c.segment_cd, sum(b.bal_amt) bal, count(distinct b.account_id) n, count(*) rws\n from BANK_DEMO.DEPOSITS.DEP_BAL_MTHLY b\n join BANK_DEMO.DEPOSITS.DEP_ACCT a on a.account_id=b.account_id\n join BANK_DEMO.REF.PRODUCT p on p.product_cd=a.product_cd\n left join BANK_DEMO.CORE.CLIENT c on c.cif_no=a.cif_no\n where p.on_bs_flg='Y' and b.snap_dt>='2026-04-30'\n group by 1,2)\nselect r.snap_dt, r.segment_cd, r.bal, r.n, r.rws, m.on_bs_bal_amt, m.acct_cnt, r.bal-m.on_bs_bal_amt diff\nfrom raw r left join BANK_DEMO.MART.DEP_BAL_SEG_MTH m on m.snap_dt=r.snap_dt and m.segment_cd=r.segment_cd\norder by 2,1",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 1.6
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select b.snap_dt, c.segment_cd, sum(iff(a.product_cd='SWP',b.bal_amt,0)) swp_bal,\n sum(iff(a.close_dt is not null and b.snap_dt>a.close_dt and a.product_cd<>'SWP', b.bal_amt,0)) post_close_bal,\n sum(iff(c.cif_no is null,b.bal_amt,0)) no_client_bal\nfrom BANK_DEMO.DEPOSITS.DEP_BAL_MTHLY b join BANK_DEMO.DEPOSITS.DEP_ACCT a on a.account_id=b.account_id\nleft join BANK_DEMO.CORE.CLIENT c on c.cif_no=a.cif_no\nwhere b.snap_dt in ('2026-04-30','2026-09-30') group by 1,2 order by 2,1",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 3.38
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 14,
+    "output": 4590,
+    "cache_read": 26677,
+    "cache_write": 10184
+  },
+  "cost_usd": 0.1481,
+  "latency_s": 90.6
+}

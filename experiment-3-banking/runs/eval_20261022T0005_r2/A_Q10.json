@@ -1,0 +1,199 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "A",
+  "qid": "Q10",
+  "question": "Which obligor groups are over their approved credit limit once all their subsidiaries are rolled up?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Three of the 25 obligor groups are over their approved limit once current subsidiaries are rolled up: Halvorsen, Brightwater and Corvane.** Together they're about $102M over. The other 22 groups are within their limits.\n\n| Obligor group (ultimate parent) | Limit | Lending commitments (active) | Derivatives current exposure | **Total exposure** | **Utilisation** | Excess |\n|---|---|---|---|---|---|---|\n| Brightwater Group Inc (LE-10030) | $200.0M | $236.6M (21 facilities) | $0 | **$236.6M** | **118.3%** | $36.6M |\n| Halvorsen Industrial Group Inc (LE-10001) | $300.0M | $308.0M (10 facilities) | $36.3M (7 trades) | **$344.3M** | **114.8%** | $44.3M |\n| Corvane Partners Inc (LE-10052) | $150.0M | $171.2M (16 facilities) | $0 (3 trades, none in the money) | **$171.2M** | **114.1%** | $21.2M |\n\n- **The breaches come from lending commitments.** In all three groups, loan commitments alone are already above the limit. Halvorsen's derivatives exposure only makes its excess bigger.\n- **Groups close to their limit:** Stellmark is at 91.5% ($164.7M of $180M) and Ridgeport at 90.1% ($108.1M of $120M). Marrowind is at 82.9% and Valewood at 81.1%.\n- **Measuring on drawn balances instead of commitments gives no breaches.** Halvorsen would be at 86.8%, Brightwater 85.6% and Corvane 87.6%. So the breaches are caused by the bank's committed but undrawn amounts, not by money already lent.\n- **Using the current ownership tree matters.** The old (legacy) group hierarchy table was last updated on 2024-11-30. It would still count:\n  - Halvorsen Marine Logistics, which moved to Tidemark Shipping on 2025-12-01 ($60M commitment).\n  - Ridgeport Specialty Chemicals, which moved to Sorvik Chemical on 2026-04-01 ($25M).\n  - Two joint ventures that are no longer controlled.\n\n  On that basis Stellmark (108%) and Ridgeport (111%) would wrongly show as breaches.\n- **Don't use the $187.5M Halvorsen figure in the sandbox table.** It is dated 2025-03-31, counts direct subsidiaries only, and is marked as work in progress. It understates the group's exposure.\n\n**Sources and definitions**\n- **Limits:** credit limit table in the risk database (Fabric). All 25 limits are group-level, approved in 2025, with next review on 2026-12-31. Each limit holder was confirmed to be the top of its ownership tree.\n- **Group membership:** ownership table in the risk database. Only controlling links (51\u2013100% owned) in effect on 2026-09-30 were used. The tree was followed up to 7 levels; no circular ownership was found. Non-controlling stakes (23\u201346%) and ended links were left out.\n- **Linking entities to bank clients:** each risk-database entity carries a 5-digit client number, matched to the bank's 10-digit zero-padded number. All 312 client numbers in these groups matched.\n- **Lending exposure:** commitment amounts on ACTIVE facilities from the bank's lending data (Snowflake), across all products including standby letters of credit. At 2026-09-30, drawn plus undrawn equals the commitment for these facilities, and no facility is drawn above its commitment. Paid-off and charged-off facilities are excluded.\n- **Derivatives exposure:** current exposure from the capital-markets exposure table at 2026-09-30 (positive mark-to-market, one row per trade, no duplicates).\n- **Guarantees:** all 47 active guarantees given by entities in these groups cover borrowers inside the same group. I didn't add them, because that would count the same exposure twice.\n\n**Assumptions**\n- Group exposure = lending commitments + derivatives current exposure, with no add-on for potential future derivatives exposure and no netting or collateral offsets. Including potential future exposure would only push utilisation higher.\n- Nothing in this analysis needed restricted data; the financial-crime tables were not used.",
+  "stop_reason": "end_turn",
+  "model_turns": 17,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT LIMIT_TYP, COUNT(*) n, COUNT(DISTINCT ULT_PARENT_ENTITY_ID) np, MIN(APPROVED_DT) mina, MAX(APPROVED_DT) maxa, MIN(NEXT_REVIEW_DT) minr, MAX(NEXT_REVIEW_DT) maxr, SUM(LIMIT_AMT) amt FROM dbo.CREDIT_LIMIT GROUP BY LIMIT_TYP",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT CONTROL_FLG, COUNT(*) n, MIN(OWN_PCT) mn, MAX(OWN_PCT) mx, SUM(CASE WHEN EFF_TO < '2026-09-30' THEN 1 ELSE 0 END) ended, SUM(CASE WHEN EFF_FROM > '2026-09-30' THEN 1 ELSE 0 END) future, COUNT(DISTINCT CHILD_ENTITY_ID) nchild FROM dbo.OWNERSHIP GROUP BY CONTROL_FLG",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.09
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT ENTITY_TYP, COUNT(*) n, SUM(CASE WHEN CIF_REF IS NULL THEN 0 ELSE 1 END) withcif, MIN(LEN(CIF_REF)) minlen, MAX(LEN(CIF_REF)) maxlen, COUNT(DISTINCT CIF_REF) dcif FROM dbo.LEGAL_ENTITY GROUP BY ENTITY_TYP",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT o.*, (SELECT COUNT(*) FROM dbo.OWNERSHIP o2 WHERE o2.CHILD_ENTITY_ID=o.CHILD_ENTITY_ID) nrows FROM dbo.OWNERSHIP o WHERE o.EFF_TO < '9999-12-31' OR o.CHILD_ENTITY_ID IN (SELECT CHILD_ENTITY_ID FROM dbo.OWNERSHIP GROUP BY CHILD_ENTITY_ID HAVING COUNT(*)>1) ORDER BY CHILD_ENTITY_ID, EFF_FROM",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 1.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH o AS (SELECT CHILD_ENTITY_ID c, PARENT_ENTITY_ID p FROM dbo.OWNERSHIP WHERE CONTROL_FLG='Y' AND EFF_FROM<='2026-09-30' AND EFF_TO>='2026-09-30'),\nt AS (SELECT l.ULT_PARENT_ENTITY_ID root, l.ULT_PARENT_ENTITY_ID ent, 0 lvl FROM dbo.CREDIT_LIMIT l\n UNION ALL SELECT t.root, o.c, t.lvl+1 FROM t JOIN o ON o.p=t.ent WHERE t.lvl<15)\nSELECT t.root, le.ENTITY_NM, COUNT(*) n_ent, COUNT(DISTINCT t.ent) n_dist, MAX(lvl) maxlvl, SUM(CASE WHEN e.CIF_REF IS NOT NULL THEN 1 ELSE 0 END) n_cif,\n (SELECT COUNT(*) FROM o WHERE o.c=t.root) root_has_parent\nFROM t JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID=t.root JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID=t.ent\nGROUP BY t.root, le.ENTITY_NM ORDER BY t.root",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 1.63
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH o AS (SELECT CHILD_ENTITY_ID c, PARENT_ENTITY_ID p FROM dbo.OWNERSHIP WHERE CONTROL_FLG='Y' AND EFF_FROM<='2026-09-30' AND EFF_TO>='2026-09-30')\nSELECT COUNT(*) n, SUM(CASE WHEN o1.p IS NOT NULL THEN 1 ELSE 0 END) l1, SUM(CASE WHEN o2.p IS NOT NULL THEN 1 ELSE 0 END) l2, SUM(CASE WHEN o3.p IS NOT NULL THEN 1 ELSE 0 END) l3, SUM(CASE WHEN o4.p IS NOT NULL THEN 1 ELSE 0 END) l4, SUM(CASE WHEN o5.p IS NOT NULL THEN 1 ELSE 0 END) l5, SUM(CASE WHEN o6.p IS NOT NULL THEN 1 ELSE 0 END) l6, SUM(CASE WHEN o7.p IS NOT NULL THEN 1 ELSE 0 END) l7\nFROM dbo.LEGAL_ENTITY e LEFT JOIN o o1 ON o1.c=e.ENTITY_ID LEFT JOIN o o2 ON o2.c=o1.p LEFT JOIN o o3 ON o3.c=o2.p LEFT JOIN o o4 ON o4.c=o3.p LEFT JOIN o o5 ON o5.c=o4.p LEFT JOIN o o6 ON o6.c=o5.p LEFT JOIN o o7 ON o7.c=o6.p",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.54
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH o AS (SELECT CHILD_ENTITY_ID c, PARENT_ENTITY_ID p FROM dbo.OWNERSHIP WHERE CONTROL_FLG='Y' AND EFF_FROM<='2026-09-30' AND EFF_TO>='2026-09-30')\nSELECT SUM(CASE WHEN o7.p IS NOT NULL THEN 1 ELSE 0 END) l7, SUM(CASE WHEN o8.p IS NOT NULL THEN 1 ELSE 0 END) l8, SUM(CASE WHEN o9.p IS NOT NULL THEN 1 ELSE 0 END) l9, SUM(CASE WHEN o10.p IS NOT NULL THEN 1 ELSE 0 END) l10, SUM(CASE WHEN o11.p IS NOT NULL THEN 1 ELSE 0 END) l11, SUM(CASE WHEN o12.p IS NOT NULL THEN 1 ELSE 0 END) l12\nFROM dbo.LEGAL_ENTITY e LEFT JOIN o o1 ON o1.c=e.ENTITY_ID LEFT JOIN o o2 ON o2.c=o1.p LEFT JOIN o o3 ON o3.c=o2.p LEFT JOIN o o4 ON o4.c=o3.p LEFT JOIN o o5 ON o5.c=o4.p LEFT JOIN o o6 ON o6.c=o5.p LEFT JOIN o o7 ON o7.c=o6.p LEFT JOIN o o8 ON o8.c=o7.p LEFT JOIN o o9 ON o9.c=o8.p LEFT JOIN o o10 ON o10.c=o9.p LEFT JOIN o o11 ON o11.c=o10.p LEFT JOIN o o12 ON o12.c=o11.p",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.52
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH o AS (SELECT CHILD_ENTITY_ID c, PARENT_ENTITY_ID p FROM dbo.OWNERSHIP WHERE CONTROL_FLG='Y' AND EFF_FROM<='2026-09-30' AND EFF_TO>='2026-09-30'),\nu AS (SELECT e.ENTITY_ID, e.CIF_REF, COALESCE(o7.p,o6.p,o5.p,o4.p,o3.p,o2.p,o1.p,e.ENTITY_ID) ult\nFROM dbo.LEGAL_ENTITY e LEFT JOIN o o1 ON o1.c=e.ENTITY_ID LEFT JOIN o o2 ON o2.c=o1.p LEFT JOIN o o3 ON o3.c=o2.p LEFT JOIN o o4 ON o4.c=o3.p LEFT JOIN o o5 ON o5.c=o4.p LEFT JOIN o o6 ON o6.c=o5.p LEFT JOIN o o7 ON o7.c=o6.p)\nSELECT l.LIMIT_ID, l.ULT_PARENT_ENTITY_ID, le.ENTITY_NM, l.LIMIT_AMT, ru.ult root_ult, COUNT(u.ENTITY_ID) n_ent, SUM(CASE WHEN u.CIF_REF IS NOT NULL THEN 1 ELSE 0 END) n_cif\nFROM dbo.CREDIT_LIMIT l JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID=l.ULT_PARENT_ENTITY_ID\nLEFT JOIN u ru ON ru.ENTITY_ID=l.ULT_PARENT_ENTITY_ID\nLEFT JOIN u ON u.ult=l.ULT_PARENT_ENTITY_ID\nGROUP BY l.LIMIT_ID, l.ULT_PARENT_ENTITY_ID, le.ENTITY_NM, l.LIMIT_AMT, ru.ult ORDER BY l.LIMIT_ID",
+      "ok": true,
+      "rows": 25,
+      "error": null,
+      "elapsed_s": 1.56
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SNAP_DT, COUNT(*) n, COUNT(DISTINCT TRADE_ID) nt, SUM(CURRENT_EXPOSURE) ce, SUM(CASE WHEN CURRENT_EXPOSURE<0 THEN 1 ELSE 0 END) neg, SUM(CASE WHEN CURRENT_EXPOSURE<>CASE WHEN MTM_AMT>0 THEN MTM_AMT ELSE 0 END THEN 1 ELSE 0 END) ce_ne_mtm FROM dbo.CM_EXPOSURE GROUP BY SNAP_DT ORDER BY SNAP_DT",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.03
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT PRODUCT, COUNT(*) n FROM dbo.CM_EXPOSURE WHERE SNAP_DT='2026-09-30' GROUP BY PRODUCT",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.08
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH o AS (SELECT CHILD_ENTITY_ID c, PARENT_ENTITY_ID p FROM dbo.OWNERSHIP WHERE CONTROL_FLG='Y' AND EFF_FROM<='2026-09-30' AND EFF_TO>='2026-09-30'),\nu AS (SELECT e.ENTITY_ID, e.CIF_REF, COALESCE(o7.p,o6.p,o5.p,o4.p,o3.p,o2.p,o1.p,e.ENTITY_ID) ult\nFROM dbo.LEGAL_ENTITY e LEFT JOIN o o1 ON o1.c=e.ENTITY_ID LEFT JOIN o o2 ON o2.c=o1.p LEFT JOIN o o3 ON o3.c=o2.p LEFT JOIN o o4 ON o4.c=o3.p LEFT JOIN o o5 ON o5.c=o4.p LEFT JOIN o o6 ON o6.c=o5.p LEFT JOIN o o7 ON o7.c=o6.p),\ncm AS (SELECT u.ult, SUM(x.CURRENT_EXPOSURE) ce, COUNT(*) ntr FROM dbo.CM_EXPOSURE x JOIN u ON u.ENTITY_ID=x.ENTITY_ID WHERE x.SNAP_DT='2026-09-30' GROUP BY u.ult)\nSELECT l.ULT_PARENT_ENTITY_ID, ISNULL(cm.ce,0) cm_ce, ISNULL(cm.ntr,0) ntr,\n (SELECT STRING_AGG(u.CIF_REF, ',') FROM u WHERE u.ult=l.ULT_PARENT_ENTITY_ID AND u.CIF_REF IS NOT NULL) cifs\nFROM dbo.CREDIT_LIMIT l LEFT JOIN cm ON cm.ult=l.ULT_PARENT_ENTITY_ID ORDER BY 1",
+      "ok": true,
+      "rows": 25,
+      "error": null,
+      "elapsed_s": 1.58
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.FACILITY_STATUS, f.PRODUCT_CD, COUNT(*) n, SUM(COMMIT_AMT) commit, SUM(IFF(f.PAYOFF_DT IS NOT NULL,1,0)) payoff, SUM(IFF(f.CHGOFF_DT IS NOT NULL,1,0)) chgoff, SUM(IFF(b.FACILITY_ID IS NOT NULL,1,0)) has_sep_bal, SUM(b.DRAWN_AMT) drawn, SUM(b.DRAWN_AMT+b.UNDRAWN_AMT) tot\nFROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.FACILITY_ID=f.FACILITY_ID AND b.SNAP_DT='2026-09-30'\nGROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.18
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.REF.PRODUCT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 3.04
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH g(root, cifs) AS (SELECT * FROM VALUES\n('LE-10001','41000,41002,41014,41017,41020,41027,41009,41025,41022,41007'),\n('LE-10030','41030,41041,41040,41034,41056,41037,41050,41053,41047,41042,41031,41046,41057'),\n('LE-10052','41072,41076,41074,41064,41063,41062,41060,41078,41058,41077,41067'),\n('LE-10070','41093,41089,41095,41088,41084,41097,41081,41094,41086'),\n('LE-10087','41119,41111,41122,41106,41101,41103,41114,41116,41108'),\n('LE-10103','41129,41162,41155,41152,41141,41149,41130,41145,41158,41131,41143,41153,41134,41139,41161,41136,41128,41148,41147'),\n('LE-10129','41165,41175,41181,41185,41177,41182,41173,41178,41168,41191,41171'),\n('LE-10148','41192,41202,41210,41205,41197,41193,41216,41211,41206'),\n('LE-10166','41217,41239,41232,41234,41229,41223,41220,41236,41228,41225'),\n('LE-10180','41251,41241,41264,41246,41247,41250,41260,41261,41257,41269,41276,41271,41273,41252,41255,41267,41249,41243,41240'),\n('LE-10208','41288,41291,41300,41303,41296,41304,41279'),\n('LE-10225','41324,41314,41321,41313,41326,41308,41316,41311,41319,41327,41310'),\n('LE-10246','41336,41333,41328,41341,41330,41334,41337,41338,41329'),\n('LE-10265','41358,41348,41343,41349,41346,41361,41345,41352,41355'),\n('LE-10278','41402,41397,41391,41394,41405,41385,41383,41384,41390,41400,41387,41382,41375,41398,41381,41380,41370,41374,41378,41368,41373,41366,41363,41365'),\n('LE-10307','41421,41408,41442,41438,41418,41436,41422,41431,41410,41433,41428,41425,41419,41413,41415,41440'),\n('LE-10333','41456,41444,41466,41463,41453'),\n('LE-10349','41472,41496,41475,41486,41493,41480,41502,41499,41485,41490,41501,41489,41478,41477'),\n('LE-10368','41510,41506,41503,41515,41518,41511,41509,41512'),\n('LE-10383','41534,41542,41519,41549,41520,41536,41544,41540,41530,41546,41523,41524,41541,41539,41537'),\n('LE-10404','41581,41580,41575,41567,41557,41566,41552,41561,41556,41563,41577,41568,41560,41554,41572'),\n('LE-10427','41591,41585,41597,41582,41589,41587,41584,41588,41594'),\n('LE-10445','41600,41615,41609,41608,41606,41614,41612,41603'),\n('LE-10458','41628,41619,41624,41626,41622,41618'),\n('LE-10468','41636,41645,41632,41649,41652,41631,41648,41654,41651,41642,41647,41633,41650,41655')),\nm AS (SELECT g.root, LPAD(TRIM(s.value),10,'0') cif FROM g, LATERAL SPLIT_TO_TABLE(g.cifs, ',') s)\nSELECT m.root, COUNT(DISTINCT m.cif) n_cif, COUNT(DISTINCT c.CIF_NO) n_cif_found, COUNT(DISTINCT f.FACILITY_ID) n_fac,\n SUM(f.COMMIT_AMT) commit_amt, SUM(b.DRAWN_AMT) drawn, SUM(b.DRAWN_AMT+b.UNDRAWN_AMT) bal_tot, SUM(GREATEST(f.COMMIT_AMT, b.DRAWN_AMT)) max_commit_drawn\nFROM m LEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=m.cif\nLEFT JOIN BANK_DEMO.LENDING.FACILITY f ON f.CIF_NO=m.cif AND f.FACILITY_STATUS='ACTIVE'\nLEFT JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.FACILITY_ID=f.FACILITY_ID AND b.SNAP_DT='2026-09-30'\nGROUP BY m.root ORDER BY m.root",
+      "ok": true,
+      "rows": 25,
+      "error": null,
+      "elapsed_s": 4.05
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH o AS (SELECT CHILD_ENTITY_ID c, PARENT_ENTITY_ID p FROM dbo.OWNERSHIP WHERE CONTROL_FLG='Y' AND EFF_FROM<='2026-09-30' AND EFF_TO>='2026-09-30'),\nu AS (SELECT e.ENTITY_ID, e.ENTITY_NM, e.CIF_REF, COALESCE(o7.p,o6.p,o5.p,o4.p,o3.p,o2.p,o1.p,e.ENTITY_ID) ult\nFROM dbo.LEGAL_ENTITY e LEFT JOIN o o1 ON o1.c=e.ENTITY_ID LEFT JOIN o o2 ON o2.c=o1.p LEFT JOIN o o3 ON o3.c=o2.p LEFT JOIN o o4 ON o4.c=o3.p LEFT JOIN o o5 ON o5.c=o4.p LEFT JOIN o o6 ON o6.c=o5.p LEFT JOIN o o7 ON o7.c=o6.p)\nSELECT u.ENTITY_ID, u.ENTITY_NM, u.CIF_REF, u.ult cur_ult, h.ULT_PARENT_ENTITY_ID legacy_ult\nFROM u LEFT JOIN dbo.CPTY_HIER_LEGACY h ON h.ENTITY_ID=u.ENTITY_ID\nWHERE u.ENTITY_ID IN ('LE-10002','LE-10007','LE-10029','LE-10101','LE-10102','LE-10164','LE-10171','LE-10212','LE-10244','LE-10334','LE-10357','LE-10419')\n OR (h.ULT_PARENT_ENTITY_ID IS NOT NULL AND h.ULT_PARENT_ENTITY_ID<>u.ult AND (h.ULT_PARENT_ENTITY_ID IN (SELECT ULT_PARENT_ENTITY_ID FROM dbo.CREDIT_LIMIT) OR u.ult IN (SELECT ULT_PARENT_ENTITY_ID FROM dbo.CREDIT_LIMIT)))",
+      "ok": true,
+      "rows": 150,
+      "error": null,
+      "elapsed_s": 1.63
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH o AS (SELECT CHILD_ENTITY_ID c, PARENT_ENTITY_ID p FROM dbo.OWNERSHIP WHERE CONTROL_FLG='Y' AND EFF_FROM<='2026-09-30' AND EFF_TO>='2026-09-30'),\nu AS (SELECT e.ENTITY_ID, e.CIF_REF, COALESCE(o7.p,o6.p,o5.p,o4.p,o3.p,o2.p,o1.p,e.ENTITY_ID) ult\nFROM dbo.LEGAL_ENTITY e LEFT JOIN o o1 ON o1.c=e.ENTITY_ID LEFT JOIN o o2 ON o2.c=o1.p LEFT JOIN o o3 ON o3.c=o2.p LEFT JOIN o o4 ON o4.c=o3.p LEFT JOIN o o5 ON o5.c=o4.p LEFT JOIN o o6 ON o6.c=o5.p LEFT JOIN o o7 ON o7.c=o6.p)\nSELECT g.GUARANTEE_ID, g.FACILITY_ID, g.GUARANTOR_ENTITY_ID, u.ult guarantor_ult, g.GUAR_AMT, g.GUAR_TYP, g.STATUS, g.EFF_DT, g.EXP_DT\nFROM dbo.GUARANTEE g JOIN u ON u.ENTITY_ID=g.GUARANTOR_ENTITY_ID\nWHERE u.ult IN (SELECT ULT_PARENT_ENTITY_ID FROM dbo.CREDIT_LIMIT) AND g.STATUS='ACTIVE' AND g.EFF_DT<='2026-09-30' AND g.EXP_DT>='2026-09-30'",
+      "ok": true,
+      "rows": 47,
+      "error": null,
+      "elapsed_s": 1.06
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.FACILITY_ID, f.CIF_NO, c.CLIENT_NM, f.PRODUCT_CD, f.COMMIT_AMT, f.FACILITY_STATUS FROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nWHERE f.FACILITY_ID IN ('F0000141','F0000191','F0000185','F0000238','F0000245','F0000234','F0000062','F0002227','F0000223','F0000130','F0000202','F0000201','F0000007','F0000003','F0000305','F0000310','F0000331','F0000036','F0000333','F0000288','F0000112','F0000110','F0000105','F0000138','F0000322','F0000324','F0002226','F0000352','F0000357','F0000363','F0000360','F0000017','F0000018','F0000027','F0000026','F0002232','F0000084','F0002221','F0000148','F0000178','F0000170','F0000038','F0000037','F0002225','F0000244','F0000320','F0000021')\nORDER BY 1",
+      "ok": true,
+      "rows": 47,
+      "error": null,
+      "elapsed_s": 3.62
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.CIF_NO, c.CLIENT_NM, COUNT(f.FACILITY_ID) n_fac, SUM(f.COMMIT_AMT) commit_amt FROM BANK_DEMO.CORE.CLIENT c LEFT JOIN BANK_DEMO.LENDING.FACILITY f ON f.CIF_NO=c.CIF_NO AND f.FACILITY_STATUS='ACTIVE'\nWHERE c.CIF_NO IN ('0000041005','0000041012','0000041090','0000041099','0000041123','0000041199','0000041277','0000041285','0000041527','0000041639','0000041379','0000041224','0000041214','0000041483','0000041569') GROUP BY 1,2 ORDER BY 1",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 3.27
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 36,
+    "output": 16487,
+    "cache_read": 304427,
+    "cache_write": 45218
+  },
+  "cost_usd": 0.6169,
+  "latency_s": 209.0
+}

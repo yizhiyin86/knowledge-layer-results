@@ -148,6 +148,21 @@ the citation, so the reuse was not recorded (fixed after the benchmark; reported
 [Figures](figures/): the step timeline of T1 (A and B side by side), the playbook view, the badges and an execution trace
 in the graph, from the demo app.
 
+## 5b. Experiment 3: the same test on a commercial bank
+
+[Full method, results, caveats and all runs](experiment-3-banking/README.md)
+
+The conversation-pattern test, rebuilt on a fictional US commercial bank: banking data in Snowflake, risk and capital markets in Microsoft Fabric, the showcase a borrower group downgraded to CCC+ whose exposure sits up to 7 ownership levels down. 14 questions × 3 runs × 2 agents (84 graded runs).
+
+| | Agent A | Agent B |
+|---|---|---|
+| Accuracy | 0.77 | **1.00** |
+| Cost per answer | $0.28 | **$0.15 (−47%)** |
+| Time per answer | 123 s | **52 s (−58%)** |
+| Runs with a policy violation | 5 of 42 | **0 of 42** |
+
+As in experiment 1, Agent A answered the data questions correctly but slowly; it missed what no warehouse holds: report definitions, the bank's credit policy, an internal entitlement and memory. Two questions were changed after the first replicate and B was re-run after a tool fix; both are disclosed in the experiment README.
+
 ## 6. What made the difference
 
 Same model, same data, same tools. In every place A went wrong, the missing piece was knowledge that is not in a
@@ -198,6 +213,7 @@ warehouse, and B read it from the layer.
 |---|---|
 | [experiment-1-conversation/](experiment-1-conversation/) | 84 scored runs: `scores.csv`, readable `transcripts/`, `raw/` logs, `inputs/` (questions, answer keys and their SQL, grader prompt, agent prompts), the original reports, and `history/` (superseded runs) |
 | [experiment-2-execution/](experiment-2-execution/) | 18 scored runs: `scores.csv`, `RESULTS.md`, readable `transcripts/`, `raw/` logs incl. final sandbox state, `inputs/` (tasks, answer keys, oracle decisions, agent prompts), `graph/` (playbooks and traces in Neo4j at the end), `development-runs/` |
+| [experiment-3-banking/](experiment-3-banking/) | 84 graded runs on the commercial-bank scenario: `results.json/csv`, `report.md`, questions and SQL answer keys, raw `runs/` (summaries + full step logs), `runs-superseded/`, and the cross-layer Cypher query |
 | [knowledge-layer/](knowledge-layer/) | Graph counts by label and relationship type; the YAML model for both versions |
 | [figures/](figures/) | Screenshots from the demo app |
 | [tools/](tools/) | The scripts that assembled this repository from the code repository (no scoring is recomputed) |

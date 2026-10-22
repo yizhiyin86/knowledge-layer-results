@@ -1,0 +1,121 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "A",
+  "qid": "Q5",
+  "question": "How has revolving-line utilization trended over the last six months by industry sector, and where is it rising?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "Revolving-line utilization rose from **46.2% at Mar-26 to 49.9% at Sep-26** across the whole portfolio. Almost all of that rise comes from two sectors, **Manufacturing and Wholesale Distribution**, which each climbed about 23 points in six months. All other sectors stayed flat at about 46%.\n\n**Utilization by sector (drawn \u00f7 commitment, revolving lines only)**\n\n| Sector | Mar-26 | Jun-26 | Sep-26 | Change (pts) | Same lines only, Mar\u2192Sep |\n|---|---|---|---|---|---|\n| **Manufacturing** | 46.0% | 58.6% | **69.1%** | **+23.1** | 46.0 \u2192 69.1 (65 lines) |\n| **Wholesale Distribution** | 45.4% | 58.0% | **68.6%** | **+23.2** | 45.4 \u2192 68.5 (44 lines) |\n| CRE Multifamily | 44.5% | 44.3% | 46.2% | +1.6 | 44.5 \u2192 45.8 (10 lines, a small book) |\n| Healthcare Services | 45.9% | 45.9% | 46.4% | +0.5 | 45.9 \u2192 46.1 |\n| Technology | 46.1% | 46.6% | 46.3% | +0.3 | 46.1 \u2192 46.4 |\n| Holding & Financial Cos. | 46.3% | 46.2% | 46.4% | +0.1 | 46.3 \u2192 46.4 |\n| CRE Office | 46.3% | 46.6% | 46.1% | \u22120.2 | 46.3 \u2192 46.5 |\n| Transportation & Logistics | 46.2% | 46.4% | 46.2% | \u22120.1 | 46.2 \u2192 46.1 |\n| Professional Services | 46.4% | 46.1% | 46.3% | \u22120.1 | 46.5 \u2192 46.3 |\n| Public & Not-for-Profit | 46.5% | 46.5% | 46.5% | \u22120.1 | 46.5 \u2192 46.5 |\n| Energy | 45.9% | 46.0% | 45.9% | \u22120.1 | 45.9 \u2192 45.6 |\n| Retail | 46.4% | 45.9% | 46.2% | \u22120.2 | 46.4 \u2192 46.2 |\n| **Total** | **46.2%** | \u2014 | **49.9%** | **+3.7** | |\n\n**Where it's rising and what kind of rise it is**\n- **It's steady and still going.** Both sectors have gained about 3.5 points every month since April with no sign of slowing. Manufacturing drawn balances went from $227MM to $367MM on about $531MM of commitments. Wholesale went from $150MM to $231MM on $337MM.\n- **It's existing borrowers drawing more, not new lines.** Looking only at lines that existed in both March and September, the rise is the same. Every one of those lines (65 in Manufacturing, 44 in Wholesale) is up more than 10 points.\n- **It's across the board within both sectors.** Each industry code inside them rose from about 45\u201347% to about 68\u201370%: plastics and resin, machine shops, industrial machinery, auto parts, auto-supply wholesale, industrial-machinery wholesale and grocery wholesale. The pattern looks like a sector-wide working-capital or inventory build, perhaps tied to the auto and industrial supply chain, rather than a problem with a few names.\n- **No stress shows up yet.** No line in these sectors is at 80% or more utilization. There are no loans 30+ days past due and nothing on non-accrual (other sectors have 4 lines 30+ days past due). Average risk ratings are about 4.7 for Manufacturing and 5.1 for Wholesale, similar to the rest of the book. If the current pace holds, these sectors would reach about 80% around year-end 2026.\n- **Recommended follow-up:** check borrowing-base and inventory reporting for these borrowers and flag the sectors for the next portfolio review. Covenant and limit data are in the risk warehouse (Fabric) and could be pulled next. I didn't query them for this question.\n\n**Sources and definitions**\n- Snowflake BANK_DEMO tables:\n  - `LENDING.FACILITY`: revolving lines are `PRODUCT_CD = 'RLOC'`, confirmed in `REF.PRODUCT`.\n  - `LENDING.FACILITY_BAL_MTHLY`: month-end drawn and undrawn balances.\n  - `CORE.CLIENT`: client industry code (NAICS).\n  - `BIZ.SECTOR_MAP`: NAICS code to bank sector, effective-dated. All revolving-line clients mapped to a sector.\n- Utilization = total drawn \u00f7 total (drawn + undrawn) for each sector and month. Drawn plus undrawn equals the commitment for every row checked, with no negative or over-limit balances.\n- \"Last six months\" means the Apr\u2013Sep 2026 month-ends, measured against a Mar-26 starting point.\n- **New lines distort the totals a little.** Revolving lines grew from 620 to 682 in Jul\u2013Sep, so the \"same lines only\" column is the cleaner measure of the trend.\n- Risk ratings are the facility's current rating, not a history over time.\n- I didn't query the Fabric risk warehouse for this answer.",
+  "stop_reason": "end_turn",
+  "model_turns": 9,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.REF.PRODUCT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.14
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.BIZ.SECTOR_MAP ORDER BY NAICS_CD, EFF_FROM",
+      "ok": true,
+      "rows": 33,
+      "error": null,
+      "elapsed_s": 1.06
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT PRODUCT_CD, FACILITY_STATUS, COUNT(*), SUM(COMMIT_AMT) FROM BANK_DEMO.LENDING.FACILITY GROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 17.31
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT SNAP_DT, COUNT(*) n, COUNT(DISTINCT FACILITY_ID) nf, SUM(DRAWN_AMT) d, SUM(UNDRAWN_AMT) u FROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.3
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.NAICS_CD, m.SECTOR, COUNT(DISTINCT f.FACILITY_ID) nfac, COUNT(DISTINCT c.CIF_NO) ncl\nFROM BANK_DEMO.LENDING.FACILITY f\nLEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO = f.CIF_NO\nLEFT JOIN BANK_DEMO.BIZ.SECTOR_MAP m ON m.NAICS_CD = c.NAICS_CD\nWHERE f.PRODUCT_CD='RLOC' GROUP BY 1,2 ORDER BY 1",
+      "ok": true,
+      "rows": 33,
+      "error": null,
+      "elapsed_s": 1.23
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT b.SNAP_DT, COUNT(*) n,\n SUM(IFF(b.DRAWN_AMT IS NULL,1,0)) null_drawn,\n SUM(IFF(b.DRAWN_AMT<0,1,0)) neg,\n SUM(IFF(b.DRAWN_AMT>f.COMMIT_AMT*1.0001,1,0)) over_commit,\n SUM(IFF(ABS(b.DRAWN_AMT+b.UNDRAWN_AMT-f.COMMIT_AMT)>1,1,0)) mismatch,\n SUM(IFF(f.FACILITY_STATUS<>'ACTIVE',1,0)) nonactive,\n SUM(IFF(f.ORIG_DT> b.SNAP_DT,1,0)) pre_orig,\n SUM(IFF(f.PAYOFF_DT <= b.SNAP_DT,1,0)) post_payoff,\n SUM(b.DRAWN_AMT) drawn, SUM(f.COMMIT_AMT) cmt, SUM(b.DRAWN_AMT+b.UNDRAWN_AMT) d_u\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nWHERE f.PRODUCT_CD='RLOC' GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT m.SECTOR, b.SNAP_DT, COUNT(*) nfac, ROUND(SUM(b.DRAWN_AMT)/1e6,1) drawn_mm, ROUND(SUM(b.DRAWN_AMT+b.UNDRAWN_AMT)/1e6,1) commit_mm,\n ROUND(100*SUM(b.DRAWN_AMT)/SUM(b.DRAWN_AMT+b.UNDRAWN_AMT),2) util_pct\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b\nJOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nJOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nJOIN BANK_DEMO.BIZ.SECTOR_MAP m ON m.NAICS_CD=c.NAICS_CD AND b.SNAP_DT BETWEEN m.EFF_FROM AND m.EFF_TO\nWHERE f.PRODUCT_CD='RLOC' AND b.SNAP_DT BETWEEN '2026-03-31' AND '2026-09-30'\nGROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 84,
+      "error": null,
+      "elapsed_s": 1.3
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH b AS (\n SELECT f.FACILITY_ID, m.SECTOR, c.NAICS_CD, f.COMMIT_AMT,\n  MAX(IFF(b.SNAP_DT='2026-03-31', b.DRAWN_AMT, NULL)) d_mar,\n  MAX(IFF(b.SNAP_DT='2026-09-30', b.DRAWN_AMT, NULL)) d_sep\n FROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b\n JOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\n JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\n JOIN BANK_DEMO.BIZ.SECTOR_MAP m ON m.NAICS_CD=c.NAICS_CD\n WHERE f.PRODUCT_CD='RLOC' AND b.SNAP_DT IN ('2026-03-31','2026-09-30')\n GROUP BY 1,2,3,4)\nSELECT SECTOR, COUNT(*) n_same, ROUND(100*SUM(d_mar)/SUM(COMMIT_AMT),2) u_mar, ROUND(100*SUM(d_sep)/SUM(COMMIT_AMT),2) u_sep,\n SUM(IFF(d_sep/COMMIT_AMT - d_mar/COMMIT_AMT > 0.10,1,0)) n_up10,\n SUM(IFF(d_sep/COMMIT_AMT >= 0.80,1,0)) n_ge80_sep, SUM(IFF(d_mar/COMMIT_AMT >= 0.80,1,0)) n_ge80_mar\nFROM b WHERE d_mar IS NOT NULL AND d_sep IS NOT NULL GROUP BY 1 ORDER BY u_sep-u_mar DESC",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.35
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT m.SECTOR, c.NAICS_CD, m.NAICS_DESC, b.SNAP_DT, COUNT(*) n, ROUND(100*SUM(b.DRAWN_AMT)/SUM(b.DRAWN_AMT+b.UNDRAWN_AMT),2) util\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b\nJOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nJOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nJOIN BANK_DEMO.BIZ.SECTOR_MAP m ON m.NAICS_CD=c.NAICS_CD\nWHERE f.PRODUCT_CD='RLOC' AND b.SNAP_DT IN ('2026-03-31','2026-06-30','2026-09-30') AND m.SECTOR IN ('Manufacturing','Wholesale Distribution')\nGROUP BY 1,2,3,4 ORDER BY 1,2,4",
+      "ok": true,
+      "rows": 21,
+      "error": null,
+      "elapsed_s": 1.42
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT IFF(m.SECTOR IN ('Manufacturing','Wholesale Distribution'), m.SECTOR, 'All other') grp, b.SNAP_DT,\n COUNT(*) n, SUM(IFF(b.DPD>=30,1,0)) dpd30, SUM(IFF(b.ACCRUAL_STAT<>'A',1,0)) nonacc,\n ROUND(100*SUM(b.DRAWN_AMT)/SUM(b.DRAWN_AMT+b.UNDRAWN_AMT),2) util, ROUND(AVG(f.RISK_RATING),2) avg_rr\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b\nJOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nJOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nJOIN BANK_DEMO.BIZ.SECTOR_MAP m ON m.NAICS_CD=c.NAICS_CD\nWHERE f.PRODUCT_CD='RLOC' AND b.SNAP_DT IN ('2026-03-31','2026-09-30')\nGROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 3.49
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 20,
+    "output": 6864,
+    "cache_read": 87737,
+    "cache_write": 21852
+  },
+  "cost_usd": 0.2642,
+  "latency_s": 119.3
+}

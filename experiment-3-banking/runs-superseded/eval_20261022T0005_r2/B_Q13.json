@@ -1,0 +1,43 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "B",
+  "qid": "Q13",
+  "question": "Show suspicious-activity case counts by relationship-manager team over the last quarter so regional managers can plan RM coaching.",
+  "role": "RM_MANAGER",
+  "effort": "high",
+  "answer": "I can't give you suspicious-activity report (SAR) case counts by RM team, so I didn't query that data. Below are two approved measures you can use to plan coaching instead, by team, for Q3 2026.\n\n**Why I can't run it**\n- Bank policy **POL-BSA-01** covers the SAR case table (`BANK_DEMO.FINCRIME.SAR_CASE`). It is based on the Bank Secrecy Act (31 CFR 1020.320(e)) and the bank's BSA/AML Policy FC-04.\n- Whether a SAR exists is confidential. Only the BSA/AML team may use the data, and it may never be used for banker performance reviews, rankings, pay or **coaching**.\n- Totals by team still count as disclosure. Small teams could reveal which clients have SARs. Coaching bankers on SAR counts could also discourage them from reporting suspicious activity.\n- If you're worried about a team's financial-crimes awareness, raise it with the **BSA Officer**. That team decides any training.\n\n**1. New loan commitments vs goal, Q3 2026 (approved measure `new_commit_attainment`)**\n\n| Region | Team | RMs | Goal | Booked | Attainment | RMs below goal |\n|---|---|---|---|---|---|---|\n| Central | Business Banking | 7 | $165.8M | $135.8M | 81.9% | 5 |\n| Central | C&I Central | 5 | $81.0M | $93.6M | 115.6% | 0 |\n| Central | Middle Market Central | 4 | $91.5M | $83.1M | 90.8% | 3 |\n| East | C&I East | 6 | $525.2M | $406.6M | **77.4%** | 4 |\n| East | CRE Banking | 6 | $163.1M | $155.4M | 95.3% | 3 |\n| East | Middle Market East | 4 | $53.7M | $52.5M | 97.8% | 2 |\n| East | Public Sector Banking | 6 | $142.2M | $114.5M | 80.5% | **6 of 6** |\n| Southeast | Middle Market Southeast | 7 | $104.7M | $113.4M | 108.3% | 1 |\n| West | C&I West | 6 | $135.4M | $137.2M | 101.3% | 3 |\n| West | Middle Market West | 6 | $131.4M | $125.2M | 95.3% | 3 |\n\n**2. Client contact gaps (rule BR-COVER-01)**\nThe rule: Large Corporate clients with more than $25M in active commitments need a contact by any banker at least every 90 days. Counted as of 2026-09-30:\n- **C&I East: 9 of 23 such clients not contacted in 90 days.** This is the biggest gap.\n- C&I Central: 2 of 14.\n- C&I West: 1 of 1.\n\n**Where coaching looks most needed:** C&I East is low on both measures (77% of goal and 9 overdue contacts). Public Sector Banking and Central Business Banking also need attention, with most of their RMs below goal. I can break any team down by individual RM, or add loan credit quality by team using the approved non-performing loan ratio.\n\n**Sources and assumptions**\n- **Knowledge layer:** the suspicious-activity report definition and policy POL-BSA-01, measure `new_commit_attainment`, rule BR-COVER-01, and a similar past answer that declined SAR counts for incentive pay.\n- **Tables:** `CORE.RM_GOAL` (quarter 2026Q3), `CORE.RM_ROSTER`, `LENDING.FACILITY`, `CORE.CLIENT`, `CORE.RM_CONTACT`, all in BANK_DEMO.\n- \"Last quarter\" means Q3 2026 (2026-07-01 to 2026-09-30).\n- A new commitment is a facility originated in the quarter, credited to the RM who booked it.\n- For the contact gaps, each client is assigned to the team of its primary RM. Contacts by any banker count, including treasury-management officers.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "WITH prod AS (\n  SELECT ORIG_RM_ID AS RM_ID, SUM(COMMIT_AMT) AS NEW_COMMIT\n  FROM BANK_DEMO.LENDING.FACILITY\n  WHERE ORIG_DT BETWEEN '2026-07-01' AND '2026-09-30'\n  GROUP BY ORIG_RM_ID)\nSELECT r.REGION, r.TEAM, COUNT(*) AS RMS_WITH_GOAL,\n       SUM(g.NEW_COMMIT_GOAL) AS GOAL, SUM(COALESCE(p.NEW_COMMIT,0)) AS BOOKED,\n       ROUND(SUM(COALESCE(p.NEW_COMMIT,0))/NULLIF(SUM(g.NEW_COMMIT_GOAL),0),3) AS TEAM_ATTAINMENT,\n       SUM(IFF(COALESCE(p.NEW_COMMIT,0) < g.NEW_COMMIT_GOAL,1,0)) AS RMS_BELOW_GOAL\nFROM BANK_DEMO.CORE.RM_GOAL g\nJOIN BANK_DEMO.CORE.RM_ROSTER r ON r.RM_ID = g.RM_ID\nLEFT JOIN prod p ON p.RM_ID = g.RM_ID\nWHERE g.FQTR = '2026Q3'\nGROUP BY r.REGION, r.TEAM\nORDER BY r.REGION, r.TEAM",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.87
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH lc AS (\n  SELECT c.CIF_NO, c.RM_ID, SUM(f.COMMIT_AMT) AS ACTIVE_COMMIT\n  FROM BANK_DEMO.CORE.CLIENT c\n  JOIN BANK_DEMO.LENDING.FACILITY f ON f.CIF_NO = c.CIF_NO AND f.FACILITY_STATUS = 'ACTIVE'\n  WHERE c.SEGMENT_CD = 'LC' AND c.CLIENT_STATUS = 'ACTIVE'\n  GROUP BY c.CIF_NO, c.RM_ID\n  HAVING SUM(f.COMMIT_AMT) > 25000000),\nlastc AS (\n  SELECT CIF_NO, MAX(CONTACT_DT) AS LAST_CONTACT\n  FROM BANK_DEMO.CORE.RM_CONTACT WHERE CONTACT_DT <= '2026-09-30' GROUP BY CIF_NO)\nSELECT r.REGION, r.TEAM, COUNT(*) AS LC_CLIENTS_OVER_25M,\n       SUM(IFF(l.LAST_CONTACT IS NULL OR DATEDIFF('day', l.LAST_CONTACT, '2026-09-30'::DATE) > 90,1,0)) AS NOT_CONTACTED_90D\nFROM lc\nJOIN BANK_DEMO.CORE.RM_ROSTER r ON r.RM_ID = lc.RM_ID\nLEFT JOIN lastc l ON l.CIF_NO = lc.CIF_NO\nGROUP BY r.REGION, r.TEAM\nORDER BY r.REGION, r.TEAM",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 3.88
+    }
+  ],
+  "cypher_queries": 5,
+  "usage": {
+    "input": 8,
+    "output": 3101,
+    "cache_read": 13729,
+    "cache_write": 13087
+  },
+  "cost_usd": 0.1302,
+  "latency_s": 40.3
+}

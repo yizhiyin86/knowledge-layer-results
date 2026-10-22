@@ -1,0 +1,76 @@
+{
+  "run_id": "eval_20261022T0005_r3",
+  "agent": "A",
+  "qid": "Q4",
+  "question": "Which Large Corporate clients with more than $25 million of active commitments have had no contact from any banker in the last 90 days?",
+  "role": "RM_MANAGER",
+  "effort": "high",
+  "answer": "**12 of the 38 Large Corporate clients with more than $25M of active commitments have had no banker contact in the last 90 days.** Together they hold **$352.2M** of active commitments. All 12 are well past the 90-day mark: the most recent contact among them was 136 days ago, and the oldest was 242 days ago. No client fell near the cutoff, so the list doesn't change if the window shifts by a few days.\n\n| # | CIF | Client | RM (Team) | Active facilities | Active commitment | Last contact (any banker) | Days since |\n|---|---|---|---|---|---|---|---|\n| 1 | 0000041178 | Dunmore Technologies LLC | Sawyer Rourke, RM004 (C&I East) | 2 | $38.1M | 2026-02-17 (RM) | 225 |\n| 2 | 0000041205 | Eastvale Industries Co | Gray Lowry, RM006 (C&I East) | 3 | $35.2M | 2026-04-26 (RM) | 157 |\n| 3 | 0000041251 | Glenhaven Systems Inc | Gray Lowry, RM006 (C&I East) | 2 | $30.5M | 2026-05-17 (TM officer) | 136 |\n| 4 | 0000041099 | Stellmark-Orsa Ventures JV LLC | Dana Abbott, RM007 (C&I Central) | 1 | $30.0M | 2026-04-15 (RM) | 168 |\n| 5 | 0000041313 | Ivorline Energy LLC | Jordan Thorne, RM005 (C&I East) | 2 | $29.6M | 2026-03-08 (RM) | 206 |\n| 6 | 0000041128 | Alderwick Group Inc | Jordan Thorne, RM005 (C&I East) | 2 | $28.4M | 2026-05-10 (RM) | 143 |\n| 7 | 0000041243 | Glenhaven Properties Inc | Sage Garrow, RM001 (C&I East) | 2 | $28.2M | 2026-03-28 (RM) | 186 |\n| 8 | 0000041139 | Alderwick Health Inc | Harper Garrow, RM003 (C&I East) | 2 | $27.9M | 2026-01-31 (RM) | 242 |\n| 9 | 0000041445 | Oakhurst Systems Inc | Marlow Nolan, RM013 (C&I West) | 3 | $26.5M | 2026-03-06 (RM) | 208 |\n| 10 | 0000041615 | Valewood Technologies Inc | Dana Abbott, RM007 (C&I Central) | 2 | $26.2M | 2026-03-24 (RM) | 190 |\n| 11 | 0000041053 | Brightwater Supply Co | Sage Garrow, RM001 (C&I East) | 2 | $25.8M | 2026-03-23 (TM officer) | 191 |\n| 12 | 0000041037 | Brightwater Manufacturing LLC | Sawyer Rourke, RM004 (C&I East) | 2 | $25.8M | 2026-03-14 (RM) | 200 |\n\n**Where the gaps are:** 9 of the 12 clients sit with C&I East, including 2 each for Gray Lowry, Jordan Thorne, Sage Garrow and Sawyer Rourke. Dana Abbott (C&I Central) also has 2. Every one of these clients has been contacted at some point in the CRM history, which starts 2025-08-26, so these are lapsed relationships rather than clients no one has ever called.\n\n**Sources and definitions**\n- **Large Corporate:** clients coded `SEGMENT_CD = 'LC'` in `BANK_DEMO.CORE.CLIENT`, confirmed against `REF.SEGMENT`. All clients in the master are active.\n- **Active commitments:** the total committed amount across each client's facilities with status ACTIVE in `LENDING.FACILITY`. Paid-off and charged-off facilities are excluded. A client qualifies only if this total is strictly above $25M, so the 2 Large Corporate clients at exactly $25.0M are excluded. Both had recent contact anyway.\n- **Contact from any banker:** any entry in `CORE.RM_CONTACT` by either a relationship manager or a treasury management officer, through any channel (call, email, meeting or site visit). I counted a client as uncontacted if it had no entry after 2026-07-02, which is 90 days before the 2026-09-30 data date.\n- **RM and team:** the client's assigned RM in `CORE.CLIENT`, looked up in `CORE.RM_ROSTER`.\n\n**Assumptions and data notes**\n- 1,071 facilities are still marked ACTIVE although their maturity date has passed. They all appear in the September 2026 month-end balances, so I treated them as live, most likely extended or renewed. Check whether the maturity dates on those facilities need updating.\n- I didn't use the risk and capital-markets data in Fabric, because the question is only about this bank's clients, commitments and contact history. I didn't use any sandbox or financial-crime tables either.",
+  "stop_reason": "end_turn",
+  "model_turns": 9,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select 'seg' k, segment_cd v, count(*) n from BANK_DEMO.CORE.CLIENT group by 2\nunion all select 'status', client_status, count(*) from BANK_DEMO.CORE.CLIENT group by 2\nunion all select 'cif_len', length(cif_no)::text, count(*) from BANK_DEMO.CORE.CLIENT group by 2\nunion all select 'fac_status', facility_status, count(*) from BANK_DEMO.LENDING.FACILITY group by 2\nunion all select 'fac_cif_len', length(cif_no)::text, count(*) from BANK_DEMO.LENDING.FACILITY group by 2\nunion all select 'role', banker_role, count(*) from BANK_DEMO.CORE.RM_CONTACT group by 2\nunion all select 'channel', channel, count(*) from BANK_DEMO.CORE.RM_CONTACT group by 2\nunion all select 'ct_cif_len', length(cif_no)::text, count(*) from BANK_DEMO.CORE.RM_CONTACT group by 2\norder by 1,2",
+      "ok": true,
+      "rows": 18,
+      "error": null,
+      "elapsed_s": 1.39
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select\n (select count(*) from BANK_DEMO.LENDING.FACILITY where facility_status='ACTIVE' and (payoff_dt is not null or chgoff_dt is not null)) active_w_close_dt,\n (select count(*) from BANK_DEMO.LENDING.FACILITY where facility_status='ACTIVE' and maturity_dt < '2026-09-30') active_matured,\n (select count(*) from BANK_DEMO.LENDING.FACILITY where commit_amt is null or commit_amt<=0) bad_commit,\n (select max(contact_dt) from BANK_DEMO.CORE.RM_CONTACT) max_ct,\n (select min(contact_dt) from BANK_DEMO.CORE.RM_CONTACT) min_ct,\n (select count(*) from BANK_DEMO.CORE.RM_CONTACT where contact_dt > '2026-09-30') future_ct,\n (select count(*) from BANK_DEMO.CORE.RM_CONTACT where cif_no not in (select cif_no from BANK_DEMO.CORE.CLIENT)) orphan_ct,\n (select count(*) from BANK_DEMO.LENDING.FACILITY where cif_no not in (select cif_no from BANK_DEMO.CORE.CLIENT)) orphan_fac,\n (select count(*) - count(distinct cif_no) from BANK_DEMO.CORE.CLIENT) dup_cif",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.46
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select f.facility_status, (b.facility_id is not null) in_sep_snap, (f.maturity_dt < '2026-09-30') matured, count(*) n, sum(commit_amt) commit\nfrom BANK_DEMO.LENDING.FACILITY f\nleft join BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b on b.facility_id=f.facility_id and b.snap_dt='2026-09-30'\ngroup by 1,2,3 order by 1,2,3",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 3.22
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with fac as (\n  select cif_no, count(*) n_fac, sum(commit_amt) active_commit\n  from BANK_DEMO.LENDING.FACILITY where facility_status='ACTIVE' group by 1),\nct as (\n  select cif_no, max(contact_dt) last_contact,\n         max(case when banker_role='RM' then contact_dt end) last_rm,\n         max(case when banker_role='TM_OFFICER' then contact_dt end) last_tm,\n         count_if(contact_dt > dateadd(day,-90,'2026-09-30'::date)) ct_90d\n  from BANK_DEMO.CORE.RM_CONTACT group by 1)\nselect c.cif_no, c.client_nm, c.rm_id, r.rm_nm, r.team, f.n_fac, f.active_commit,\n       ct.last_contact, ct.last_rm, ct.last_tm, datediff(day, ct.last_contact, '2026-09-30'::date) days_since, coalesce(ct.ct_90d,0) ct_90d\nfrom BANK_DEMO.CORE.CLIENT c\njoin fac f on f.cif_no=c.cif_no\nleft join ct on ct.cif_no=c.cif_no\nleft join BANK_DEMO.CORE.RM_ROSTER r on r.rm_id=c.rm_id\nwhere c.segment_cd='LC' and c.client_status='ACTIVE' and f.active_commit > 25000000\n  and (ct.last_contact is null or ct.last_contact <= dateadd(day,-80,'2026-09-30'::date))\norder by f.active_commit desc",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.61
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with fac as (select cif_no, sum(commit_amt) ac from BANK_DEMO.LENDING.FACILITY where facility_status='ACTIVE' group by 1),\nct as (select cif_no, max(contact_dt) lc from BANK_DEMO.CORE.RM_CONTACT group by 1)\nselect count_if(f.ac>25000000) n_gt25, count_if(f.ac=25000000) n_eq25,\n count_if(f.ac=25000000 and (ct.lc is null or ct.lc <= dateadd(day,-90,'2026-09-30'::date))) eq25_nocontact,\n count_if(f.ac>25000000 and ct.lc is null) never_contacted\nfrom BANK_DEMO.CORE.CLIENT c join fac f on f.cif_no=c.cif_no left join ct on ct.cif_no=c.cif_no\nwhere c.segment_cd='LC'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.47
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 20,
+    "output": 5561,
+    "cache_read": 55794,
+    "cache_write": 12580
+  },
+  "cost_usd": 0.1854,
+  "latency_s": 97.4
+}

@@ -1,0 +1,35 @@
+{
+  "run_id": "eval_20261022T0047_r3",
+  "agent": "B",
+  "qid": "Q14",
+  "question": "What did we conclude last time about our exposure to the Halvorsen group, and has its external rating changed since?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Short answer: Nothing has changed since our last analysis. Halvorsen's external ratings are the same, and both earlier conclusions still hold. Our last rating data is the 2026-09-30 month-end, so I couldn't check for any rating action after that date.**\n\n**What we concluded last time (saved earlier answers, data as of 2026-09-30)**\n- **Total exposure to the Halvorsen group was $344.3M.** That is $308.0M of active loan commitments on 10 facilities plus $36.3M of current derivatives exposure, across the 24 entities the parent controls.\n- **The group was $44.3M over its $300M internal (house) credit limit**, at 115% use. It was $15.7M under the $360M legal lending limit.\n- The largest derivatives exposure is $22.0M on a swap with Halvorsen Capital Services LLC. That entity has no loans, so it shows up only in the derivatives data. Four trades in total add up to the $36.3M, and three other trades are out of the money and count as zero.\n- Two companies are left out of the group but should be reported as related exposure:\n  - Halvorsen-Kito Components JV: the group owns 40% and doesn't control it.\n  - Halvorsen Marine Logistics LLC: sold on 2025-11-30.\n- After the downgrade, the group's rating maps to our **internal rating 8 (Substandard)**. All 10 facilities were still booked at rating 5 and need re-rating within 5 business days.\n- **Two facilities had breached rating-trigger covenants: F0000003 and F0000007.**\n- The credit response **must be approved by the Senior Credit Committee**, because the group is rated 8 and is over its house limit.\n\n**Has the external rating changed? No.** Full rating history for the parent, Halvorsen Industrial Group Inc:\n\n| Agency | Date | Rating | Outlook |\n|---|---|---|---|\n| AGY1 | 2025-04-15 | BB- | Negative |\n| AGY1 | **2026-09-28 (latest)** | **CCC+** | Negative |\n| AGY2 | 2025-02-10 | BB | Stable |\n| AGY2 | **2026-06-10 (latest)** | **B** | Negative |\n\nThe group takes the lower of the two agency ratings, which is still AGY1's CCC+. So the internal rating 8, the covenant breaches and the Senior Credit Committee routing all still apply. Both agencies have a negative outlook, so there's still a chance of further downgrades.\n\n**One thing to note:** a $30M guarantee on F0000008 from Northcastle Mutual Insurance Co (rated A+, outside the group, active) is eligible to reduce exposure, up to the facility's $45M commitment. If we count it, exposure would fall to $314.3M. That is still above the $300M house limit. I can't tell whether the earlier answer counted this, because the saved version is cut off. The other guarantees don't qualify: two come from Halvorsen companies inside the group, and the Brandvold guarantee on F0000004 expired on 2026-06-30.\n\n**Sources and definitions**\n- Saved earlier answers: \"Halvorsen total credit exposure\" and \"Halvorsen covenant breaches, internal rating and approver\".\n- Rating history: Fabric `dbo.RATING` for the parent, entity LE-10001. The current rating is the latest action per agency.\n- Group membership, facilities and guarantees: the knowledge layer's group trace, built from Fabric `dbo.OWNERSHIP`.\n- Rules applied: BR-RATE-01 (lower of the two ratings, mapped to the internal scale), BR-CUST-01 (who counts as the group), BR-EXP-01 (how exposure is measured), BR-GUAR-01 (which guarantees count), BR-COV-01 (rating-trigger covenants), BR-DLA-01 (who approves) and BR-LLL-01 (legal lending limit).\n\n**Assumption:** I didn't re-run the exposure numbers. The data snapshot (2026-09-30) is the same as last time, so the $344.3M figure still applies.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "trace_obligor_group"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT ENTITY_ID, AGENCY, RATING, OUTLOOK, RATING_DT FROM dbo.RATING WHERE ENTITY_ID = 'LE-10001' ORDER BY AGENCY, RATING_DT DESC",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.73
+    }
+  ],
+  "cypher_queries": 6,
+  "usage": {
+    "input": 8,
+    "output": 1951,
+    "cache_read": 18329,
+    "cache_write": 13370
+  },
+  "cost_usd": 0.1096,
+  "latency_s": 29.1
+}

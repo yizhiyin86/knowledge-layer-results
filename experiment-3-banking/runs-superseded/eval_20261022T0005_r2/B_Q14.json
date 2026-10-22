@@ -1,0 +1,81 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "B",
+  "qid": "Q14",
+  "question": "What did we conclude last time about our exposure to the Halvorsen group, and has its external rating changed since?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Last time we concluded that our exposure to the Halvorsen Industrial Group was $344.3M, $44.3M over its $300M credit limit. That still holds as of 2026\u201109\u201130, and the external rating has not changed since that review.** The AGY1 downgrade to CCC+ on 2026\u201109\u201128 is still the most recent rating action, so the group remains at internal rating 8 (Substandard) and the actions we flagged are still open.\n\n**What we concluded last time** (from the saved past answer to \"Halvorsen \u2026 just downgraded \u2026 total credit exposure\")\n- **Total group exposure was $344.3M:** $308.0M in committed active loans (10 facilities) plus $36.3M of current derivatives exposure, across 10 group entities.\n- **Over the limit:** that is 115% of the $300M group credit limit. It leaves $15.7M of room under the $360M legal lending limit.\n- **Rating:** the group rating is the lower of the parent's two agency ratings. That was CCC+ (AGY1, 2026\u201109\u201128) against B (AGY2), which maps to **internal rating 8, Substandard**.\n- **Actions flagged:**\n  - All 10 facilities were still rated 5 and had to be re\u2011rated within 5 business days (rule BR\u2011RATE\u201101).\n  - Any credit action needs Senior Credit Committee approval, for three separate reasons: exposure is over $250M, the rating is 8, and the group is over its limit (BR\u2011DLA\u201101).\n- **Kestrel:** the Kestrel entities, bought in June 2025, make up $134.5M of the total. The retired legacy hierarchy table would miss them.\n\n**Has the rating changed since? No.** These are the parent's (LE\u201110001) rating actions:\n\n| Agency | Prior rating | Current rating | Date | Outlook |\n|---|---|---|---|---|\n| AGY1 | BB\u2011 (2025\u201104\u201115) | **CCC+** | 2026\u201109\u201128 | Negative |\n| AGY2 | BB (2025\u201102\u201110) | **B** | 2026\u201106\u201110 | Negative |\n\nNo Halvorsen or Kestrel entity has had a rating action after 2026\u201109\u201128. The group stays at CCC+, internal rating 8.\n\n**Rechecked against today's data (2026\u201109\u201130)**\n- **Loans:** active commitments of the 10 group members still total $308.0M.\n- **Derivatives:** current exposure at the latest snapshot is still $36.3M. **Total: $344.3M, unchanged.**\n- **Re\u2011rating not done yet:** every facility still carries **risk rating 5**. The re\u2011rating required since the 2026\u201109\u201128 downgrade still shows as outstanding.\n- **Kept out of the total, reported separately as related exposure:**\n  - Halvorsen Marine Logistics LLC: $60M term loan F0000011. It was sold; its ownership link to the group ended on 2025\u201111\u201130 and it now sits under LE\u201110029.\n  - Halvorsen\u2011Kito Components JV LLC: $25M term loan F0000012 plus $2.0M of derivatives exposure. The group owns 40% without control, so it isn't a member.\n\n  Searching by name alone would wrongly show $393M of loans and $38.3M of derivatives exposure.\n\n**Sources and definitions**\n- Knowledge layer: the past answer above and the ratified metric definitions for group exposure, limit utilisation and derivatives current exposure.\n- Business rules:\n  - BR\u2011CUST\u201101: the customer is the obligor group, meaning only entities the parent currently controls.\n  - BR\u2011EXP\u201101: group exposure is active loan commitments plus derivatives current exposure at the latest snapshot.\n  - BR\u2011RATE\u201101: group rating mapping and the re\u2011rating deadline.\n  - BR\u2011DLA\u201101: who approves credit actions.\n  - BR\u2011LLL\u201101: legal lending limit.\n- Tables:\n  - Fabric: dbo.RATING, dbo.LEGAL_ENTITY, dbo.OWNERSHIP, dbo.CM_EXPOSURE\n  - Snowflake: BANK_DEMO.LENDING.FACILITY, BANK_DEMO.CORE.CLIENT\n\n**Assumptions and caveats**\n- The group\u2011tracing tool (trace_obligor_group) returned a technical error. I took the member list from the past answer and confirmed which entities count as members and which don't against current ownership records.\n- The saved past answer is cut off partway through its guarantees section, so I haven't restated that part. The rule (BR\u2011GUAR\u201101) is that guarantees from within the group don't reduce exposure. I can re\u2011run the guarantee check if you need it.\n- The data snapshot is the same month\u2011end the past answer used, so a change could only have come from a new rating action, and there wasn't one.",
+  "stop_reason": "end_turn",
+  "model_turns": 6,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "run_sql",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT ENTITY_ID, AGENCY, RATING, RATING_DT, OUTLOOK FROM dbo.RATING WHERE ENTITY_ID='LE-10001' ORDER BY AGENCY, RATING_DT",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.83
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT r.ENTITY_ID, e.ENTITY_NM, r.AGENCY, r.RATING, r.RATING_DT, r.OUTLOOK FROM dbo.RATING r JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID=r.ENTITY_ID WHERE (e.ENTITY_NM LIKE '%Halvorsen%' OR e.ENTITY_NM LIKE '%Kestrel%') AND r.RATING_DT >= '2026-06-01' ORDER BY r.RATING_DT",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.97
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) n, SUM(COMMIT_AMT) commit_amt, MIN(RISK_RATING) min_rr, MAX(RISK_RATING) max_rr FROM BANK_DEMO.LENDING.FACILITY WHERE FACILITY_STATUS='ACTIVE' AND CIF_NO IN ('0000041000','0000041002','0000041009','0000041007','0000041017','0000041014','0000041020','0000041022','0000041025','0000041027','0000041005','0000041012')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 2.27
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT x.SNAP_DT, SUM(x.CURRENT_EXPOSURE) cur_exp FROM dbo.CM_EXPOSURE x JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID=x.ENTITY_ID WHERE x.SNAP_DT=(SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AND (e.ENTITY_NM LIKE '%Halvorsen%' OR e.ENTITY_NM LIKE '%Kestrel%') GROUP BY x.SNAP_DT",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.24
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.CIF_NO, c.CLIENT_NM, f.FACILITY_ID, f.PRODUCT_CD, f.COMMIT_AMT, f.RISK_RATING, f.ORIG_DT FROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO WHERE f.FACILITY_STATUS='ACTIVE' AND f.CIF_NO IN ('0000041000','0000041002','0000041009','0000041007','0000041017','0000041014','0000041020','0000041022','0000041025','0000041027','0000041005','0000041012') ORDER BY f.CIF_NO",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 10.0
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT x.ENTITY_ID, e.ENTITY_NM, e.CIF_REF, SUM(x.CURRENT_EXPOSURE) cur_exp, o.PARENT_ENTITY_ID, o.OWN_PCT, o.CONTROL_FLG, o.EFF_TO FROM dbo.CM_EXPOSURE x JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID=x.ENTITY_ID LEFT JOIN dbo.OWNERSHIP o ON o.CHILD_ENTITY_ID=x.ENTITY_ID WHERE x.SNAP_DT='2026-09-30' AND (e.ENTITY_NM LIKE '%Halvorsen%' OR e.ENTITY_NM LIKE '%Kestrel%') GROUP BY x.ENTITY_ID, e.ENTITY_NM, e.CIF_REF, o.PARENT_ENTITY_ID, o.OWN_PCT, o.CONTROL_FLG, o.EFF_TO",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.6
+    }
+  ],
+  "cypher_queries": 12,
+  "usage": {
+    "input": 14,
+    "output": 4155,
+    "cache_read": 59056,
+    "cache_write": 17619
+  },
+  "cost_usd": 0.1831,
+  "latency_s": 63.4
+}

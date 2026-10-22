@@ -1,0 +1,63 @@
+{
+  "run_id": "eval_20261022T0005_r3",
+  "agent": "B",
+  "qid": "Q12",
+  "question": "After Halvorsen's downgrade to CCC+, which facilities have rating-trigger covenants that are now breached, what internal risk rating should the group move to, and who has to approve the credit response?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Answer:** Two rating-trigger covenants are now breached: **F0000003** (Halvorsen Supply Co) and **F0000007** (Kestrel Tooling Inc). A third trigger, on F0000002, is not breached but has only one notch of room. The whole group should move to **internal risk rating 8 (Substandard)**. The credit response has to be approved by the **Senior Credit Committee**, which is chaired by the Chief Risk Officer.\n\n**1. Rating-trigger covenants (rule BR-COV-01)**\nThese triggers are tested against Agency 1's rating of the ultimate parent, Halvorsen Industrial Group Inc (LE-10001). Agency 1 cut it from BB- to **CCC+** on 2026-09-28, with a negative outlook. A covenant is breached only when the rating falls *below* its threshold; a rating equal to the threshold is not a breach.\n\n| Facility | Borrower | Product | Commitment | Trigger (Agency 1) | Status |\n|---|---|---|---|---|---|\n| F0000003 | Halvorsen Supply Co | Asset-based loan | $45.0M | B | **Breached** (CCC+ is 3 notches below) |\n| F0000007 | Kestrel Tooling Inc | Term loan | $50.0M | B- | **Breached** (CCC+ is 1 notch below) |\n| F0000002 | Halvorsen Precision Parts Inc | Term loan | $35.0M | CCC | Not breached; one more notch down would trip it |\n\n- **What the breaches allow:** the bank can stop further drawings on these facilities, and the breaches must be reported to the approver.\n- **Commitment affected:** $95.0M is under breached covenants.\n- **Other covenants:** the group's only other covenants are financial ones, and both passed at the 2026-06-30 test:\n  - F0000004 maximum leverage: 4.10x against a 4.50x limit.\n  - F0000001 minimum debt-service coverage: 1.31x against a 1.25x floor, so there is little room left.\n\n**2. Internal risk rating (rule BR-RATE-01)**\n- The group takes the lower of the two agency ratings: Agency 1 is CCC+ and Agency 2 is B (since 2026-06-10, negative outlook). The lower one is **CCC+**.\n- CCC+ maps to **internal rating 8, Substandard**, and that rating applies to every member of the group.\n- All 10 group facilities (F0000001\u2013F0000010, $308.0M committed) are still rated **5 (Pass)** in Snowflake.\n- They must all be re-rated to 8 within 5 business days of the 2026-09-28 rating action.\n\n**3. Who approves (rule BR-DLA-01)**\n**Senior Credit Committee.** Any one of these three conditions would send it there:\n- The rating is 8 or worse.\n- Group exposure is **$344.3M**, which is above $250M. That is $308.0M of loan commitments plus $36.3M of trading exposure (derivative contracts currently in the bank's favour, as of 2026-09-30).\n- That exposure is $44.3M above the **$300M group limit** (114.8% used).\n\nExposure is $15.7M below the $360M legal lending limit. One outside guarantee on F0000008 qualifies to reduce exposure, by $30M. Even with it, net exposure is $314.3M, which is still over the group limit.\n\n**Sources and definitions**\n- **Covenants, ratings and trading exposure:** Fabric tables `dbo.COVENANT`, `dbo.RATING` (the latest rating per agency counts as current) and `dbo.CM_EXPOSURE` (2026-09-30 snapshot).\n- **Facilities:** Snowflake table `BANK_DEMO.LENDING.FACILITY` (commitments and current internal ratings).\n- **Group membership:** the governed obligor-group reference for LE-10001: 24 entities, 10 of them bank clients, $300M limit.\n- **Rules applied:** BR-COV-01, BR-RATE-01, BR-DLA-01, BR-EXP-01 and BR-LLL-01, following the Credit Event Response process (Detect \u2192 Aggregate \u2192 Assess \u2192 Approve).\n- **Earlier answers:** the previous Halvorsen exposure and guarantee answers in the knowledge layer. I re-checked their exposure figures and they still hold.\n\n**Assumptions**\n- The group-tracing tool returned an error, so I took group membership from the governed obligor-group reference instead.\n- F0000011 (Halvorsen Marine Logistics) and F0000012 (Halvorsen-Kito Components JV) are not part of the controlled group, so I left them out. Neither has any covenants.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_reference",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.COVENANT WHERE FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010','F0000011','F0000012') ORDER BY COV_TYP, FACILITY_ID",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.99
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT r.*, le.ENTITY_NM FROM dbo.RATING r JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID = r.ENTITY_ID WHERE r.ENTITY_ID = 'LE-10001' ORDER BY r.AGENCY, r.RATING_DT",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.51
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.FACILITY_ID, f.CIF_NO, c.CLIENT_NM, f.PRODUCT_CD, f.FACILITY_STATUS, f.COMMIT_AMT, f.RISK_RATING FROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO WHERE f.CIF_NO IN ('0000041000','0000041002','0000041007','0000041009','0000041014','0000041017','0000041020','0000041022','0000041025','0000041027','0000041005','0000041012') ORDER BY f.FACILITY_ID",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.41
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SNAP_DT, SUM(CURRENT_EXPOSURE) AS CE FROM dbo.CM_EXPOSURE WHERE SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AND ENTITY_ID IN ('LE-10001','LE-10022','LE-10004','LE-10003','LE-10002','LE-10023','LE-10008','LE-10006','LE-10005','LE-10011','LE-10012','LE-10009','LE-10024','LE-10010','LE-10016','LE-10026','LE-10014','LE-10015','LE-10017','LE-10025','LE-10018','LE-10019','LE-10020','LE-10021') GROUP BY SNAP_DT",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.57
+    }
+  ],
+  "cypher_queries": 10,
+  "usage": {
+    "input": 12,
+    "output": 3423,
+    "cache_read": 47357,
+    "cache_write": 16500
+  },
+  "cost_usd": 0.1605,
+  "latency_s": 42.9
+}

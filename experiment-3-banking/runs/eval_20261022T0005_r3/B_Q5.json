@@ -1,0 +1,70 @@
+{
+  "run_id": "eval_20261022T0005_r3",
+  "agent": "B",
+  "qid": "Q5",
+  "question": "How has revolving-line utilization trended over the last six months by industry sector, and where is it rising?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Revolver utilization is flat in 10 of 12 sectors. It is rising in two: Manufacturing and Wholesale Distribution.** Both went from about 46% to about 69% between March and September 2026, gaining about 3.5 percentage points every month. Those two sectors alone pushed total revolver utilization from 46.2% to 49.9%. Leave them out and the rest of the book was unchanged (46.3% in March, 46.3% in September).\n\n**Utilization by month-end (drawn \u00f7 commitment, active revolving lines)**\n\n| Sector | Mar | Apr | May | Jun | Jul | Aug | Sep | Change since Mar |\n|---|---|---|---|---|---|---|---|---|\n| **Manufacturing** | 46.0% | 51.6% | 55.1% | 58.6% | 62.1% | 65.6% | **69.1%** | **+23.1 pp** |\n| **Wholesale Distribution** | 45.4% | 51.0% | 54.5% | 58.0% | 61.5% | 65.1% | **68.6%** | **+23.2 pp** |\n| CRE Multifamily | 44.5% | 44.5% | 45.0% | 44.3% | 45.8% | 45.3% | 46.2% | +1.6 pp (small book: $41M committed) |\n| Healthcare Services | 45.9% | 46.1% | 45.9% | 45.9% | 45.8% | 45.8% | 46.4% | +0.5 pp |\n| Technology | 46.1% | 46.2% | 46.6% | 46.7% | 46.1% | 46.4% | 46.3% | +0.2 pp |\n| Holding & Financial Cos. | 46.3% | 46.2% | 46.3% | 46.2% | 46.2% | 46.4% | 46.4% | +0.1 pp |\n| Transportation & Logistics | 46.2% | 46.2% | 46.4% | 46.4% | 46.1% | 46.5% | 46.2% | ~0 |\n| Public & Not-for-Profit | 46.5% | 46.6% | 46.8% | 46.5% | 46.7% | 46.4% | 46.4% | \u22120.1 pp |\n| CRE Office | 46.3% | 46.6% | 46.6% | 46.6% | 46.4% | 46.0% | 46.1% | \u22120.2 pp |\n| Retail | 46.4% | 46.2% | 46.1% | 45.9% | 46.0% | 46.6% | 46.2% | \u22120.2 pp |\n| Professional Services | 46.5% | 46.5% | 46.3% | 46.1% | 46.6% | 46.3% | 46.3% | \u22120.2 pp |\n| Energy | 45.9% | 45.6% | 45.3% | 46.0% | 46.0% | 46.2% | 45.8% | \u22120.0 pp |\n| **Total** | 46.2% | 47.1% | 47.7% | 48.3% | 48.8% | 49.4% | 49.9% | +3.7 pp |\n\n**What's behind the increase in the two sectors**\n- **Existing borrowers are drawing more; new lines aren't the cause.** I looked only at lines that were already open in March:\n  - **Manufacturing:** 65 lines went from 46.0% to 69.1% (about +$113M drawn).\n  - **Wholesale Distribution:** 44 lines went from 45.4% to 68.5% (about +$76M drawn).\n  - New lines booked since March are also drawn at about 69\u201371%.\n- **Every line is rising, not just a few borrowers.** All 65 Manufacturing lines and all 44 Wholesale lines that were open in March are up more than 10 points. They cover 63 and 39 clients respectively.\n- **There's no credit stress yet.** No line in either sector is drawn 80% or more, and none is 30 or more days past due. The only 30+ day past-due lines (4 in total) are in CRE Office, Holding & Financial and Professional Services.\n- **Size of the books in September:** Manufacturing has $530.9M committed and $366.6M drawn (+$142M since March). Wholesale has $336.8M committed and $230.9M drawn (+$82M).\n\n**Suggested next steps:** The steady, every-borrower increase in these two linked sectors looks like a shared working-capital squeeze (inventory or receivables building, or a squeeze on suppliers) rather than problems at individual borrowers. It's worth checking borrowing bases and covenant headroom on the largest of these lines. It's also worth confirming with the line-of-business that this isn't a data or feed artefact, because the pace is unusually uniform (almost exactly +3.5 pp a month).\n\n**Sources and definitions**\n- **Metric:** the knowledge layer's ratified revolver-utilization measure (`revolver_utilization`): sum of drawn balance (`LENDING.FACILITY_BAL_MTHLY.DRAWN_AMT`) \u00f7 sum of commitment (`LENDING.FACILITY.COMMIT_AMT`), for `PRODUCT_CD = 'RLOC'` and `FACILITY_STATUS = 'ACTIVE'`, at each month-end.\n- **Sector:** the knowledge layer's approved Client-to-Industry-Sector link, `CORE.CLIENT.NAICS_CD` \u2192 `BIZ.SECTOR_MAP.SECTOR`. These are the bank's own sector groups, not 2-digit NAICS groups. Every code has one effective row, and every line mapped to a sector (682 lines in September).\n- **Policy:** you're cleared as CREDIT_ANALYST. None of the tables used are restricted (RM_GOAL is, but it wasn't needed), and no deprecated tables were used. There were no similar past answers.\n\n**Assumptions**\n- \"Last six months\" means April\u2013September 2026, measured from the 31 March 2026 month-end.\n- Commitment is the facility's current amount, not a monthly history. This follows the ratified definition.\n- Lines that were later paid off are left out of earlier months. They're small (at most 7 lines and $34M of commitments), so they don't change the trend.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT SECTOR, COUNT(*) n, COUNT(DISTINCT NAICS_CD) nd, MIN(EFF_FROM), MAX(EFF_FROM), MIN(EFF_TO), MAX(EFF_TO), COUNT_IF(EFF_TO IS NULL) open_rows FROM BANK_DEMO.BIZ.SECTOR_MAP GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.59
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT NAICS_CD, COUNT(*) n, LISTAGG(SECTOR||':'||EFF_FROM||'-'||COALESCE(TO_VARCHAR(EFF_TO),'null'), ' | ') v FROM BANK_DEMO.BIZ.SECTOR_MAP GROUP BY 1 HAVING COUNT(*)>1 ORDER BY 1",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.17
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT b.SNAP_DT, f.FACILITY_STATUS, COUNT(*) n, SUM(b.DRAWN_AMT) drawn, SUM(f.COMMIT_AMT) commit, SUM(b.DRAWN_AMT+b.UNDRAWN_AMT) d_u FROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID WHERE f.PRODUCT_CD='RLOC' AND b.SNAP_DT BETWEEN '2026-03-31' AND '2026-09-30' GROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.93
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COALESCE(s.SECTOR,'UNMAPPED') sector, b.SNAP_DT, COUNT(*) n, SUM(b.DRAWN_AMT) drawn, SUM(f.COMMIT_AMT) commit, SUM(b.DRAWN_AMT)/NULLIF(SUM(f.COMMIT_AMT),0) util\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b\nJOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nJOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nLEFT JOIN BANK_DEMO.BIZ.SECTOR_MAP s ON s.NAICS_CD=c.NAICS_CD AND b.SNAP_DT BETWEEN s.EFF_FROM AND s.EFF_TO\nWHERE f.PRODUCT_CD='RLOC' AND f.FACILITY_STATUS='ACTIVE' AND b.SNAP_DT BETWEEN '2026-03-31' AND '2026-09-30'\nGROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 84,
+      "error": null,
+      "elapsed_s": 1.79
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH x AS (\nSELECT s.SECTOR, f.FACILITY_ID, f.CIF_NO, f.COMMIT_AMT,\n MAX(IFF(b.SNAP_DT='2026-03-31',b.DRAWN_AMT,NULL)) d_mar,\n MAX(IFF(b.SNAP_DT='2026-09-30',b.DRAWN_AMT,NULL)) d_sep,\n MAX(IFF(b.SNAP_DT='2026-09-30',b.DPD,NULL)) dpd_sep\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b\nJOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nJOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nJOIN BANK_DEMO.BIZ.SECTOR_MAP s ON s.NAICS_CD=c.NAICS_CD\nWHERE f.PRODUCT_CD='RLOC' AND f.FACILITY_STATUS='ACTIVE' AND b.SNAP_DT IN ('2026-03-31','2026-09-30')\nGROUP BY 1,2,3,4)\nSELECT SECTOR,\n COUNT_IF(d_mar IS NOT NULL AND d_sep IS NOT NULL) same_store_n,\n SUM(IFF(d_mar IS NOT NULL,d_mar,0))/NULLIF(SUM(IFF(d_mar IS NOT NULL AND d_sep IS NOT NULL,COMMIT_AMT,0)),0) ss_util_mar,\n SUM(IFF(d_mar IS NOT NULL,d_sep,0))/NULLIF(SUM(IFF(d_mar IS NOT NULL AND d_sep IS NOT NULL,COMMIT_AMT,0)),0) ss_util_sep,\n COUNT_IF(d_mar IS NULL) new_n,\n SUM(IFF(d_mar IS NULL,d_sep,0))/NULLIF(SUM(IFF(d_mar IS NULL,COMMIT_AMT,0)),0) new_util_sep,\n COUNT_IF(d_mar IS NOT NULL AND (d_sep-d_mar)/COMMIT_AMT>0.10) n_up_10pp,\n COUNT_IF(d_sep/COMMIT_AMT>=0.80) n_ge80_sep,\n COUNT(DISTINCT CIF_NO) clients,\n COUNT_IF(dpd_sep>=30) n_dpd30\nFROM x GROUP BY 1 ORDER BY ss_util_sep-ss_util_mar DESC",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.49
+    }
+  ],
+  "cypher_queries": 8,
+  "usage": {
+    "input": 12,
+    "output": 6070,
+    "cache_read": 37859,
+    "cache_write": 17878
+  },
+  "cost_usd": 0.2184,
+  "latency_s": 71.3
+}

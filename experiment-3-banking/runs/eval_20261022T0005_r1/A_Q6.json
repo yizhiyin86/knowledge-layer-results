@@ -1,0 +1,154 @@
+{
+  "run_id": "eval_20261022T0005_r1",
+  "agent": "A",
+  "qid": "Q6",
+  "question": "Halvorsen Industrial Group was just downgraded. What is our total credit exposure to the Halvorsen group across lending and capital markets, and which entities and facilities make it up?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "Our total credit exposure to the Halvorsen Industrial Group is **$344.3M as of 2026-09-30**. That is $308.0M of lending commitments plus $36.3M of capital-markets exposure. It is **above the approved $300M group limit by $44.3M (115% used)**. On a drawn basis the figure is $260.3M ($224.0M funded loans plus $36.3M).\n\n**Rating context:** one agency cut the parent (LE-10001) to **CCC+** (negative outlook) on 2026-09-28, from BB-. The other has it at **B** (negative) since 2026-06-10, down from BB. Every group facility still carries an internal rating of **5 (Acceptable, Pass)**, so the internal ratings have not caught up with the downgrade.\n\n**Lending, by entity (Snowflake, 2026-09-30 balances)**\n| Entity (CIF) | Facility | Product | Commitment | Drawn |\n|---|---|---|---|---|\n| Halvorsen Industrial Group Inc (41000) | F0000001 | Revolver | 40.0M | 17.0M |\n| Halvorsen Precision Parts Inc (41007) | F0000002 | Term loan | 35.0M | 30.5M |\n| Halvorsen Supply Co (41009) | F0000003 | Asset-based loan | 45.0M | 33.4M |\n| Halvorsen Metalworks LLC (41014) | F0000004 | Equipment finance | 30.0M | 22.8M |\n| Halvorsen Metalworks LLC (41014) | F0000005 | Revolver | 10.0M | 6.8M |\n| Halvorsen Freight LLC (41017) | F0000006 | Revolver | 20.0M | 9.4M |\n| Kestrel Tooling Inc (41020) | F0000007 | Term loan | 50.0M | 42.6M |\n| Kestrel Automation Systems LLC (41022) | F0000008 | Revolver | 45.0M | 31.7M |\n| Kestrel Robotics LLC (41025), 80% owned | F0000009 | Equipment finance | 15.0M | 12.3M |\n| Kestrel Controls Real Estate SPV LLC (41027) | F0000010 | Commercial real estate mortgage | 18.0M | 17.5M |\n| **Total** | | | **308.0M** | **224.0M** |\n\nThe original Halvorsen companies account for $180M of commitments. The Kestrel companies, acquired 2025-06-15, account for $128M.\n\n**Capital markets (Fabric, 2026-09-30, current exposure = positive mark-to-market, no netting): $36.3M**\n- Halvorsen Capital Services: interest-rate swap TR000001, $400M notional, **$22.0M**. This entity has no loans, so this exposure only shows up on the capital-markets side.\n- Kestrel Automation Systems: interest-rate swap TR000003, $6.5M\n- Halvorsen Freight: FX forward TR000002, $4.0M\n- Halvorsen Supply: commodity swap TR000004, $3.8M\n- Interest-rate swaps at North America Holdings, Kestrel Tooling Holdings and Kestrel Tooling Canada are under water for the bank (negative mark-to-market), so their current exposure is $0.\n\n**Excluded from the total (you may want to show these separately)**\n- **Halvorsen Marine Logistics:** sold to Tidemark Shipping on 2025-12-01. It still carries the Halvorsen name and is still under the parent in the old hierarchy table, but it is no longer in the group. It has a $60M term loan F0000011 with $53.3M drawn, and its swap has $0 exposure.\n- **Halvorsen-Kito Components JV:** only 40% owned, without control. It has a $25M term loan F0000012 ($21.4M drawn) and a $2.0M FX forward. Including it would raise the total to $371.3M.\n- **Guarantees:** the parent guarantees (on F0000003 for $45M and F0000007 for $50M) are within the group, so they neither add to nor reduce exposure. Northcastle Mutual (rated A+) provides a $30M surety on F0000008, which is a genuine outside mitigant. Brandvold's $20M guarantee on F0000004 **expired 2026-06-30**, so that facility now has no third-party support.\n\n**Data issues to raise**\n- Six of the Halvorsen facilities (F0000001 to F0000006) are past their maturity date (between 2024-06 and 2026-03) but are still active with balances. They may have been extended without the record being updated, or they may be past-maturity loans; this should be confirmed.\n- The sandbox table showing $187.5M is from 2025-03-31 and marked \"WIP\", so I didn't use it.\n\n**Sources, definitions and assumptions**\n- **Group membership:** Fabric `OWNERSHIP`, walked down from LE-10001 using links in force on 2026-09-30 and controlled links only. I didn't use `CPTY_HIER_LEGACY` because it was last synced 2024-11-30: it leaves out Kestrel and still includes Marine Logistics.\n- **Matching the two platforms:** Fabric `LEGAL_ENTITY.CIF_REF` links to Snowflake `CORE.CLIENT.CIF_NO`, which has leading zeros. Group entities with no CIF have no lending with us.\n- **Lending:** Snowflake `LENDING.FACILITY` and `FACILITY_BAL_MTHLY`, products decoded with `REF.PRODUCT` and ratings with `REF.RISK_RATING`. All group facilities are active, current (0 days past due) and accruing interest.\n- **Capital markets:** Fabric `CM_EXPOSURE`, 2026-09-30 snapshot. The figures are gross current exposure with no netting or potential future exposure added on.\n- **Limit and ratings:** Fabric `CREDIT_LIMIT` (LM0001, $300M group limit, next review 2026-12-31) and `RATING`.\n- **Total exposure definition:** full lending commitments (drawn plus undrawn) plus derivative current exposure, with no deduction for guarantees. Deposits are not counted against credit exposure.",
+  "stop_reason": "end_turn",
+  "model_turns": 13,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.LEGAL_ENTITY WHERE ENTITY_NM LIKE '%Halvorsen%' OR ENTITY_NM LIKE '%Halvors%'",
+      "ok": true,
+      "rows": 19,
+      "error": null,
+      "elapsed_s": 1.58
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT o.*, c.ENTITY_NM AS CHILD_NM, p.ENTITY_NM AS PARENT_NM FROM dbo.OWNERSHIP o LEFT JOIN dbo.LEGAL_ENTITY c ON c.ENTITY_ID=o.CHILD_ENTITY_ID LEFT JOIN dbo.LEGAL_ENTITY p ON p.ENTITY_ID=o.PARENT_ENTITY_ID WHERE o.CHILD_ENTITY_ID BETWEEN 'LE-10000' AND 'LE-10035' OR o.PARENT_ENTITY_ID BETWEEN 'LE-10000' AND 'LE-10035' ORDER BY o.PARENT_ENTITY_ID, o.CHILD_ENTITY_ID",
+      "ok": true,
+      "rows": 42,
+      "error": null,
+      "elapsed_s": 1.13
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH g AS (\n SELECT CAST('LE-10001' AS varchar(20)) AS ENTITY_ID, 0 AS LVL, CAST(100.0 AS decimal(18,6)) AS EFF_PCT, CAST('Y' AS varchar(1)) AS CTRL_PATH\n UNION ALL\n SELECT CAST(o.CHILD_ENTITY_ID AS varchar(20)), g.LVL+1, CAST(g.EFF_PCT*o.OWN_PCT/100 AS decimal(18,6)), CAST(CASE WHEN g.CTRL_PATH='Y' AND o.CONTROL_FLG='Y' THEN 'Y' ELSE 'N' END AS varchar(1))\n FROM dbo.OWNERSHIP o JOIN g ON o.PARENT_ENTITY_ID=g.ENTITY_ID\n WHERE o.EFF_FROM<='2026-09-30' AND o.EFF_TO>='2026-09-30'\n)\nSELECT g.*, e.ENTITY_NM, e.ENTITY_TYP, e.CIF_REF FROM g JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID=g.ENTITY_ID ORDER BY g.ENTITY_ID",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 1.34
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT e.*, l.PARENT_ENTITY_ID AS LEGACY_PARENT, l.ULT_PARENT_ENTITY_ID AS LEGACY_ULT, l.LAST_SYNC_DT FROM dbo.LEGAL_ENTITY e LEFT JOIN dbo.CPTY_HIER_LEGACY l ON l.ENTITY_ID=e.ENTITY_ID WHERE e.ENTITY_ID IN ('LE-10001','LE-10002','LE-10003','LE-10004','LE-10005','LE-10006','LE-10007','LE-10008','LE-10009','LE-10010','LE-10011','LE-10012','LE-10013','LE-10014','LE-10015','LE-10016','LE-10017','LE-10018','LE-10019','LE-10020','LE-10021','LE-10022','LE-10023','LE-10024','LE-10025','LE-10026','LE-10027','LE-10028','LE-10029') ORDER BY e.ENTITY_ID",
+      "ok": true,
+      "rows": 29,
+      "error": null,
+      "elapsed_s": 1.19
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT c.ENTITY_ID, e.ENTITY_NM, c.TRADE_ID, c.PRODUCT, c.NOTIONAL_AMT, c.MTM_AMT, c.CURRENT_EXPOSURE, c.SNAP_DT FROM dbo.CM_EXPOSURE c JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID=c.ENTITY_ID WHERE c.ENTITY_ID BETWEEN 'LE-10001' AND 'LE-10029' AND c.SNAP_DT='2026-09-30' ORDER BY c.ENTITY_ID, c.TRADE_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.21
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SNAP_DT, COUNT(*) n, COUNT(DISTINCT TRADE_ID) nt, SUM(CASE WHEN CURRENT_EXPOSURE<0 THEN 1 ELSE 0 END) neg, SUM(CASE WHEN CURRENT_EXPOSURE<>CASE WHEN MTM_AMT>0 THEN MTM_AMT ELSE 0 END THEN 1 ELSE 0 END) ce_ne_posmtm FROM dbo.CM_EXPOSURE GROUP BY SNAP_DT ORDER BY SNAP_DT",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.CORE.CLIENT WHERE CLIENT_NM ILIKE '%halvorsen%' OR CLIENT_NM ILIKE '%kestrel%' OR CLIENT_NM ILIKE '%tidemark%' OR TRY_TO_NUMBER(CIF_NO) BETWEEN 41000 AND 41030 ORDER BY CIF_NO",
+      "ok": true,
+      "rows": 19,
+      "error": null,
+      "elapsed_s": 13.34
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.REF.PRODUCT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.28
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.REF.RISK_RATING ORDER BY 1",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.44
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.FACILITY_ID, f.CIF_NO, c.CLIENT_NM, f.PRODUCT_CD, f.COMMIT_AMT, f.ORIG_DT, f.MATURITY_DT, f.FACILITY_STATUS, f.PAYOFF_DT, f.CHGOFF_DT, f.RISK_RATING, b.DRAWN_AMT, b.UNDRAWN_AMT, b.DPD, b.ACCRUAL_STAT, (SELECT MAX(SNAP_DT) FROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY x WHERE x.FACILITY_ID=f.FACILITY_ID) AS LAST_BAL_DT\nFROM BANK_DEMO.LENDING.FACILITY f JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nLEFT JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.FACILITY_ID=f.FACILITY_ID AND b.SNAP_DT='2026-09-30'\nWHERE f.CIF_NO IN ('0000041000','0000041002','0000041005','0000041007','0000041009','0000041012','0000041014','0000041017','0000041020','0000041022','0000041025','0000041027','0000041029')\nORDER BY f.CIF_NO, f.FACILITY_ID",
+      "ok": true,
+      "rows": 13,
+      "error": null,
+      "elapsed_s": 1.56
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT g.*, e.ENTITY_NM FROM dbo.GUARANTEE g LEFT JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID=g.GUARANTOR_ENTITY_ID WHERE g.GUARANTOR_ENTITY_ID BETWEEN 'LE-10001' AND 'LE-10029' OR g.FACILITY_ID BETWEEN 'F0000001' AND 'F0000013' ORDER BY g.FACILITY_ID",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT r.*, e.ENTITY_NM FROM dbo.RATING r JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID=r.ENTITY_ID WHERE r.ENTITY_ID BETWEEN 'LE-10001' AND 'LE-10029' ORDER BY r.ENTITY_ID, r.AGENCY, r.RATING_DT",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.41
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.CREDIT_LIMIT WHERE ULT_PARENT_ENTITY_ID BETWEEN 'LE-10001' AND 'LE-10029'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.35
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 28,
+    "output": 9950,
+    "cache_read": 182191,
+    "cache_write": 28987
+  },
+  "cost_usd": 0.3805,
+  "latency_s": 145.8
+}

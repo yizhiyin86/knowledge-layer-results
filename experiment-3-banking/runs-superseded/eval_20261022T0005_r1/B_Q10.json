@@ -1,0 +1,73 @@
+{
+  "run_id": "eval_20261022T0005_r1",
+  "agent": "B",
+  "qid": "Q10",
+  "question": "Which obligor groups are over their approved credit limit once all their subsidiaries are rolled up?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Three of the 25 obligor groups with an approved limit are over it once every controlled subsidiary is rolled up (as of 30 Sep 2026):**\n\n| Obligor group (ultimate parent) | Loan commitments | Capital-markets exposure | **Group exposure** | Approved limit | Utilization | Over by |\n|---|---|---|---|---|---|---|\n| Brightwater Group Inc (LE-10030) | $236.6M (21 facilities, 13 borrowers) | $0.0M | **$236.6M** | $200.0M | **118.3%** | **$36.6M** |\n| Halvorsen Industrial Group Inc (LE-10001) | $308.0M (10 facilities) | $36.3M | **$344.3M** | $300.0M | **114.8%** | **$44.3M** |\n| Corvane Partners Inc (LE-10052) | $171.2M (16 facilities, 11 borrowers) | $0.0M | **$171.2M** | $150.0M | **114.1%** | **$21.2M** |\n\n- **Why rolling up matters:** no single borrower in Brightwater or Corvane is anywhere near its group's limit. The largest borrowers in each have only $25.8M and $27.4M committed. The breaches only show up when the ownership tree is summed.\n- **Approval:** under the bank's lending-authority rule, any credit action on a group above its limit goes to the **Senior Credit Committee**.\n- **Legal lending limit ($360M per group):** none of the three is over it. Halvorsen is at 95.6%, leaving $15.7M of room. It was also just downgraded to CCC+, which maps to internal rating 8 (Substandard), and its facilities are waiting to be re-rated (from an earlier saved answer).\n- **Partly owned companies left out:** each group has one minority stake the parent doesn't control, so it isn't counted. Brightwater Distribution LLC is 23% owned and Corvane Properties Co is 46% owned. Neither has active loan facilities with us. I did not check them for capital-markets exposure.\n- **Facilities rated 7 (Special Mention) inside the over-limit groups:** at least one facility at Brightwater Distribution Inc (CIF 41034), Corvane Energy Inc (41072) and Corvane Foods Inc (41064). Expect these to come up in the committee papers.\n\n**Close to the limit but not over:** Stellmark Group 91.5% ($164.7M of $180M) and Ridgeport Group 90.1% ($108.1M of $120M). After those come Marrowind 82.9%, Valewood 81.1% and Oakhurst 80.3%. The other 15 groups are below 80%.\n\n**Sources and definitions**\n- **Group membership:** the knowledge layer's governed list of obligor groups. Each group is the ultimate parent plus every entity it currently controls at any depth (rule BR-CUST-01). I checked the ownership table (`RISK_DEMO.dbo.OWNERSHIP`) for Brightwater and Corvane to confirm which entities are excluded.\n  - The group-tracing tool returned an error, so I used the governed list directly. The old hierarchy table (`CPTY_HIER_LEGACY`) is deprecated and I didn't use it.\n- **Group exposure (rule BR-EXP-01, ratified):**\n  - Committed amounts of ACTIVE facilities from `BANK_DEMO.LENDING.FACILITY`.\n  - Plus capital-markets current exposure (the positive part of mark-to-market) at the latest snapshot, 30 Sep 2026, from `RISK_DEMO.dbo.CM_EXPOSURE`.\n  - Notional and drawn amounts are not counted.\n- **Limits:** the approved group limit from `RISK_DEMO.dbo.CREDIT_LIMIT`, which has one limit per ultimate parent. Utilization = exposure / limit, and anything above 1.0 is over limit.\n- **Rules used:** BR-LLL-01 (legal lending limit of $360M, 15% of $2.40B capital and surplus) and BR-DLA-01 (who approves credit actions).\n- **Assumptions:**\n  - I didn't net guarantees. Under BR-GUAR-01 only active guarantees from outside the group would reduce exposure.\n  - Only groups with an approved limit are covered.",
+  "stop_reason": "end_turn",
+  "model_turns": 7,
+  "tool_calls": [
+    "get_context",
+    "get_reference",
+    "run_sql",
+    "run_sql",
+    "trace_obligor_group",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "WITH g AS (\nSELECT column1 AS grp, LPAD(TRIM(f.value::string),10,'0') AS cif_no\nFROM (VALUES\n('Alderwick','41128,41147,41148,41134,41136,41139,41131,41161,41143,41158,41145,41153,41130,41152,41155,41129,41141,41162,41149'),\n('Brightwater','41030,41041,41057,41046,41040,41034,41047,41031,41042,41050,41053,41056,41037'),\n('Corvane','41058,41067,41077,41078,41074,41076,41062,41064,41063,41060,41072'),\n('Dunmore','41165,41181,41173,41178,41177,41168,41175,41171,41185,41182,41191'),\n('Eastvale','41192,41210,41202,41197,41193,41205,41206,41211,41216'),\n('Fenmoor','41217,41229,41234,41232,41239,41223,41225,41228,41236,41220'),\n('Glenhaven','41240,41257,41243,41249,41255,41267,41276,41273,41252,41271,41246,41247,41260,41261,41250,41241,41251,41264,41269'),\n('Halvorsen','41000,41002,41009,41007,41017,41014,41020,41022,41025,41027'),\n('Harrowgate','41279,41288,41291,41300,41303,41296,41304'),\n('Ivorline','41308,41314,41321,41324,41313,41326,41327,41316,41310,41319,41311'),\n('Juniperra','41328,41336,41330,41337,41338,41341,41329,41334,41333'),\n('Kelstone','41343,41346,41361,41352,41345,41355,41349,41358,41348'),\n('Larkspire','41363,41368,41374,41378,41370,41383,41384,41390,41402,41382,41397,41365,41373,41375,41380,41381,41398,41400,41366,41394,41385,41387,41391,41405'),\n('Marrowind','41408,41421,41413,41431,41415,41438,41442,41440,41418,41422,41436,41425,41419,41428,41433,41410'),\n('Oakhurst','41444,41453,41466,41463,41456'),\n('Pellmont','41472,41480,41485,41499,41502,41490,41501,41489,41493,41486,41478,41496,41475,41477'),\n('Quarrington','41503,41510,41512,41509,41511,41518,41506,41515'),\n('Ravensholm','41519,41549,41542,41534,41536,41537,41541,41546,41539,41524,41520,41530,41544,41540,41523'),\n('Ridgeport','41101,41108,41116,41119,41111,41114,41106,41122,41103'),\n('Stellmark','41081,41097,41094,41086,41095,41093,41084,41088,41089'),\n('Thornbury','41552,41556,41560,41568,41561,41554,41566,41572,41577,41557,41563,41580,41581,41575,41567'),\n('Umberfield','41582,41589,41591,41585,41597,41594,41584,41587,41588'),\n('Valewood','41600,41606,41614,41608,41609,41603,41615,41612'),\n('Westerly','41618,41628,41624,41626,41619,41622'),\n('Yarrowby','41631,41636,41645,41633,41650,41655,41647,41642,41648,41649,41632,41651,41652,41654')\n) v, LATERAL FLATTEN(input => SPLIT(v.column2, ',')) f\n)\nSELECT g.grp, COUNT(DISTINCT g.cif_no) AS member_cifs, COUNT(f.FACILITY_ID) AS active_facilities, COALESCE(SUM(f.COMMIT_AMT),0) AS commit_amt\nFROM g LEFT JOIN BANK_DEMO.LENDING.FACILITY f ON f.CIF_NO = g.cif_no AND f.FACILITY_STATUS = 'ACTIVE'\nGROUP BY g.grp ORDER BY g.grp",
+      "ok": true,
+      "rows": 25,
+      "error": null,
+      "elapsed_s": 1.77
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH v AS (\nSELECT * FROM (VALUES\n('Alderwick','LE-10103','10103,10118,10121,10104,10111,10116,10119,10109,10110,10112,10108,10127,10115,10105,10114,10126,10117,10124,10120,10107,10123,10125,10106,10113,10128,10122'),\n('Brightwater','LE-10030','10030,10042,10031,10050,10032,10045,10038,10033,10041,10034,10051,10037,10035,10039,10046,10036,10043,10047,10048,10049,10040'),\n('Corvane','LE-10052','10052,10060,10053,10063,10068,10069,10054,10066,10067,10055,10062,10058,10061,10059,10056,10057,10065'),\n('Dunmore','LE-10129','10129,10130,10147,10141,10131,10136,10137,10140,10132,10134,10139,10142,10133,10138,10135,10144,10143,10146'),\n('Eastvale','LE-10148','10148,10161,10156,10149,10157,10150,10163,10154,10151,10152,10158,10159,10162,10165'),\n('Fenmoor','LE-10166','10166,10174,10177,10175,10167,10176,10179,10168,10170,10172,10173,10178,10169'),\n('Glenhaven','LE-10180','10180,10193,10185,10188,10192,10196,10199,10181,10194,10197,10201,10205,10207,10204,10191,10182,10203,10186,10187,10195,10198,10189,10183,10184,10190,10200,10202'),\n('Halvorsen','LE-10001','10001,10022,10004,10003,10002,10023,10008,10006,10005,10011,10012,10009,10024,10010,10016,10026,10014,10015,10017,10025,10018,10019,10020,10021'),\n('Harrowgate','LE-10208','10208,10215,10216,10220,10222,10209,10218,10223,10210,10211,10221'),\n('Ivorline','LE-10225','10225,10235,10239,10240,10241,10226,10237,10234,10227,10242,10228,10229,10245,10230,10243,10236,10231,10232,10238,10233'),\n('Juniperra','LE-10246','10246,10257,10247,10256,10262,10253,10248,10259,10260,10263,10264,10249,10258,10250,10252,10261,10251,10255,10254'),\n('Kelstone','LE-10265','10265,10270,10277,10266,10275,10267,10269,10273,10268,10274,10272,10276,10271'),\n('Larkspire','LE-10278','10278,10283,10287,10289,10285,10279,10284,10295,10296,10299,10305,10280,10292,10294,10302,10281,10286,10288,10291,10293,10303,10304,10282,10301,10297,10298,10300,10306'),\n('Marrowind','LE-10307','10307,10308,10320,10309,10310,10319,10323,10315,10325,10316,10311,10329,10331,10330,10312,10328,10317,10321,10327,10313,10332,10322,10318,10324,10326,10314'),\n('Oakhurst','LE-10333','10333,10341,10340,10347,10346,10342,10343'),\n('Pellmont','LE-10349','10349,10356,10358,10365,10367,10350,10360,10351,10362,10366,10361,10363,10359,10355,10352,10364,10353,10354'),\n('Quarrington','LE-10368','10368,10369,10370,10376,10371,10378,10380,10377,10372,10373,10379,10382,10374,10375,10381'),\n('Ravensholm','LE-10383','10383,10403,10384,10400,10394,10385,10395,10396,10399,10402,10397,10386,10390,10387,10388,10392,10401,10398,10389'),\n('Ridgeport','LE-10087','10087,10093,10098,10088,10099,10094,10089,10095,10097,10092,10090,10096,10100,10091'),\n('Stellmark','LE-10070','10070,10084,10085,10071,10083,10081,10075,10076,10072,10082,10080,10073,10074,10077,10078'),\n('Thornbury','LE-10404','10404,10411,10413,10418,10405,10414,10406,10423,10407,10425,10408,10410,10409,10416,10420,10422,10412,10415,10424,10426,10421,10417'),\n('Umberfield','LE-10427','10427,10428,10434,10437,10429,10443,10439,10440,10435,10442,10444,10430,10431,10441,10432,10433,10436,10438'),\n('Valewood','LE-10445','10445,10451,10455,10446,10447,10452,10457,10448,10453,10449,10450,10456,10454'),\n('Westerly','LE-10458','10458,10459,10465,10467,10460,10464,10461,10466,10462,10463'),\n('Yarrowby','LE-10468','10468,10474,10479,10469,10473,10483,10488,10480,10470,10477,10471,10476,10485,10481,10482,10472,10484,10486,10487')\n) t(grp, parent, ids)),\nm AS (SELECT v.grp, v.parent, 'LE-' + LTRIM(RTRIM(s.value)) AS entity_id FROM v CROSS APPLY STRING_SPLIT(v.ids, ',') s),\ncm AS (SELECT ENTITY_ID, SUM(CURRENT_EXPOSURE) AS ce FROM dbo.CM_EXPOSURE WHERE SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) GROUP BY ENTITY_ID),\nlim AS (SELECT ULT_PARENT_ENTITY_ID, MAX(LIMIT_AMT) AS limit_amt, COUNT(*) AS n_lim FROM dbo.CREDIT_LIMIT WHERE LIMIT_TYP='OBLIGOR_GROUP' GROUP BY ULT_PARENT_ENTITY_ID)\nSELECT m.grp, m.parent, COUNT(*) AS members, COALESCE(SUM(cm.ce),0) AS cm_exposure, MAX(l.limit_amt) AS limit_amt, MAX(l.n_lim) AS n_lim,\n (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AS snap\nFROM m LEFT JOIN cm ON cm.ENTITY_ID = m.entity_id LEFT JOIN lim l ON l.ULT_PARENT_ENTITY_ID = m.parent\nGROUP BY m.grp, m.parent ORDER BY m.grp",
+      "ok": true,
+      "rows": 25,
+      "error": null,
+      "elapsed_s": 1.38
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CASE WHEN f.CIF_NO IN ('0000041030','0000041041','0000041057','0000041046','0000041040','0000041034','0000041047','0000041031','0000041042','0000041050','0000041053','0000041056','0000041037') THEN 'Brightwater' ELSE 'Corvane' END AS grp,\n f.CIF_NO, c.CLIENT_NM, COUNT(*) AS n_fac, SUM(f.COMMIT_AMT) AS commit_amt, MIN(f.RISK_RATING) min_rr, MAX(f.RISK_RATING) max_rr\nFROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nWHERE f.FACILITY_STATUS='ACTIVE' AND f.CIF_NO IN ('0000041030','0000041041','0000041057','0000041046','0000041040','0000041034','0000041047','0000041031','0000041042','0000041050','0000041053','0000041056','0000041037',\n'0000041058','0000041067','0000041077','0000041078','0000041074','0000041076','0000041062','0000041064','0000041063','0000041060','0000041072')\nGROUP BY 1,2,3 ORDER BY 1, commit_amt DESC",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 8.08
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT o.CHILD_ENTITY_ID, le.ENTITY_NM, le.CIF_REF, o.PARENT_ENTITY_ID, o.OWN_PCT, o.CONTROL_FLG, o.EFF_TO\nFROM dbo.OWNERSHIP o JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID=o.CHILD_ENTITY_ID\nWHERE (o.CHILD_ENTITY_ID BETWEEN 'LE-10030' AND 'LE-10069')\nAND (o.CONTROL_FLG='N' OR o.EFF_TO < '2026-09-30')\nORDER BY o.CHILD_ENTITY_ID",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.55
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CIF_NO, COUNT(*) n, SUM(COMMIT_AMT) commit_amt FROM BANK_DEMO.LENDING.FACILITY WHERE FACILITY_STATUS='ACTIVE' AND CIF_NO IN ('0000041045','0000041070') GROUP BY CIF_NO",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.68
+    }
+  ],
+  "cypher_queries": 12,
+  "usage": {
+    "input": 16,
+    "output": 9469,
+    "cache_read": 118134,
+    "cache_write": 30185
+  },
+  "cost_usd": 0.364,
+  "latency_s": 94.5
+}

@@ -1,0 +1,53 @@
+{
+  "run_id": "eval_20261022T0047_r1",
+  "agent": "B",
+  "qid": "Q11",
+  "question": "For the Halvorsen group, which facilities are supported by guarantees from outside the group, and how much of the group's exposure is not covered by an eligible guarantee?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Halvorsen group: guarantees from outside the group and exposure not covered by an eligible guarantee (as of 2026-09-30)**\n\nTwo of the group's 10 active facilities have guarantees from outside the group. Only one of those guarantees counts against exposure. **$314.3M of the group's $344.3M exposure is not covered by an eligible guarantee.** That uncovered amount alone is above the $300M group limit.\n\n**Facilities with guarantees from outside the group**\n\n| Facility | Borrower | Commitment | Guarantee | Guarantor (rating from first agency, AGY1) | Amount | Status | Counts against exposure? |\n|---|---|---|---|---|---|---|---|\n| F0000008 (revolving line) | Kestrel Automation Systems LLC | $45.0M | G00003, surety bond | Northcastle Mutual Insurance Co (A+) | $30.0M | Active until 2028-08-14 | **Yes, $30.0M** (the lower of the guarantee and the commitment) |\n| F0000004 (equipment loan) | Halvorsen Metalworks LLC | $30.0M | G00004, third-party guarantee | Brandvold Industrial Partners LLC (BBB-) | $20.0M | **Expired 2026-06-30** | No |\n\nTwo other guarantees come from inside the group, so they don't reduce exposure:\n- **G00001:** the parent, Halvorsen Industrial Group Inc, guarantees $50M of F0000007 (Kestrel Tooling).\n- **G00002:** Halvorsen North America Holdings guarantees $45M of F0000003 (Halvorsen Supply).\n\n**Exposure**\n\n| | Amount |\n|---|---|\n| Commitments on the 10 active facilities | $308.0M |\n| Capital-markets current exposure (2026-09-30 snapshot) | $36.3M (Capital Services $22.0M, Kestrel Automation $6.5M, Freight $4.0M, Supply $3.8M) |\n| **Total group exposure** | **$344.3M** |\n| Less the eligible guarantee (G00003) | \u2013$30.0M |\n| **Not covered by an eligible guarantee** | **$314.3M (91.3%)** |\n| Loans only, not covered | $278.0M |\n\n**Points to flag**\n- **Over limit:** Total exposure is 114.8% of the $300M group limit, and the uncovered amount is 104.8%. It is below the $360M legal lending limit, with only $15.7M to spare.\n- **Weak parent rating:** The parent is rated CCC+ (negative outlook) by AGY1 as of 2026-09-28, and B by AGY2. The rule uses the lower of the two, which maps to internal rating 8 (Substandard). That rating plus the limit breach means credit decisions go to the Senior Credit Committee.\n- **Lost cover:** Brandvold's $20M guarantee expired three months ago and hasn't been renewed. F0000004 is now unguaranteed.\n- **Data quality:** Six facilities marked ACTIVE (F0000001\u2013F0000006) have maturity dates already past. I included them at full commitment under the exposure rule, but their status should be checked.\n\n**Sources and definitions**\n- **Group membership:** the knowledge layer's group tracer (24 controlled members, built from dbo.OWNERSHIP). It leaves out the 40%-owned Halvorsen-Kito joint venture and Halvorsen Marine Logistics, which was sold in 2025-11.\n- **Tables:** BANK_DEMO.LENDING.FACILITY (commitments), RISK_DEMO.dbo.GUARANTEE plus LEGAL_ENTITY (guarantees), RISK_DEMO.dbo.CM_EXPOSURE (latest snapshot only).\n- **Rules:**\n  - BR-EXP-01 / ratified group_exposure metric: active commitments plus capital-markets current exposure.\n  - BR-GUAR-01: a guarantee counts only if it is active, not expired, and from outside the group; the amount counted is the lower of the guarantee and the commitment.\n  - BR-CUST-01: group membership.\n  - BR-RATE-01: rating mapping.\n  - BR-LLL-01: legal lending limit.\n  - BR-DLA-01: approval authority.\n- **Assumption:** guarantees reduce loan commitments only, not capital-markets exposure.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT FACILITY_ID, CIF_NO, PRODUCT_CD, COMMIT_AMT, FACILITY_STATUS, MATURITY_DT FROM BANK_DEMO.LENDING.FACILITY WHERE CIF_NO IN ('0000041000','0000041002','0000041007','0000041009','0000041014','0000041017','0000041020','0000041022','0000041025','0000041027') ORDER BY FACILITY_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 14.12
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT ENTITY_ID, COUNT(*) AS trades, SUM(CURRENT_EXPOSURE) AS cur_exp FROM dbo.CM_EXPOSURE WHERE SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AND ENTITY_ID IN ('LE-10001','LE-10002','LE-10003','LE-10004','LE-10022','LE-10023','LE-10005','LE-10006','LE-10008','LE-10009','LE-10010','LE-10011','LE-10012','LE-10024','LE-10014','LE-10015','LE-10016','LE-10026','LE-10017','LE-10018','LE-10025','LE-10019','LE-10020','LE-10021') GROUP BY ENTITY_ID",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 2.24
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT g.GUARANTEE_ID, g.FACILITY_ID, g.GUARANTOR_ENTITY_ID, e.ENTITY_NM, g.GUAR_AMT, g.GUAR_TYP, g.EFF_DT, g.EXP_DT, g.STATUS FROM dbo.GUARANTEE g LEFT JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID = g.GUARANTOR_ENTITY_ID WHERE g.FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010') ORDER BY g.FACILITY_ID",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.53
+    }
+  ],
+  "cypher_queries": 8,
+  "usage": {
+    "input": 8,
+    "output": 3037,
+    "cache_read": 15569,
+    "cache_write": 14951
+  },
+  "cost_usd": 0.1386,
+  "latency_s": 49.4
+}

@@ -1,0 +1,62 @@
+{
+  "run_id": "eval_20261022T0005_r3",
+  "agent": "B",
+  "qid": "Q14",
+  "question": "What did we conclude last time about our exposure to the Halvorsen group, and has its external rating changed since?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "I checked the data again and nothing has changed since last time. The Halvorsen group's external rating is the same, and so is its exposure (as of 2026-09-30).\n\n**What we concluded last time** (saved answer to \"Halvorsen Industrial Group was just downgraded\u2026\")\n- **Total group exposure was $344.3M:** $308.0M in loan commitments on 10 active facilities plus $36.3M in capital-markets exposure. The group is the parent (LE-10001) and 23 entities it controls, including the Kestrel sub-group.\n- **That is 114.8% of the $300M group limit**, $44.3M over. It is $15.7M under the $360M legal lending limit.\n- **After one eligible outside guarantee, net exposure was $314.3M**, still over the limit.\n- **Group rating:** CCC+, which maps to internal rating 8 (Substandard). Any credit action goes to the **Senior Credit Committee** (rule BR-DLA-01).\n- All 10 facilities were still rated internally at 5 and had to be re-rated within 5 business days.\n\n**Has the external rating changed? No.** The last rating action was the one that answer already reflected:\n\n| Agency | Earlier rating | Current rating | Date | Outlook |\n|---|---|---|---|---|\n| Agency 1 | BB- (2025-04-15) | **CCC+** | 2026-09-28 | Negative |\n| Agency 2 | BB (2025-02-10) | **B** | 2026-06-10 | Negative |\n\nNo rating action anywhere in the rating table is later than 2026-09-28. The group rating is the lower of the two agencies' ratings, so it is still CCC+ (internal 8, Substandard).\n\n**Exposure check at 2026-09-30:** I re-ran it and the figures match.\n- **Loan commitments:** $308.0M across the same 10 facilities.\n- **Capital-markets exposure:** $36.3M from group members. The query by entity range returned $38.3M, but $2.0M of that belongs to Halvorsen-Kito Components JV. We own 40% without control, so it isn't in the group and should be reported separately as related exposure.\n- **Excluded entity:** Halvorsen Marine Logistics was sold on 2025-11-30 and is also left out.\n- **Total and limit:** still $344.3M and 114.8% of the $300M limit.\n\n**Outstanding action:** all 10 facilities are still rated 5 internally. Re-rating them to 8 is due within 5 business days of the 2026-09-28 downgrade, which by my count is 2026-10-05, so it is still open.\n\n**Sources and assumptions**\n- **Saved answer:** the earlier Halvorsen exposure answer, found by the knowledge layer's past-answer search.\n- **Data:** rating history (dbo.RATING) for LE-10001; loan commitments (LENDING.FACILITY, active only); capital-markets exposure (dbo.CM_EXPOSURE, 2026-09-30 snapshot, never notional); the group limit (dbo.CREDIT_LIMIT); and ownership records (dbo.OWNERSHIP) to confirm who controls each entity.\n- **Rules:** group membership BR-CUST-01, exposure BR-EXP-01, rating mapping BR-RATE-01, approval authority BR-DLA-01, legal lending limit BR-LLL-01.\n- **Not re-checked:** the ownership-tracing tool failed with an internal error, so I took the member list from the earlier answer and confirmed it with ownership queries. I also didn't re-check the guarantee, so the $314.3M net figure is carried over from last time.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT RATING_ID, ENTITY_ID, AGENCY, RATING, RATING_DT, OUTLOOK FROM dbo.RATING WHERE ENTITY_ID = 'LE-10001' ORDER BY AGENCY, RATING_DT",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.37
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) AS n_fac, SUM(COMMIT_AMT) AS commit_amt, MIN(RISK_RATING) AS min_rr, MAX(RISK_RATING) AS max_rr FROM BANK_DEMO.LENDING.FACILITY WHERE FACILITY_STATUS='ACTIVE' AND CIF_NO IN ('0000041000','0000041002','0000041007','0000041009','0000041014','0000041017','0000041020','0000041022','0000041025','0000041027')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 5.65
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AS latest_snap, (SELECT SUM(CURRENT_EXPOSURE) FROM dbo.CM_EXPOSURE WHERE ENTITY_ID BETWEEN 'LE-10001' AND 'LE-10029' AND SNAP_DT=(SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE)) AS cm_ce, (SELECT MAX(RATING_DT) FROM dbo.RATING) AS latest_rating_action_any, (SELECT LIMIT_AMT FROM dbo.CREDIT_LIMIT WHERE ULT_PARENT_ENTITY_ID='LE-10001') AS limit_amt",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.93
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT c.ENTITY_ID, le.ENTITY_NM, SUM(c.CURRENT_EXPOSURE) AS ce, o.PARENT_ENTITY_ID, o.OWN_PCT, o.CONTROL_FLG, o.EFF_TO FROM dbo.CM_EXPOSURE c LEFT JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID=c.ENTITY_ID LEFT JOIN dbo.OWNERSHIP o ON o.CHILD_ENTITY_ID=c.ENTITY_ID WHERE c.ENTITY_ID BETWEEN 'LE-10001' AND 'LE-10029' AND c.SNAP_DT='2026-09-30' GROUP BY c.ENTITY_ID, le.ENTITY_NM, o.PARENT_ENTITY_ID, o.OWN_PCT, o.CONTROL_FLG, o.EFF_TO ORDER BY c.ENTITY_ID",
+      "ok": true,
+      "rows": 11,
+      "error": null,
+      "elapsed_s": 1.16
+    }
+  ],
+  "cypher_queries": 9,
+  "usage": {
+    "input": 12,
+    "output": 3454,
+    "cache_read": 43881,
+    "cache_write": 15853
+  },
+  "cost_usd": 0.1572,
+  "latency_s": 47.7
+}

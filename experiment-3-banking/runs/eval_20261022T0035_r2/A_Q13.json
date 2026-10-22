@@ -1,0 +1,141 @@
+{
+  "run_id": "eval_20261022T0035_r2",
+  "agent": "A",
+  "qid": "Q13",
+  "question": "For our quarterly credit portfolio review, show each C&I East relationship manager's new-commitment production versus their goal this quarter, next to the 30+ days-past-due rate of their book.",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "For Q3 2026, the C&I East team booked **$406.6M of new commitments against a $525.2M goal (77% of goal)**. Three of the six RMs met their goal. The team's book is in good shape: **0.77% of drawn balances are 30+ days past due**, compared with 3.15% across all active facilities at the bank.\n\n| RM | Q3 goal | New commitments (# facilities) | % of goal | Drawn book at 9/30 (# facilities) | 30+ DPD balance (# facilities) | 30+ DPD rate |\n|---|---|---|---|---|---|---|\n| RM001 Sage Garrow | $64.3M | $75.9M (4) | **118%** | $253.6M (29) | $2.30M (1) | 0.91% |\n| RM002 Marlow Calder | $85.5M | $89.8M (4) | **105%** | $120.8M (18) | $0 | 0.00% |\n| RM003 Harper Garrow | $59.2M | $56.8M (3) | 96% | $108.2M (17) | $4.66M (1) | **4.30%** |\n| RM004 Sawyer Rourke | $33.9M | $29.8M (2) | 88% | $151.9M (24) | $0 | 0.00% |\n| RM005 Jordan Thorne | $150.4M | $85.7M (4) | **57%** | $144.9M (22) | $0 | 0.00% |\n| RM006 Gray Lowry | $131.9M | $68.6M (4) | **52%** | $126.4M (21) | $0 | 0.00% |\n| **C&I East total** | **$525.2M** | **$406.6M (21)** | **77%** | **$905.8M (131)** | **$6.95M (2)** | **0.77%** |\n\n**What stands out:**\n- **Production is behind mainly because of the two largest goals.** Thorne and Lowry together are about $128M short, which accounts for all of the team's shortfall. Garrow and Calder are ahead of goal, and their production carries no visible delinquency so far.\n- **All the delinquency in the book comes from one facility each at two RMs.** Harper Garrow's 4.30% rate is a single facility of $4.66M, on a book of only $108M. Sage Garrow's 0.91% is also a single facility ($2.30M). The rate in a book this size can swing a lot on one name. Neither book has anything 90+ days past due or on non-accrual.\n- **Charged-off loans are left out of the rates above.** Eight charged-off facilities on C&I East clients charged off between February and August 2026: RM001 has 4 ($16.1M), RM006 has 3 ($13.9M) and RM005 has 1 ($2.8M). They still show balances in the 9/30 balance file. If they were included, all of those balances would count as 30+ days past due and those RMs' rates would rise sharply. That is worth discussing alongside Sage Garrow's above-goal production.\n- **Production quality:** about a third of Sage Garrow's production ($36.2M) is two revolving lines added this quarter for one existing client, Pellmont Services. That is genuinely new commitment, but it adds to concentration on that client.\n\n**Sources and definitions**\n- Team: `CORE.RM_ROSTER` where team = 'C&I East' (6 RMs, East region, LC segment).\n- Goal: `CORE.RM_GOAL.NEW_COMMIT_GOAL` for 2026Q3.\n- New-commitment production: the sum of `COMMIT_AMT` in `LENDING.FACILITY` for facilities originated 2026-07-01 to 2026-09-30. Each facility is credited to the RM in `ORIG_RM_ID` (the RM who originated it). It is measured at origination, so later changes to the commitment are not reflected.\n- Book: active facilities of clients each RM currently covers (`CORE.CLIENT.RM_ID`). For every active facility, the originating RM and the covering RM are the same person.\n- 30+ DPD rate: drawn balance with 30 or more days past due \u00f7 total drawn balance, using the 2026-09-30 snapshot of `LENDING.FACILITY_BAL_MTHLY`. Both measures cover all loan products, including standby letters of credit.\n- Charged-off facilities are excluded, which matches the \"active facilities\" basis of `MART.CREDIT_QUALITY_MTH`. Bank-wide totals reconcile to that table ($15.99B drawn, $503.5M 30+ DPD).\n\n**Assumptions**\n- \"This quarter\" means calendar Q3 2026, which matches the goal period.\n- I did not use the unofficial draft RM scorecard in the sandbox area or the risk data on Fabric; neither was needed.",
+  "stop_reason": "end_turn",
+  "model_turns": 11,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select r.team, r.region, r.segment_cd, count(*) n, count(g.rm_id) with_goal, listagg(distinct g.fqtr, ',') q from BANK_DEMO.CORE.RM_ROSTER r left join BANK_DEMO.CORE.RM_GOAL g on g.rm_id=r.rm_id group by 1,2,3 order by 1",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 3.23
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select table_schema, table_name, comment from BANK_DEMO.INFORMATION_SCHEMA.TABLES where table_schema not in ('INFORMATION_SCHEMA') union all select table_schema, table_name||'.'||column_name, comment from BANK_DEMO.INFORMATION_SCHEMA.COLUMNS where comment is not null and table_schema<>'INFORMATION_SCHEMA'",
+      "ok": true,
+      "rows": 21,
+      "error": null,
+      "elapsed_s": 2.87
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from BANK_DEMO.REF.PRODUCT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.39
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select facility_status, count(*), min(orig_dt), max(orig_dt), sum(iff(payoff_dt is not null,1,0)) po, sum(iff(chgoff_dt is not null,1,0)) co from BANK_DEMO.LENDING.FACILITY group by 1",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.44
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select snap_dt, count(*), count(distinct facility_id), sum(drawn_amt), sum(iff(dpd>=30,drawn_amt,0)), min(dpd), max(dpd), sum(iff(dpd is null,1,0)) nulls, listagg(distinct accrual_stat,',') from BANK_DEMO.LENDING.FACILITY_BAL_MTHLY where snap_dt>='2026-06-30' group by 1 order by 1",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 3.46
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from BANK_DEMO.MART.CREDIT_QUALITY_MTH where snap_dt='2026-09-30'",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 3.33
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select f.facility_status, count(*), sum(b.drawn_amt), sum(iff(b.dpd>=30,b.drawn_amt,0)), sum(iff(c.rm_id=f.orig_rm_id,1,0)) same_rm, sum(iff(c.cif_no is null,1,0)) no_client\nfrom BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b join BANK_DEMO.LENDING.FACILITY f on f.facility_id=b.facility_id left join BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no\nwhere b.snap_dt='2026-09-30' group by 1",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.24
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select r.rm_id, r.rm_nm, r.hire_dt, g.fqtr, g.new_commit_goal, (select count(*) from BANK_DEMO.CORE.CLIENT c where c.rm_id=r.rm_id) n_clients, (select listagg(distinct segment_cd||':'||client_status, ',') from BANK_DEMO.CORE.CLIENT c where c.rm_id=r.rm_id) segs from BANK_DEMO.CORE.RM_ROSTER r left join BANK_DEMO.CORE.RM_GOAL g on g.rm_id=r.rm_id where r.team='C&I East' order by 1",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.43
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with prod as (\n select orig_rm_id rm_id, count(*) n_new, sum(commit_amt) new_commit, count(distinct facility_id) nd\n from BANK_DEMO.LENDING.FACILITY where orig_dt between '2026-07-01' and '2026-09-30' group by 1),\nbook as (\n select c.rm_id, count(*) n_fac, sum(b.drawn_amt) drawn, sum(iff(b.dpd>=30,b.drawn_amt,0)) dpd30, sum(iff(b.dpd>=30,1,0)) n_dpd30, sum(iff(b.dpd>=90,b.drawn_amt,0)) dpd90, sum(iff(b.accrual_stat='N',b.drawn_amt,0)) nonacc\n from BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b join BANK_DEMO.LENDING.FACILITY f on f.facility_id=b.facility_id join BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no\n where b.snap_dt='2026-09-30' and f.facility_status='ACTIVE' group by 1)\nselect r.rm_id, r.rm_nm, g.new_commit_goal, coalesce(p.n_new,0) n_new, p.nd, coalesce(p.new_commit,0) new_commit, round(coalesce(p.new_commit,0)/g.new_commit_goal*100,1) pct_goal,\n bk.n_fac, bk.drawn, bk.dpd30, bk.n_dpd30, round(bk.dpd30/bk.drawn*100,2) dpd30_rate, bk.dpd90, bk.nonacc\nfrom BANK_DEMO.CORE.RM_ROSTER r join BANK_DEMO.CORE.RM_GOAL g on g.rm_id=r.rm_id and g.fqtr='2026Q3'\nleft join prod p on p.rm_id=r.rm_id left join book bk on bk.rm_id=r.rm_id\nwhere r.team='C&I East' order by 1",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 13.62
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select f.orig_rm_id, f.facility_id, f.cif_no, c.client_nm, f.product_cd, f.commit_amt, f.orig_dt, f.facility_status, f.risk_rating,\n (select count(*) from BANK_DEMO.LENDING.FACILITY f2 where f2.cif_no=f.cif_no and f2.product_cd=f.product_cd and f2.facility_id<>f.facility_id) same_prod_other\nfrom BANK_DEMO.LENDING.FACILITY f join BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no join BANK_DEMO.CORE.RM_ROSTER r on r.rm_id=f.orig_rm_id\nwhere f.orig_dt between '2026-07-01' and '2026-09-30' and r.team='C&I East' order by 1,7",
+      "ok": true,
+      "rows": 21,
+      "error": null,
+      "elapsed_s": 3.55
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select f.cif_no, f.facility_id, f.product_cd, f.commit_amt, f.orig_dt, f.maturity_dt, f.facility_status, f.orig_rm_id, b.drawn_amt, b.dpd\nfrom BANK_DEMO.LENDING.FACILITY f left join BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b on b.facility_id=f.facility_id and b.snap_dt='2026-09-30'\nwhere f.cif_no in ('0000041483','0000041313','0000041251','0000041205') order by 1,5",
+      "ok": true,
+      "rows": 14,
+      "error": null,
+      "elapsed_s": 3.21
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select c.rm_id, count(*) n, sum(b.drawn_amt) bal, min(f.chgoff_dt), max(f.chgoff_dt)\nfrom BANK_DEMO.LENDING.FACILITY f join BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no join BANK_DEMO.CORE.RM_ROSTER r on r.rm_id=c.rm_id\nleft join BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b on b.facility_id=f.facility_id and b.snap_dt='2026-09-30'\nwhere f.facility_status='CHARGEDOFF' and r.team='C&I East' group by 1 order by 1",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 2.43
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 24,
+    "output": 7023,
+    "cache_read": 114363,
+    "cache_write": 18733
+  },
+  "cost_usd": 0.2571,
+  "latency_s": 154.3
+}

@@ -1,0 +1,43 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "B",
+  "qid": "Q9",
+  "question": "Which sources feed the non-performing loan ratio, and is it defined the same way in the Credit Risk Report and the Finance Report?",
+  "role": "FINANCE_ANALYST",
+  "effort": "high",
+  "answer": "**No, the two reports define the NPL ratio differently.** The Credit Risk Report uses the ratified `npl_ratio`. The Finance Report uses an older version, `npl_ratio_fin_v1`, which is marked unratified. At 2026-09-30 the ratified ratio is **0.71%**. The Finance version gives **0.48%** on active facilities. If it's run exactly as written, with no active-facility filter, it gives **1.52%**.\n\n**How the two compare**\n\n| | Credit Risk Report: `npl_ratio` (ratified) | Finance Report: `npl_ratio_fin_v1` (unratified) |\n|---|---|---|\n| Source table(s) | `BANK_DEMO.MART.CREDIT_QUALITY_MTH` (a monthly summary by loan product, active facilities only) | `BANK_DEMO.LENDING.FACILITY_BAL_MTHLY` (`ACCRUAL_STAT`, `DRAWN_AMT`) joined to `BANK_DEMO.LENDING.FACILITY` (`COMMIT_AMT`) |\n| Top of the ratio | Non-accrual drawn balance **plus** drawn balance 90+ days past due and still accruing | Non-accrual drawn balance **only** |\n| Bottom of the ratio | Total **drawn** balance | Total **commitments** (drawn + undrawn) |\n| Which facilities | Active only (built into the summary table) | No status filter in the formula |\n| Owner / status | Credit Risk, ratified | Finance, unratified |\n\nThe ratified version matches the FFIEC definition of non-performing (non-accrual plus 90+ days past due and still accruing). The Finance version leaves out the 90+ day accruing loans and divides by a larger base, so it reads lower.\n\n**Numbers at 2026-09-30**\n- **Ratified (Credit Risk):** $113.85M non-accrual + $0 at 90+ days accruing, divided by $15.99B drawn = **0.71%**.\n- **Finance version on active facilities:** $113.85M divided by $23.51B committed = **0.48%**. The whole gap comes from the bottom of the ratio, because nothing is currently 90+ days past due and still accruing. That will stop being true once such loans appear.\n- **Finance version run exactly as written:** **1.52%** ($363.11M divided by $23.83B). Charged-off facilities still have month-end rows in the balance table. Without a status filter, $249.3M of their non-accrual balances, plus their commitments, get counted. So this formula is either understated (by the commitment base) or overstated (by charged-off loans), depending on how it's run.\n- **Cross-check:** the active-facility figures I rebuilt from the facility tables match the summary table exactly ($113.85M non-accrual, $15.99B drawn, $23.51B committed).\n\n**Recommendation:** For Finance reporting, use the ratified `npl_ratio` from `MART.CREDIT_QUALITY_MTH`. If the Finance version has to be kept for continuity, label it as a different measure (non-accrual as a share of commitments). At the very least, restrict it to active facilities.\n\n**Sources and assumptions**\n- Knowledge layer: the `NonPerformingLoan` concept (aligned to FFIEC); the metric `npl_ratio` (ratified, Credit Risk Report) and its variant `npl_ratio_fin_v1` (unratified, Finance Report); the approved join path \"CreditFacility to Delinquency\" (keep active facilities only, since charged-off ones still have rows); the Commercial Lending data product (owned by Credit Risk).\n- Tables: `MART.CREDIT_QUALITY_MTH`, `LENDING.FACILITY_BAL_MTHLY` and `LENDING.FACILITY`, snapshot date 2026-09-30.\n- Assumptions:\n  - \"Non-accrual\" means `ACCRUAL_STAT = 'N'`.\n  - \"90+ days past due, still accruing\" means `DPD >= 90` with `ACCRUAL_STAT = 'A'`.\n  - The Finance formula has no status filter in its stored definition, so I showed it both ways (active only and as written).\n- No data-use restrictions apply to this role and purpose.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT SUM(NONACCRUAL_BAL_AMT) nonaccrual, SUM(DPD90_ACCRUING_BAL_AMT) dpd90_accr, SUM(TOTAL_DRAWN_AMT) drawn, SUM(TOTAL_COMMIT_AMT) commit_amt,\n SUM(NONACCRUAL_BAL_AMT + DPD90_ACCRUING_BAL_AMT)/NULLIF(SUM(TOTAL_DRAWN_AMT),0) npl_ratio\nFROM BANK_DEMO.MART.CREDIT_QUALITY_MTH WHERE SNAP_DT='2026-09-30'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.47
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) n_rows,\n SUM(CASE WHEN b.ACCRUAL_STAT='N' THEN b.DRAWN_AMT ELSE 0 END) nonaccrual_all,\n SUM(CASE WHEN b.ACCRUAL_STAT='N' AND f.FACILITY_STATUS='ACTIVE' THEN b.DRAWN_AMT ELSE 0 END) nonaccrual_active,\n SUM(CASE WHEN b.ACCRUAL_STAT='A' AND b.DPD>=90 AND f.FACILITY_STATUS='ACTIVE' THEN b.DRAWN_AMT ELSE 0 END) dpd90_accr_active,\n SUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN b.DRAWN_AMT ELSE 0 END) drawn_active,\n SUM(f.COMMIT_AMT) commit_all,\n SUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN f.COMMIT_AMT ELSE 0 END) commit_active,\n SUM(CASE WHEN b.ACCRUAL_STAT='N' THEN b.DRAWN_AMT ELSE 0 END)/NULLIF(SUM(f.COMMIT_AMT),0) fin_v1_as_written,\n SUM(CASE WHEN b.ACCRUAL_STAT='N' AND f.FACILITY_STATUS='ACTIVE' THEN b.DRAWN_AMT ELSE 0 END)/NULLIF(SUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN f.COMMIT_AMT ELSE 0 END),0) fin_v1_active\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nWHERE b.SNAP_DT='2026-09-30'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 2.39
+    }
+  ],
+  "cypher_queries": 6,
+  "usage": {
+    "input": 8,
+    "output": 2953,
+    "cache_read": 12259,
+    "cache_write": 11007
+  },
+  "cost_usd": 0.1166,
+  "latency_s": 34.3
+}

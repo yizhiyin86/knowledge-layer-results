@@ -1,0 +1,44 @@
+{
+  "run_id": "eval_20261022T0005_r3",
+  "agent": "B",
+  "qid": "Q4",
+  "question": "Which Large Corporate clients with more than $25 million of active commitments have had no contact from any banker in the last 90 days?",
+  "role": "RM_MANAGER",
+  "effort": "high",
+  "answer": "**12 of the 38 Large Corporate clients with more than $25M of active commitments have had no logged contact from any banker in the last 90 days** (cut-off 2026-07-02; data as of 2026-09-30). That breaks the coverage standard (BR-COVER-01), which requires a contact at least every 90 days. Together these 12 clients hold **$352.2M of active commitments**. None of them has gone without contact entirely, but every gap is long: the most recent contact was 136 to 242 days ago.\n\n| CIF | Client | Primary RM (team) | Active commitments | Last contact (any banker) | Days since |\n|---|---|---|---|---|---|\n| 0000041178 | Dunmore Technologies LLC | Sawyer Rourke (C&I East) | $38.1M | 2026-02-17 | 225 |\n| 0000041205 | Eastvale Industries Co | Gray Lowry (C&I East) | $35.2M | 2026-04-26 | 157 |\n| 0000041251 | Glenhaven Systems Inc | Gray Lowry (C&I East) | $30.5M | 2026-05-17 | 136 |\n| 0000041099 | Stellmark-Orsa Ventures JV LLC | Dana Abbott (C&I Central) | $30.0M | 2026-04-15 | 168 |\n| 0000041313 | Ivorline Energy LLC | Jordan Thorne (C&I East) | $29.6M | 2026-03-08 | 206 |\n| 0000041128 | Alderwick Group Inc | Jordan Thorne (C&I East) | $28.4M | 2026-05-10 | 143 |\n| 0000041243 | Glenhaven Properties Inc | Sage Garrow (C&I East) | $28.2M | 2026-03-28 | 186 |\n| 0000041139 | Alderwick Health Inc | Harper Garrow (C&I East) | $27.9M | 2026-01-31 | **242** |\n| 0000041445 | Oakhurst Systems Inc | Marlow Nolan (C&I West) | $26.5M | 2026-03-06 | 208 |\n| 0000041615 | Valewood Technologies Inc | Dana Abbott (C&I Central) | $26.2M | 2026-03-24 | 190 |\n| 0000041053 | Brightwater Supply Co | Sage Garrow (C&I East) | $25.8M | 2026-03-23 | 191 |\n| 0000041037 | Brightwater Manufacturing LLC | Sawyer Rourke (C&I East) | $25.8M | 2026-03-14 | 200 |\n\n**Where the gaps are:**\n- **By region:** 9 of the 12 are on the C&I East team, 2 on C&I Central and 1 on C&I West.\n- **By RM:** Sawyer Rourke, Gray Lowry, Jordan Thorne, Sage Garrow and Dana Abbott each have two clients overdue. Harper Garrow and Marlow Nolan each have one.\n\n**Possible confusion:** \"Brightwater Manufacturing LLC\" appears under two client numbers. 0000041037 is overdue; 0000041050 was contacted on 2026-08-26. The cross-reference table lists them as two separate legal entities (LE-10040 and LE-10047), so the contact with one doesn't count for the other.\n\n**Sources and definitions**\n- **Rule:** BR-COVER-01 (coverage standard) from the knowledge layer.\n- **Tables:**\n  - `BANK_DEMO.CORE.CLIENT` and `REF.SEGMENT` for the client list, with segment = Large Corporate (`LC`). All clients are active.\n  - `LENDING.FACILITY` for commitments.\n  - `CORE.RM_CONTACT` for contacts.\n  - `CORE.RM_ROSTER` for RM names and teams.\n- **Active commitments:** the sum of committed amounts on active facilities only, per client number, with more than $25M required. Facilities that are paid off or charged off are excluded.\n- **\"Any banker\":** contacts by relationship managers and by treasury-management officers both count, as the rule requires.\n\n**Assumptions**\n- I measured the 90 days back from 2026-09-30, so any contact on or after 2026-07-02 counts.\n- I applied the test to each client number, as the rule is written, not to the wider company group (parent plus subsidiaries). Several flagged clients belong to groups where other members were contacted recently (for example Glenhaven, Brightwater, Valewood, Oakhurst and Alderwick). That might help when planning outreach, but it doesn't meet the standard for the flagged client.\n- No data-use restrictions applied to this request for the RM_MANAGER role.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "get_reference",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "WITH commits AS (\n  SELECT CIF_NO, SUM(COMMIT_AMT) commit_amt, COUNT(*) n_fac\n  FROM BANK_DEMO.LENDING.FACILITY WHERE FACILITY_STATUS='ACTIVE' GROUP BY CIF_NO),\nlast_any AS (\n  SELECT CIF_NO, MAX(CONTACT_DT) last_any,\n         MAX(CASE WHEN BANKER_ROLE='RM' THEN CONTACT_DT END) last_rm,\n         MAX(CASE WHEN BANKER_ROLE='TM_OFFICER' THEN CONTACT_DT END) last_tm\n  FROM BANK_DEMO.CORE.RM_CONTACT WHERE CONTACT_DT <= '2026-09-30' GROUP BY CIF_NO)\nSELECT c.CIF_NO, c.CLIENT_NM, c.CLIENT_STATUS, c.RM_ID, r.RM_NM, r.TEAM, r.REGION, cm.commit_amt, cm.n_fac,\n       l.last_any, l.last_rm, l.last_tm, DATEDIFF(day, l.last_any, '2026-09-30') days_since,\n       CASE WHEN l.last_any IS NULL OR l.last_any < DATEADD(day,-90,'2026-09-30'::date) THEN 'GAP' ELSE 'OK' END flag\nFROM BANK_DEMO.CORE.CLIENT c\nJOIN BANK_DEMO.REF.SEGMENT s ON s.SEGMENT_CD=c.SEGMENT_CD\nJOIN commits cm ON cm.CIF_NO=c.CIF_NO\nLEFT JOIN last_any l ON l.CIF_NO=c.CIF_NO\nLEFT JOIN BANK_DEMO.CORE.RM_ROSTER r ON r.RM_ID=c.RM_ID\nWHERE s.SEGMENT_NM='Large Corporate' AND cm.commit_amt > 25000000\nORDER BY flag, cm.commit_amt DESC",
+      "ok": true,
+      "rows": 38,
+      "error": null,
+      "elapsed_s": 3.72
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.SEGMENT_CD, s.SEGMENT_NM, c.CLIENT_STATUS, COUNT(*) n FROM BANK_DEMO.CORE.CLIENT c LEFT JOIN BANK_DEMO.REF.SEGMENT s ON s.SEGMENT_CD=c.SEGMENT_CD GROUP BY 1,2,3 ORDER BY 1",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.87
+    }
+  ],
+  "cypher_queries": 7,
+  "usage": {
+    "input": 10,
+    "output": 3575,
+    "cache_read": 27264,
+    "cache_write": 15571
+  },
+  "cost_usd": 0.1548,
+  "latency_s": 44.0
+}

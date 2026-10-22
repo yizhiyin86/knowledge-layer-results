@@ -1,0 +1,43 @@
+{
+  "run_id": "eval_20261022T0005_r3",
+  "agent": "B",
+  "qid": "Q9",
+  "question": "Which sources feed the non-performing loan ratio, and is it defined the same way in the Credit Risk Report and the Finance Report?",
+  "role": "FINANCE_ANALYST",
+  "effort": "high",
+  "answer": "**No. The two reports define the NPL ratio differently.** The Credit Risk Report uses the ratified definition. The Finance Report uses an older version that was never ratified (`npl_ratio_fin_v1`), with a narrower top line (numerator) and a bigger bottom line (denominator). At 2026-09-30 the ratified ratio is **0.71%**. The Finance version comes out at **0.48% or 1.52%**, depending on whether charged-off facilities are left out.\n\n**Where each one comes from**\n\n| | Credit Risk Report: `npl_ratio` (ratified, owned by Credit Risk) | Finance Report: `npl_ratio_fin_v1` (old version, never ratified) |\n|---|---|---|\n| Source tables | `BANK_DEMO.MART.CREDIT_QUALITY_MTH`, which is built from `LENDING.FACILITY` + `LENDING.FACILITY_BAL_MTHLY` for ACTIVE facilities | `BANK_DEMO.LENDING.FACILITY_BAL_MTHLY` (ACCRUAL_STAT, DRAWN_AMT) and `BANK_DEMO.LENDING.FACILITY` (COMMIT_AMT) |\n| Top line | Non-accrual drawn balance **+ loans 90+ days past due that still accrue interest** | Non-accrual drawn balance only |\n| Bottom line | Total **drawn** balance | Total **commitments** (drawn + undrawn) |\n| Which facilities | ACTIVE only | The stored formula has no status filter |\n| Matches the regulators' definition (FFIEC)? | Yes (non-accrual plus 90+ days past due and still accruing) | No |\n\n**Figures at 2026-09-30**\n\n- **Ratified NPL ratio: 0.71%.** That is $113.85M non-accrual plus $0 of 90+ days past due still accruing, over $15,987.5M drawn. I got the same totals from the mart and from the underlying facility tables.\n- **Finance version, active facilities only: 0.48%** ($113.85M \u00f7 $23,513.7M of commitments). It reads lower because the bottom line includes $7.5B of undrawn commitments.\n- **Finance version exactly as stored: 1.52%** ($363.11M \u00f7 $23,825.3M). With no ACTIVE filter it picks up $249.3M of non-accrual balances on charged-off facilities. Those facilities still have month-end rows while recoveries are pending, and the approved join rules say to exclude them.\n- Right now nothing is 90+ days past due and still accruing, so the different top line makes no difference to the numbers this month. It will matter whenever loans are 90+ days past due but still accruing.\n\n**What I'd do:** Report the ratified `npl_ratio` (0.71%) in the Finance Report as well, or clearly label the Finance figure as a different measure. Comparing 0.48% or 1.52% with the Credit Risk Report's 0.71% would mislead readers.\n\n**Sources and assumptions**\n- Knowledge layer: the ratified metric `npl_ratio` and its unratified variant `npl_ratio_fin_v1`, including each one's formula, source columns and which report uses it.\n- The definition of a non-performing loan (aligned with the FFIEC's non-accrual plus 90+ days past due and still accruing).\n- The approved join from facilities to delinquency (ACTIVE facilities, latest month end).\n- Tables: `BANK_DEMO.MART.CREDIT_QUALITY_MTH`, `LENDING.FACILITY` and `LENDING.FACILITY_BAL_MTHLY`.\n- Your FINANCE_ANALYST role had no restrictions or masked columns for this request.\n- Assumption: I couldn't confirm whether the Finance Report's actual extract filters to ACTIVE facilities, so I've shown the result both ways.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT SUM(NONACCRUAL_BAL_AMT) nonacc, SUM(DPD90_ACCRUING_BAL_AMT) dpd90, SUM(TOTAL_DRAWN_AMT) drawn, SUM(TOTAL_COMMIT_AMT) commit_amt,\nSUM(NONACCRUAL_BAL_AMT + DPD90_ACCRUING_BAL_AMT)/NULLIF(SUM(TOTAL_DRAWN_AMT),0) npl_ratio\nFROM BANK_DEMO.MART.CREDIT_QUALITY_MTH WHERE SNAP_DT='2026-09-30'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.66
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT SUM(CASE WHEN b.ACCRUAL_STAT='N' THEN b.DRAWN_AMT ELSE 0 END) nonacc_all,\nSUM(f.COMMIT_AMT) commit_all,\nSUM(CASE WHEN b.ACCRUAL_STAT='N' THEN b.DRAWN_AMT ELSE 0 END)/NULLIF(SUM(f.COMMIT_AMT),0) npl_fin_v1_asis,\nSUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' AND b.ACCRUAL_STAT='N' THEN b.DRAWN_AMT ELSE 0 END) nonacc_active,\nSUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN f.COMMIT_AMT ELSE 0 END) commit_active,\nSUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' AND b.ACCRUAL_STAT='N' THEN b.DRAWN_AMT ELSE 0 END)/NULLIF(SUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN f.COMMIT_AMT ELSE 0 END),0) npl_fin_v1_active,\nSUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN b.DRAWN_AMT ELSE 0 END) drawn_active,\nSUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' AND (b.ACCRUAL_STAT='N' OR (b.ACCRUAL_STAT='A' AND b.DPD>=90)) THEN b.DRAWN_AMT ELSE 0 END) npl_bal_active\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nWHERE b.SNAP_DT='2026-09-30'",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 3.41
+    }
+  ],
+  "cypher_queries": 6,
+  "usage": {
+    "input": 8,
+    "output": 2789,
+    "cache_read": 12259,
+    "cache_write": 10989
+  },
+  "cost_usd": 0.1132,
+  "latency_s": 37.3
+}

@@ -1,0 +1,65 @@
+{
+  "run_id": "eval_20261022T0005_r1",
+  "agent": "B",
+  "qid": "Q12",
+  "question": "After Halvorsen's downgrade to CCC+, which facilities have rating-trigger covenants that are now breached, what internal risk rating should the group move to, and who has to approve the credit response?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Answer:** Two facilities now breach their rating-trigger covenants: **F0000003 and F0000007**. The whole Halvorsen group should be re-rated to **internal rating 8 (Substandard)**. Any credit response must be approved by the **Senior Credit Committee**, which the Chief Risk Officer chairs.\n\n**1. Rating-trigger covenants against AGY1's CCC+ (rated 28 Sep 2026, negative outlook)**\n\nA trigger is breached only when the rating is *below* the threshold. A rating equal to the threshold is not a breach.\n\n| Facility | Borrower | Product | Commitment | Drawn / undrawn at 30 Sep | Trigger (AGY1) | Status |\n|---|---|---|---|---|---|---|\n| **F0000003** | Halvorsen Supply Co | Asset-based loan | $45.0M | $33.4M / $11.6M | B | **Breached** (CCC+ is 2 notches below) |\n| **F0000007** | Kestrel Tooling Inc | Term loan | $50.0M | $42.6M / $7.4M | B- | **Breached** (CCC+ is 1 notch below) |\n| F0000002 | Halvorsen Precision Parts Inc | Term loan | $35.0M | $30.5M / $4.5M | CCC | Not breached, but trips if AGY1 downgrades one more notch |\n\n- **What the breaches allow:** the bank can stop further drawings on F0000003 and F0000007. That puts about **$19.0M of undrawn commitment** at stake.\n- **Reporting:** both breaches must be reported to the approver.\n- **Other covenants:** the group's two financial covenants are still passing, based on the 30 Jun 2026 test:\n  - F0000001: minimum debt-service coverage 1.25x, tested at 1.31x.\n  - F0000004: maximum leverage 4.50x, tested at 4.10x.\n\n**2. Internal risk rating: move the group to 8 (Substandard)**\n\n- The ultimate parent, Halvorsen Industrial Group Inc, is rated CCC+ by AGY1 and B by AGY2 (negative outlook since 10 Jun 2026).\n- The group takes the lower of the two ratings, CCC+, which maps to internal rating 8.\n- That rating applies to every member of the group. All 10 active facilities (F0000001\u2013F0000010) are still rated 5 (Pass), a drop of three grades.\n- They must be re-rated within 5 business days of the 28 Sep rating action, which works out to about 5 Oct 2026.\n\n**3. Approver: Senior Credit Committee**\n\nGroup exposure is **$344.3M**: $308.0M of active loan commitments plus $36.3M of trading (capital-markets) exposure at 30 Sep. Each of these alone sends the decision to the committee:\n- **The rating is 8 or worse.**\n- **Exposure is above $250M.**\n- **Exposure is above the group's $300M internal limit.** It is at 114.8% of that limit, or $44.3M over.\n\nExposure is also 95.6% of the $360M legal lending limit, leaving only $15.7M of room. The committee pack should therefore include:\n- the two breaches and the option to stop drawings;\n- the re-rating to 8;\n- the limit excess, with no new extensions of credit.\n\n**Sources and definitions**\n- **Business rules from the knowledge layer:**\n  - BR-COV-01: how rating triggers are tested.\n  - BR-RATE-01: group rating is the lower of AGY1 and AGY2, plus the re-rating deadline.\n  - BR-DLA-01: who approves what.\n  - BR-EXP-01: how group exposure is calculated.\n  - BR-LLL-01: the legal lending limit.\n- **Reference data:** the rating scale, and the obligor group list (parent LE-10001, 24 members, $300M limit).\n- **Data queried:**\n  - Fabric: `dbo.RATING` (latest rating per agency) and `dbo.COVENANT`.\n  - Fabric: `dbo.CM_EXPOSURE`, latest snapshot 30 Sep, current exposure only.\n  - Snowflake: `LENDING.FACILITY` and `FACILITY_BAL_MTHLY` (30 Sep).\n- **Prior answer:** the past answer on Halvorsen group exposure, which these numbers match.\n\n**Assumptions**\n- The tool that traces the ownership tree returned an error, so I took the group's members from the governed obligor-group list instead.\n- All three rating triggers name AGY1 only, so AGY2's B rating doesn't affect the covenant test.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "get_reference",
+    "get_reference",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT r.ENTITY_ID, r.AGENCY, r.RATING, r.RATING_DT, r.OUTLOOK FROM dbo.RATING r WHERE r.ENTITY_ID='LE-10001' ORDER BY r.AGENCY, r.RATING_DT",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.18
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.COVENANT WHERE FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010','F0000011','F0000012') ORDER BY FACILITY_ID, COV_TYP",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 0.51
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.FACILITY_ID, f.CIF_NO, c.CLIENT_NM, f.PRODUCT_CD, f.FACILITY_STATUS, f.COMMIT_AMT, f.RISK_RATING, b.DRAWN_AMT, b.UNDRAWN_AMT\nFROM BANK_DEMO.LENDING.FACILITY f\nLEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nLEFT JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.FACILITY_ID=f.FACILITY_ID AND b.SNAP_DT='2026-09-30'\nWHERE f.CIF_NO IN ('0000041000','0000041002','0000041009','0000041007','0000041017','0000041014','0000041020','0000041022','0000041025','0000041027')\nORDER BY f.FACILITY_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.58
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SUM(CURRENT_EXPOSURE) AS cm_exp, MAX(SNAP_DT) AS snap FROM dbo.CM_EXPOSURE WHERE SNAP_DT=(SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AND ENTITY_ID IN ('LE-10001','LE-10022','LE-10004','LE-10003','LE-10002','LE-10023','LE-10008','LE-10006','LE-10005','LE-10011','LE-10012','LE-10009','LE-10024','LE-10010','LE-10016','LE-10026','LE-10014','LE-10015','LE-10017','LE-10025','LE-10018','LE-10019','LE-10020','LE-10021')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.38
+    }
+  ],
+  "cypher_queries": 12,
+  "usage": {
+    "input": 12,
+    "output": 3573,
+    "cache_read": 46332,
+    "cache_write": 17701
+  },
+  "cost_usd": 0.1693,
+  "latency_s": 43.8
+}

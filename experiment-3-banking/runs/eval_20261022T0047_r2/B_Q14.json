@@ -1,0 +1,62 @@
+{
+  "run_id": "eval_20261022T0047_r2",
+  "agent": "B",
+  "qid": "Q14",
+  "question": "What did we conclude last time about our exposure to the Halvorsen group, and has its external rating changed since?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Our exposure to the Halvorsen group is still $344.3M, $44.3M over the $300M house limit. Its external rating hasn't changed since our last review: AGY1 has the parent at CCC+ with a negative outlook (since 28 Sep 2026), and AGY2 has it at B. The data runs to 30 Sep 2026, so there has been no rating action after the 28 Sep downgrade that our last review was based on.**\n\n**What we concluded last time** (saved past answer, which I re-checked against the 30 Sep 2026 data):\n- **Total group exposure: $344.3M.** That is $308.0M of loan commitments (10 active facilities, 8 borrowers) plus $36.3M of current derivatives exposure, across the 24 entities Halvorsen controls. Today's figures match exactly.\n- **Limits:** 115% of the $300M house limit is used. Only $15.7M of room is left under the $360M legal lending limit.\n- **Rating:** the group rating is the lower of the two agencies, CCC+, which maps to **internal rating 8 (Substandard)**.\n- **Approval:** any credit action goes to the **Senior Credit Committee**. It qualifies three ways: exposure is over the house limit, it is above $250M, and the rating is 8.\n- **Guarantees:** only Northcastle Mutual's $30M guarantee (A+) on facility F0000008 reduces exposure. The parent guarantees from inside the group don't count, and the Brandvold guarantee expired on 30 Jun 2026.\n- **Covenants:** a related past answer found that two facilities have rating-trigger covenants breached by the downgrade.\n\n**Rating history for the parent, Halvorsen Industrial Group Inc (LE-10001)**\n| Agency | Previous | Current | Date of current rating |\n|---|---|---|---|\n| AGY1 | BB- (15 Apr 2025) | **CCC+, negative** | 28 Sep 2026 |\n| AGY2 | BB, stable (10 Feb 2025) | **B, negative** | 10 Jun 2026 |\n\nNo other group member has had a rating action since 1 Sep 2026.\n\n**Still open:** all 10 facilities are still carried at internal rating 5. Our rules require re-rating them to 8 within 5 business days of the 28 Sep rating action, which means by about 5 Oct 2026.\n\n**Sources and definitions**\n- **Prior conclusions:** the saved past answers on Halvorsen's group exposure and on its covenants and re-rating after the downgrade.\n- **Group membership:** `trace_obligor_group`, built from `dbo.OWNERSHIP` (current, controlled ownership links only, rule BR-CUST-01). The 40% Kito joint venture and Halvorsen Marine Logistics, sold on 30 Nov 2025, are excluded.\n- **Ratings:** `RISK_DEMO.dbo.RATING`, taking the latest rating date per agency. BR-RATE-01 sets the group rating as the lower of the two and maps it to the internal scale.\n- **Exposure:** `BANK_DEMO.LENDING.FACILITY` (commitments on active facilities) plus `RISK_DEMO.dbo.CM_EXPOSURE` (current exposure at the 30 Sep 2026 snapshot), per BR-EXP-01. Other rules applied: BR-GUAR-01 (guarantees), BR-LLL-01 (legal lending limit) and BR-DLA-01 (approval authority).\n- **Assumption:** \"since\" means since the 28 Sep 2026 downgrade our last review used. I can't see any rating action after 30 Sep 2026.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT ENTITY_ID, AGENCY, RATING, OUTLOOK, RATING_DT FROM dbo.RATING WHERE ENTITY_ID = 'LE-10001' ORDER BY AGENCY, RATING_DT",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.79
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT ENTITY_ID, AGENCY, RATING, OUTLOOK, RATING_DT FROM dbo.RATING WHERE ENTITY_ID IN ('LE-10001','LE-10002','LE-10003','LE-10004','LE-10022','LE-10023','LE-10005','LE-10006','LE-10008','LE-10009','LE-10010','LE-10011','LE-10012','LE-10024','LE-10014','LE-10015','LE-10016','LE-10026','LE-10017','LE-10018','LE-10025','LE-10019','LE-10020','LE-10021') AND RATING_DT >= '2026-09-01' ORDER BY RATING_DT",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.74
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) AS n_fac, SUM(COMMIT_AMT) AS commit_amt, MIN(RISK_RATING) AS min_rr, MAX(RISK_RATING) AS max_rr FROM BANK_DEMO.LENDING.FACILITY WHERE FACILITY_STATUS='ACTIVE' AND CIF_NO IN ('0000041000','0000041002','0000041007','0000041009','0000041014','0000041017','0000041020','0000041022','0000041025','0000041027')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 3.71
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MAX(SNAP_DT) AS snap, SUM(CURRENT_EXPOSURE) AS cur_exp FROM dbo.CM_EXPOSURE WHERE SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AND ENTITY_ID IN ('LE-10001','LE-10002','LE-10003','LE-10004','LE-10022','LE-10023','LE-10005','LE-10006','LE-10008','LE-10009','LE-10010','LE-10011','LE-10012','LE-10024','LE-10014','LE-10015','LE-10016','LE-10026','LE-10017','LE-10018','LE-10025','LE-10019','LE-10020','LE-10021')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.58
+    }
+  ],
+  "cypher_queries": 9,
+  "usage": {
+    "input": 10,
+    "output": 2819,
+    "cache_read": 38175,
+    "cache_write": 14850
+  },
+  "cost_usd": 0.1383,
+  "latency_s": 42.8
+}

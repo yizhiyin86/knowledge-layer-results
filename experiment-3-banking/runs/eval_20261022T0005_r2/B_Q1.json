@@ -1,0 +1,43 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "B",
+  "qid": "Q1",
+  "question": "What were our commercial deposit balances by client segment at each of the last six month-ends, and which segments are growing or shrinking?",
+  "role": "FINANCE_ANALYST",
+  "effort": "high",
+  "answer": "Total on-balance-sheet commercial deposits were **$23.58B at 2026-09-30**, almost unchanged from $23.61B at 2026-04-30 (\u2212$34M, \u22120.15%). The flat total hides a big shift between segments: **Middle Market is the only segment growing**, up $287M (+8.3%). **Commercial Real Estate is shrinking the fastest**, down $49M (\u22128.3%). Large Corporate, Public Sector and Business Banking are each down slightly, by 1\u20131.5%.\n\n**On-balance-sheet deposit balances by segment ($M)**\n\n| Segment | Apr-30 | May-31 | Jun-30 | Jul-31 | Aug-31 | Sep-30 | 6-mo change | % | Trend |\n|---|---|---|---|---|---|---|---|---|---|\n| Large Corporate | 16,949.6 | 16,938.5 | 16,753.2 | 16,773.5 | 16,721.1 | 16,710.5 | \u2212239.2 | \u22121.4% | Shrinking slightly |\n| Middle Market | 3,471.6 | 3,536.5 | 3,590.7 | 3,654.4 | 3,710.1 | 3,758.4 | **+286.8** | **+8.3%** | **Growing** |\n| Public Sector & Not-for-Profit | 2,387.9 | 2,388.0 | 2,383.7 | 2,360.9 | 2,360.7 | 2,358.1 | \u221229.9 | \u22121.3% | Shrinking slightly |\n| Commercial Real Estate | 585.4 | 576.9 | 567.5 | 556.6 | 545.8 | 536.6 | **\u221248.8** | **\u22128.3%** | **Shrinking** |\n| Business Banking | 218.2 | 217.2 | 216.7 | 216.7 | 215.8 | 215.0 | \u22123.2 | \u22121.5% | Shrinking slightly |\n| **Total** | **23,612.9** | **23,657.1** | **23,511.8** | **23,562.1** | **23,553.6** | **23,578.7** | **\u221234.2** | **\u22120.15%** | Flat |\n\n**What's behind each trend**\n- **Middle Market:** It grew every month, by $48\u201365M each time (about 1.4\u20131.9% a month). Its share of total deposits rose from 14.7% to 15.9%. The number of accounts with a balance fell slightly (812 to 801), so the growth comes from higher balances in existing accounts, not new accounts.\n- **Commercial Real Estate:** It fell every month, by $9\u201311M each time (about 1.5\u20132% a month), with no sign of slowing. It is small in dollars (2.3% of the total) but has the steepest decline.\n- **Large Corporate:** Most of its drop came in one month, June (\u2212$185M). It has been roughly flat since then (+$20M in July, then \u2212$52M and \u2212$11M). It is still 70.9% of the book, so a small percentage change here moves the total the most.\n- **Public Sector:** It stepped down once in July (\u2212$23M) and has otherwise been flat.\n- **Business Banking:** A slow, steady drift down (about \u22120.3% a month), with accounts falling from 714 to 704.\n\n**Sources and definitions**\n- I used the ratified metric `deposit_balance_on_bs` from the Deposits data product (owned by Finance). It counts only on-balance-sheet balances and excludes the SWP investment sweep, which is not a deposit.\n- The figures come from the ratified table `BANK_DEMO.MART.DEP_BAL_SEG_MTH`, with segment names from `BANK_DEMO.REF.SEGMENT`. I did not use the deprecated table `MART.DEP_BAL_SEG_MTH_OLD`.\n- I rebuilt the totals from account-level data (`DEPOSITS.DEP_BAL_MTHLY`, `DEP_ACCT` and `CORE.CLIENT`, leaving out SWP). They matched the mart to the cent for every segment and month.\n- The excluded sweep balances are large: about $7.95B for Large Corporate and $1.79B for Middle Market at Sep-30. The Middle Market sweep also rose, from $1.67B to $1.79B. These amounts are not included in the figures above.\n- Segments are each client's segment as recorded in the client master at month end.\n- \"Last six month-ends\" means 2026-04-30 to 2026-09-30.\n- I didn't need any restricted data, and no columns were masked.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT m.SNAP_DT, m.SEGMENT_CD, s.SEGMENT_NM, SUM(m.ON_BS_BAL_AMT) bal, SUM(m.ACCT_CNT) accts\nFROM BANK_DEMO.MART.DEP_BAL_SEG_MTH m LEFT JOIN BANK_DEMO.REF.SEGMENT s ON s.SEGMENT_CD=m.SEGMENT_CD\nWHERE m.SNAP_DT BETWEEN '2026-04-30' AND '2026-09-30'\nGROUP BY 1,2,3 ORDER BY 2,1",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 11.19
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT b.SNAP_DT, c.SEGMENT_CD, SUM(CASE WHEN a.PRODUCT_CD<>'SWP' THEN b.BAL_AMT ELSE 0 END) on_bs, SUM(CASE WHEN a.PRODUCT_CD='SWP' THEN b.BAL_AMT ELSE 0 END) swp\nFROM BANK_DEMO.DEPOSITS.DEP_BAL_MTHLY b JOIN BANK_DEMO.DEPOSITS.DEP_ACCT a ON a.ACCOUNT_ID=b.ACCOUNT_ID\nJOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=a.CIF_NO\nWHERE b.SNAP_DT BETWEEN '2026-04-30' AND '2026-09-30'\nGROUP BY 1,2 ORDER BY 2,1",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 1.95
+    }
+  ],
+  "cypher_queries": 5,
+  "usage": {
+    "input": 8,
+    "output": 3598,
+    "cache_read": 11072,
+    "cache_write": 11029
+  },
+  "cost_usd": 0.1294,
+  "latency_s": 50.5
+}

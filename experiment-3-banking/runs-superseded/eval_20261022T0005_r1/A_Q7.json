@@ -1,0 +1,121 @@
+{
+  "run_id": "eval_20261022T0005_r1",
+  "agent": "A",
+  "qid": "Q7",
+  "question": "Which of our commercial lending clients also have more than $5 million of capital-markets credit exposure, and what is each one's combined exposure?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Answer:** 14 commercial lending clients have more than $5 million of capital-markets credit exposure at 2026-09-30. Between them they have **$301.2M** of capital-markets exposure and **$244.9M** of lending commitments, for **$546.1M combined**. I counted a client as a lending client if it has at least one active credit facility.\n\n| # | Client (CIF) | Segment | Capital-markets exposure | Lending commitment (drawn + undrawn) | **Combined** | Combined, drawn loans only |\n|---|---|---|---|---|---|---|\n| 1 | Harrowgate Health Co (0000042498) | MM | $37.16M | $29.20M | **$66.36M** | $54.28M |\n| 2 | Pinecrest Valley Group LLC (0000041850) | MM | $38.83M | $20.45M | **$59.28M** | $56.02M |\n| 3 | Kestrel Automation Systems LLC (0000041022) | LC | $6.50M | $45.00M | **$51.50M** | $38.17M |\n| 4 | Pinecrest Properties Inc (0000042036) | MM | $32.04M | $13.85M | **$45.89M** | $43.18M |\n| 5 | Yarrowby Industries LLC (0000041642) | LC | $33.32M | $7.30M | **$40.62M** | $37.61M |\n| 6 | Foxmere Valley Holdings LLC (0000042083) | MM | $31.63M | $8.10M | **$39.73M** | $38.75M |\n| 7 | Calloway Health Inc (0000042648) | MM | $24.27M | $14.25M | **$38.52M** | $30.91M |\n| 8 | Ravensholm Systems Inc (0000041539) | LC | $33.62M | $2.60M | **$36.22M** | $35.37M |\n| 9 | Ivorline Services Inc (0000041974) | MM | $7.15M | $24.10M | **$31.25M** | $16.56M |\n| 10 | Blackridge Supply LLC (0000042657) | MM | $12.14M | $17.65M | **$29.79M** | $12.14M |\n| 11 | Dunmore Energy Inc (0000041168) | LC | $6.14M | $23.10M | **$29.24M** | $21.10M |\n| 12 | Pinecrest Distribution LLC (0000042037) | MM | $10.77M | $16.25M | **$27.02M** | $23.75M |\n| 13 | Kingsmere Ridge Group LLC (0000042233) | MM | $18.44M | $8.40M | **$26.84M** | $22.50M |\n| 14 | Hollinsby Engineering Co (0000042452) | MM | $9.17M | $14.65M | **$23.82M** | $19.30M |\n\n**Things to note:**\n- **Pinecrest family:** Pinecrest Valley Group, Pinecrest Properties and Pinecrest Distribution together come to $132.2M combined. Pinecrest Valley Group also has an equipment loan rated 7 on our internal scale. It is the largest capital-markets name on the list.\n- **Kingsmere Ridge Group** also has an active facility rated 7.\n- **Blackridge Supply** has drawn nothing on its $17.65M standby letter of credit, so on a drawn basis its exposure is almost all capital markets.\n- **Excluded charged-off facilities:** Pinecrest Valley Group (F9000048) and Kingsmere Ridge Group (F9000063) each have one. Both still show a drawn balance after charge-off ($1.34M and $6.25M), which looks like a data issue to raise with the lending data owners.\n- **Over $5M but not on the list:**\n  - Halvorsen Capital Services LLC (CIF 0000041002) has $22.0M of capital-markets exposure but no credit facilities, so it isn't a lending client.\n  - Five fund or broker entities have no client number, so I couldn't link them to lending clients: Moorcroft Global Opportunities Fund LP ($26.37M), Pinecrest Macro Fund LP ($19.05M), Moorcroft Macro Fund LP ($17.99M), Brandvold Macro Fund LP ($15.15M) and Hollinsby Capital Markets LLC ($8.29M). They share names with lending client families, so a review across ownership groups using the risk platform's ownership table could add to the Pinecrest, Moorcroft, Brandvold and Hollinsby totals.\n\n**Sources and definitions**\n- **Capital-markets exposure:** the risk platform's trade-level exposure table (dbo.CM_EXPOSURE), current exposure summed by entity at the 2026-09-30 snapshot. Current exposure is the positive mark-to-market value; notional amounts aren't counted. Each qualifying entity has a single trade, so netting doesn't change the figures. Potential future exposure and collateral aren't in the data, so they aren't included.\n- **Matching to clients:** the client reference on each risk-platform entity (dbo.LEGAL_ENTITY.CIF_REF) is unpadded, so I matched it to our client numbers with the leading zeros removed. Each client number appears only once.\n- **Lending exposure:** active facilities only (BANK_DEMO.LENDING.FACILITY), using drawn and undrawn balances at 2026-09-30 (LENDING.FACILITY_BAL_MTHLY). Drawn plus undrawn equals the commitment for every facility on the list.\n- **Combined exposure:** lending commitment plus capital-markets exposure. I also show a drawn-loans-only version. The standby letters of credit (off-balance-sheet) are counted at their full commitment.\n- **Segment codes:** decoded from the bank's segment reference table (REF.SEGMENT). LC is Large Corporate and MM is Middle Market.\n- **Scope:** I matched individual clients to individual entities and didn't roll exposure up to parent companies. I didn't use any financial-crime data.",
+  "stop_reason": "end_turn",
+  "model_turns": 8,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT SNAP_DT, PRODUCT, COUNT(*) n, COUNT(DISTINCT TRADE_ID) trades, SUM(CASE WHEN MTM_AMT<0 THEN 1 ELSE 0 END) neg_mtm, SUM(CASE WHEN CURRENT_EXPOSURE<>CASE WHEN MTM_AMT>0 THEN MTM_AMT ELSE 0 END THEN 1 ELSE 0 END) ce_mismatch, SUM(CURRENT_EXPOSURE) ce, MIN(CURRENT_EXPOSURE) mn, SUM(CASE WHEN ENTITY_ID IS NULL THEN 1 ELSE 0 END) null_ent FROM dbo.CM_EXPOSURE GROUP BY SNAP_DT, PRODUCT ORDER BY SNAP_DT, PRODUCT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.38
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.REF.PRODUCT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.35
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.CLIENT_STATUS, c.SEGMENT_CD, f.FACILITY_STATUS, COUNT(*) FROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO GROUP BY 1,2,3 ORDER BY 1,2,3",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.2
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.REF.SEGMENT",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 3.12
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT LEN(CIF_REF) l, COUNT(*) n, MIN(CIF_REF) mn, MAX(CIF_REF) mx, COUNT(DISTINCT CIF_REF) d FROM dbo.LEGAL_ENTITY GROUP BY LEN(CIF_REF)",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.17
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME IN ('OWNERSHIP','RATING','CREDIT_LIMIT','CPTY_HIER_LEGACY','CM_EXPOSURE_ARCHIVE','GUARANTEE') ORDER BY TABLE_NAME, ORDINAL_POSITION",
+      "ok": true,
+      "rows": 37,
+      "error": null,
+      "elapsed_s": 0.33
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT e.ENTITY_ID, le.ENTITY_NM, le.ENTITY_TYP, le.CIF_REF, COUNT(*) trades, SUM(e.NOTIONAL_AMT) notional, SUM(e.MTM_AMT) mtm, SUM(e.CURRENT_EXPOSURE) ce\nFROM dbo.CM_EXPOSURE e LEFT JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID=e.ENTITY_ID\nWHERE e.SNAP_DT='2026-09-30'\nGROUP BY e.ENTITY_ID, le.ENTITY_NM, le.ENTITY_TYP, le.CIF_REF\nHAVING SUM(e.CURRENT_EXPOSURE) > 5000000\nORDER BY ce DESC",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 1.2
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.CIF_NO, c.CLIENT_NM, c.SEGMENT_CD, c.CLIENT_STATUS,\n COUNT(DISTINCT f.FACILITY_ID) n_fac,\n COUNT(DISTINCT CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN f.FACILITY_ID END) n_active,\n SUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN f.COMMIT_AMT END) commit_active,\n SUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN b.DRAWN_AMT END) drawn,\n SUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN b.UNDRAWN_AMT END) undrawn,\n COUNT(CASE WHEN f.FACILITY_STATUS='ACTIVE' AND b.FACILITY_ID IS NULL THEN 1 END) active_no_bal,\n LISTAGG(DISTINCT f.FACILITY_STATUS, ',') statuses\nFROM BANK_DEMO.CORE.CLIENT c\nLEFT JOIN BANK_DEMO.LENDING.FACILITY f ON f.CIF_NO=c.CIF_NO\nLEFT JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.FACILITY_ID=f.FACILITY_ID AND b.SNAP_DT='2026-09-30'\nWHERE LTRIM(c.CIF_NO,'0') IN ('41850','42498','41539','41642','42036','42083','42648','41002','42233','42657','42037','42452','41974','41022','41168')\nGROUP BY 1,2,3,4 ORDER BY 1",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.65
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CIF_NO, CLIENT_NM, SEGMENT_CD FROM BANK_DEMO.CORE.CLIENT WHERE CLIENT_NM ILIKE '%Fund%' OR CLIENT_NM ILIKE '%Capital Markets%' OR CLIENT_NM ILIKE 'Moorcroft%' OR CLIENT_NM ILIKE 'Brandvold%' OR CLIENT_NM ILIKE 'Pinecrest Macro%' LIMIT 50",
+      "ok": true,
+      "rows": 48,
+      "error": null,
+      "elapsed_s": 1.06
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.CIF_NO, f.FACILITY_ID, f.PRODUCT_CD, f.FACILITY_STATUS, f.COMMIT_AMT, f.CHGOFF_DT, f.RISK_RATING, COUNT(b.FACILITY_ID) bal_rows, SUM(b.DRAWN_AMT) drawn, SUM(b.UNDRAWN_AMT) undrawn, MAX(b.DPD) dpd, MAX(b.ACCRUAL_STAT) acc\nFROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.FACILITY_ID=f.FACILITY_ID AND b.SNAP_DT='2026-09-30'\nWHERE LTRIM(f.CIF_NO,'0') IN ('41850','42498','41539','41642','42036','42083','42648','42233','42657','42037','42452','41974','41022','41168')\nGROUP BY 1,2,3,4,5,6,7 ORDER BY 1,2",
+      "ok": true,
+      "rows": 23,
+      "error": null,
+      "elapsed_s": 13.48
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 18,
+    "output": 9022,
+    "cache_read": 66820,
+    "cache_write": 20419
+  },
+  "cost_usd": 0.296,
+  "latency_s": 124.4
+}

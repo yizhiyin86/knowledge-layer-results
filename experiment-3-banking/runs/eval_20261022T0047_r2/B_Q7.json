@@ -1,0 +1,70 @@
+{
+  "run_id": "eval_20261022T0047_r2",
+  "agent": "B",
+  "qid": "Q7",
+  "question": "Which individual borrowers (each client CIF on its own, not rolled up to its group) also have more than $5 million of capital-markets credit exposure in their own name, and what is each one's combined exposure?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "I found 14 borrowers whose own capital-markets exposure is above $5M. Each has active loan commitments under its own CIF, and their combined exposure ranges from $23.8M to $66.4M. Data is as of 2026-09-30, measured one CIF at a time as you asked.\n\n| # | Client (CIF) | Segment | Active commitments | Capital-markets exposure | **Combined** |\n|---|---|---|---|---|---|\n| 1 | Harrowgate Health Co (0000042498) | Middle Market | $29.20M | $37.16M | **$66.36M** |\n| 2 | Pinecrest Valley Group LLC (0000041850) | Middle Market | $20.45M | $38.83M | **$59.28M** |\n| 3 | Kestrel Automation Systems LLC (0000041022) | Large Corporate | $45.00M | $6.50M | **$51.50M** |\n| 4 | Pinecrest Properties Inc (0000042036) | Middle Market | $13.85M | $32.04M | **$45.89M** |\n| 5 | Yarrowby Industries LLC (0000041642) | Large Corporate | $7.30M | $33.32M | **$40.62M** |\n| 6 | Foxmere Valley Holdings LLC (0000042083) | Middle Market | $8.10M | $31.63M | **$39.73M** |\n| 7 | Calloway Health Inc (0000042648) | Middle Market | $14.25M | $24.27M | **$38.52M** |\n| 8 | Ravensholm Systems Inc (0000041539) | Large Corporate | $2.60M | $33.62M | **$36.22M** |\n| 9 | Ivorline Services Inc (0000041974) | Middle Market | $24.10M | $7.15M | **$31.25M** |\n| 10 | Blackridge Supply LLC (0000042657) | Middle Market | $17.65M | $12.14M | **$29.79M** |\n| 11 | Dunmore Energy Inc (0000041168) | Large Corporate | $23.10M | $6.14M | **$29.24M** |\n| 12 | Pinecrest Distribution LLC (0000042037) | Middle Market | $16.25M | $10.77M | **$27.02M** |\n| 13 | Kingsmere Ridge Group LLC (0000042233) | Middle Market | $8.40M | $18.44M | **$26.84M** |\n| 14 | Hollinsby Engineering Co (0000042452) | Middle Market | $14.65M | $9.17M | **$23.82M** |\n| | **Total** | | **$244.90M** | **$301.18M** | **$546.08M** |\n\n**Left out:**\n- **Halvorsen Capital Services LLC (0000041002)** has $22.00M of capital-markets exposure, but it has no loan facilities at all, so it isn't a borrower.\n- **Five counterparties without a client number:** Moorcroft Global Opportunities Fund, Pinecrest Macro Fund, Moorcroft Macro Fund, Brandvold Macro Fund and Hollinsby Capital Markets LLC each have $8\u201326M of capital-markets exposure. None of them links to a client number, so none can be a borrower.\n\n**Caveat:** The bank's rule (BR-CUST-01) is that a single client number is never the customer for credit purposes; limits and approvals use the whole group (the parent plus every company it controls). This list is a per-entity screen only. Several of these borrowers look related by name, though I haven't checked ownership:\n- Pinecrest Valley Group, Pinecrest Properties, Pinecrest Distribution and the Pinecrest Macro Fund: $100.6M of capital-markets exposure together.\n- Hollinsby Engineering and Hollinsby Capital Markets.\n\nGroup totals could be much higher than the per-entity figures. I can trace these groups and compare them with their approved group limits if you'd like.\n\n**Sources and definitions:**\n- **Capital-markets exposure:** the ratified `cm_current_exposure` metric, i.e. the sum of `CURRENT_EXPOSURE` (the positive part of mark-to-market value, not notional) in `RISK_DEMO.dbo.CM_EXPOSURE` at the latest snapshot, 2026-09-30. I checked the sum against max(mark-to-market, 0).\n- **Commitments:** the committed amount (`COMMIT_AMT`) of active facilities in `BANK_DEMO.LENDING.FACILITY`, with client details from `BANK_DEMO.CORE.CLIENT`. All 14 clients are active.\n- **Combined exposure:** the group-exposure rule (BR-EXP-01, commitments plus capital-markets exposure) applied to one entity at a time instead of the whole group.\n- **Matching records:** each risk-system entity was linked to its client by padding the client number to 10 digits (approved cross-platform join path). No client number maps to more than one entity.\n- **Policy:** no restrictions applied to this role and purpose, and no deprecated tables were used.\n- **Assumptions:** \"More than $5M\" means strictly greater than $5M of capital-markets exposure. \"Borrower\" means a client with at least one active facility.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT e.ENTITY_ID, le.ENTITY_NM, le.CIF_REF, RIGHT('0000000000' + CAST(le.CIF_REF AS varchar(20)), 10) AS CIF_NO, SUM(e.CURRENT_EXPOSURE) AS CM_EXP, COUNT(*) AS n_trades, MAX(e.SNAP_DT) AS snap\nFROM dbo.CM_EXPOSURE e LEFT JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID = e.ENTITY_ID\nWHERE e.SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE)\nGROUP BY e.ENTITY_ID, le.ENTITY_NM, le.CIF_REF\nHAVING SUM(e.CURRENT_EXPOSURE) > 5000000\nORDER BY CM_EXP DESC",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 2.67
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SNAP_DT, COUNT(*) n, SUM(CURRENT_EXPOSURE) ce, SUM(CASE WHEN MTM_AMT>0 THEN MTM_AMT ELSE 0 END) chk FROM dbo.CM_EXPOSURE GROUP BY SNAP_DT ORDER BY SNAP_DT",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.59
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.CIF_NO, c.CLIENT_NM, c.CLIENT_STATUS, c.SEGMENT_CD,\n COUNT(f.FACILITY_ID) AS n_active_fac, COALESCE(SUM(f.COMMIT_AMT),0) AS active_commit\nFROM BANK_DEMO.CORE.CLIENT c\nLEFT JOIN BANK_DEMO.LENDING.FACILITY f ON f.CIF_NO = c.CIF_NO AND f.FACILITY_STATUS = 'ACTIVE'\nWHERE c.CIF_NO IN ('0000041850','0000042498','0000041539','0000041642','0000042036','0000042083','0000042648','0000041002','0000042233','0000042657','0000042037','0000042452','0000041974','0000041022','0000041168')\nGROUP BY 1,2,3,4 ORDER BY active_commit DESC",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.26
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT le.CIF_REF, COUNT(DISTINCT le.ENTITY_ID) n_ent, SUM(e.CURRENT_EXPOSURE) cm\nFROM dbo.LEGAL_ENTITY le LEFT JOIN dbo.CM_EXPOSURE e ON e.ENTITY_ID = le.ENTITY_ID AND e.SNAP_DT='2026-09-30'\nWHERE le.CIF_REF IN ('41850','42498','41539','41642','42036','42083','42648','41002','42233','42657','42037','42452','41974','41022','41168')\nGROUP BY le.CIF_REF HAVING COUNT(DISTINCT le.ENTITY_ID) > 1",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.93
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT FACILITY_STATUS, COUNT(*), SUM(COMMIT_AMT) FROM BANK_DEMO.LENDING.FACILITY WHERE CIF_NO='0000041002' GROUP BY 1",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.36
+    }
+  ],
+  "cypher_queries": 9,
+  "usage": {
+    "input": 12,
+    "output": 5005,
+    "cache_read": 52143,
+    "cache_write": 4201
+  },
+  "cost_usd": 0.1316,
+  "latency_s": 59.0
+}

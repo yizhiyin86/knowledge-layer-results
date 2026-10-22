@@ -1,0 +1,53 @@
+{
+  "run_id": "eval_20261022T0005_r1",
+  "agent": "B",
+  "qid": "Q14",
+  "question": "What did we conclude last time about our exposure to the Halvorsen group, and has its external rating changed since?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**No, the external rating hasn't changed since our last answer. The last rating action is still AGY1's downgrade on 28 Sep 2026, and our exposure figures still hold as of 30 Sep 2026: $344.3M against a $300M house limit.**\n\n**What we concluded last time** (saved answer *\"Halvorsen Industrial Group was just downgraded\u2026\"*)\n- **Total group exposure was $344.3M:** $308.0M of loan commitments across 10 active facilities, plus $36.3M of trading exposure from swaps and FX forwards. It covered 24 entities the parent controls.\n- **The group is over its house limit:** exposure is 114.8% of the $300M limit, or $44.3M over.\n- **It's close to the legal lending limit:** exposure is 95.6% of the $360M legal limit, leaving $15.7M of room.\n- **Rating:** the group takes the lower of the two agency ratings, which is CCC+. That maps to our internal rating 8 (Substandard), but all Halvorsen facilities were still rated 5, so they had to be re-rated.\n- **Approver:** any credit action goes to the Senior Credit Committee. That's required on three counts: rating 8, exposure above $250M, and exposure above the group limit.\n\n**Rating history for Halvorsen Industrial Group Inc (the parent)**\n\n| Agency | Prior rating | Current rating | Date | Outlook |\n|---|---|---|---|---|\n| AGY1 | BB- (15 Apr 2025) | **CCC+** | 28 Sep 2026 | Negative |\n| AGY2 | BB (10 Feb 2025) | **B** | 10 Jun 2026 | Negative |\n\n- There has been no rating action since 28 Sep 2026, for Halvorsen or anyone else in the ratings table, so our data has nothing newer. No Halvorsen subsidiary has its own rating.\n- The group rating is still CCC+, which means internal rating 8 (Substandard).\n\n**Quick re-check at 30 Sep 2026**\n- **Loans:** the same 10 facilities are active, with $308.0M committed.\n- **Trading exposure:** $36.3M across the group's entities.\n- **Limit:** still $300M.\n- So exposure is unchanged at $344.3M.\n\n**Re-rating is still to do:** all 10 facilities are still rated 5. The rule is to re-rate within 5 business days of the rating action, which makes the deadline about 5 Oct 2026. It isn't overdue yet, but it's still outstanding.\n\n**Sources and assumptions**\n- **Knowledge-layer items:** the saved answer above; rules BR-RATE-01 (rating mapping), BR-EXP-01 (group exposure), BR-LLL-01 (legal lending limit), BR-DLA-01 (who approves) and BR-CUST-01 (who counts as the customer); and the ratified metrics group_exposure and limit_utilization.\n- **Tables:** RISK_DEMO.dbo.RATING, CM_EXPOSURE (latest snapshot only), CREDIT_LIMIT and LEGAL_ENTITY; BANK_DEMO.LENDING.FACILITY (active facilities only).\n- **Group membership wasn't re-checked:** the tool that maps the group's ownership returned an error. I reused the 24 entities and 10 facility IDs from last time, so any facility or entity added to the group since then wouldn't show up here.\n- **\"Since\" means after 28 Sep 2026,** the last action in our previous answer. Our data runs only to 30 Sep 2026, so any later agency action isn't in it yet.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT r.ENTITY_ID, le.ENTITY_NM, r.AGENCY, r.RATING, r.RATING_DT, r.OUTLOOK FROM dbo.RATING r JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID=r.ENTITY_ID WHERE le.ENTITY_NM LIKE '%Halvorsen%' OR le.ENTITY_NM LIKE '%Kestrel%' ORDER BY r.ENTITY_ID, r.AGENCY, r.RATING_DT",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.89
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT (SELECT MAX(RATING_DT) FROM dbo.RATING) AS latest_rating_action_any_entity, (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AS cm_latest, (SELECT SUM(CURRENT_EXPOSURE) FROM dbo.CM_EXPOSURE WHERE SNAP_DT=(SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AND ENTITY_ID IN ('LE-10001','LE-10022','LE-10004','LE-10003','LE-10002','LE-10023','LE-10008','LE-10006','LE-10005','LE-10011','LE-10012','LE-10009','LE-10024','LE-10010','LE-10016','LE-10026','LE-10014','LE-10015','LE-10017','LE-10025','LE-10018','LE-10019','LE-10020','LE-10021')) AS cm_exp, (SELECT MAX(LIMIT_AMT) FROM dbo.CREDIT_LIMIT WHERE ULT_PARENT_ENTITY_ID='LE-10001') AS group_limit",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.53
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COUNT(*) n, SUM(COMMIT_AMT) commit_amt, MIN(RISK_RATING) min_rr, MAX(RISK_RATING) max_rr FROM BANK_DEMO.LENDING.FACILITY WHERE FACILITY_STATUS='ACTIVE' AND FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 3.31
+    }
+  ],
+  "cypher_queries": 8,
+  "usage": {
+    "input": 10,
+    "output": 2797,
+    "cache_read": 29577,
+    "cache_write": 14951
+  },
+  "cost_usd": 0.1367,
+  "latency_s": 37.6
+}

@@ -1,0 +1,61 @@
+{
+  "run_id": "eval_20261022T0035_r1",
+  "agent": "B",
+  "qid": "Q7",
+  "question": "Which individual borrowers (each client CIF on its own, not rolled up to its group) also have more than $5 million of capital-markets credit exposure in their own name, and what is each one's combined exposure?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "14 individual borrowers each have more than $5M of capital-markets exposure in their own name. Together they have **$546.1M** of combined exposure: $244.9M of active loan commitments plus $301.2M of capital-markets exposure, as of 30 Sep 2026.\n\n| # | CIF | Borrower | Seg | Active commitments | Capital-markets exposure | **Combined** |\n|---|---|---|---|---|---|---|\n| 1 | 0000042498 | Harrowgate Health Co | MM | $29.20M | $37.16M | **$66.36M** |\n| 2 | 0000041850 | Pinecrest Valley Group LLC | MM | $20.45M | $38.83M | **$59.28M** |\n| 3 | 0000041022 | Kestrel Automation Systems LLC | LC | $45.00M | $6.50M | **$51.50M** |\n| 4 | 0000042036 | Pinecrest Properties Inc | MM | $13.85M | $32.04M | **$45.89M** |\n| 5 | 0000041642 | Yarrowby Industries LLC | LC | $7.30M | $33.32M | **$40.62M** |\n| 6 | 0000042083 | Foxmere Valley Holdings LLC | MM | $8.10M | $31.63M | **$39.73M** |\n| 7 | 0000042648 | Calloway Health Inc | MM | $14.25M | $24.27M | **$38.52M** |\n| 8 | 0000041539 | Ravensholm Systems Inc | LC | $2.60M | $33.62M | **$36.22M** |\n| 9 | 0000041974 | Ivorline Services Inc | MM | $24.10M | $7.15M | **$31.25M** |\n| 10 | 0000042657 | Blackridge Supply LLC | MM | $17.65M | $12.14M | **$29.79M** |\n| 11 | 0000041168 | Dunmore Energy Inc | LC | $23.10M | $6.14M | **$29.24M** |\n| 12 | 0000042037 | Pinecrest Distribution LLC | MM | $16.25M | $10.77M | **$27.02M** |\n| 13 | 0000042233 | Kingsmere Ridge Group LLC | MM | $8.40M | $18.44M | **$26.84M** |\n| 14 | 0000042452 | Hollinsby Engineering Co | MM | $14.65M | $9.17M | **$23.82M** |\n\n**Left out on purpose:**\n- **Halvorsen Capital Services LLC (CIF 0000041002):** it has $22.0M of capital-markets exposure, but it has no loan facilities at all, so it isn't a borrower.\n- **Five counterparties with no client number:** Moorcroft Global Opportunities Fund LP ($26.37M), Pinecrest Macro Fund LP ($19.05M), Moorcroft Macro Fund LP ($17.99M), Brandvold Macro Fund LP ($15.15M) and Hollinsby Capital Markets LLC ($8.29M). They are each above $5M but aren't banking clients.\n\n**Don't use these numbers for credit decisions.** Under business rule BR-CUST-01, the customer for credit purposes is the whole obligor group (the parent plus every company it controls), never a single CIF. Limits, approval authority and lending-limit checks all apply at group level. The table above isn't a group view:\n- Several rows probably belong to the same group (the three Pinecrest companies, plus Pinecrest Macro Fund LP).\n- Other group members may have loans or trades below the $5M cutoff.\n\nI didn't check ownership. I can roll these up to group exposure and compare it with the approved limits if you need that.\n\n**Sources and definitions** (from the knowledge layer):\n- **Capital-markets exposure:** the ratified `cm_current_exposure` metric. It's the sum of CURRENT_EXPOSURE (mark-to-market value, floored at zero; not notional) in `RISK_DEMO.dbo.CM_EXPOSURE`, using only the latest snapshot (2026-09-30). The $5M test applies to each company's own trades.\n- **Active commitments:** committed amount of facilities with status ACTIVE in `BANK_DEMO.LENDING.FACILITY`, standby letters of credit included. Paid-off and charged-off facilities are left out, and drawn balances aren't counted. This follows rule BR-EXP-01, applied to one CIF instead of a group.\n- **Linking the two systems:** the approved path from `dbo.LEGAL_ENTITY.CIF_REF` to `CORE.CLIENT.CIF_NO`, padding the client number to 10 digits. Each client number maps to exactly one company, so nothing is double-counted.\n- **Assumption:** \"borrower\" means a client with at least one active facility. All 14 clients are ACTIVE.\n- No restricted tables were queried, and the deprecated tables (`CM_EXPOSURE_ARCHIVE`, `CPTY_HIER_LEGACY`) weren't used.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "WITH s AS (SELECT MAX(SNAP_DT) d FROM dbo.CM_EXPOSURE)\nSELECT e.ENTITY_ID, le.ENTITY_NM, le.CIF_REF, RIGHT('0000000000'+le.CIF_REF,10) CIF_NO, SUM(e.CURRENT_EXPOSURE) cm_exp, COUNT(*) trades, MAX(e.SNAP_DT) snap\nFROM dbo.CM_EXPOSURE e JOIN s ON e.SNAP_DT=s.d\nLEFT JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID=e.ENTITY_ID\nGROUP BY e.ENTITY_ID, le.ENTITY_NM, le.CIF_REF\nHAVING SUM(e.CURRENT_EXPOSURE) > 5000000\nORDER BY cm_exp DESC",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 1.5
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.CIF_NO, c.CLIENT_NM, c.CLIENT_STATUS, c.SEGMENT_CD,\n COUNT(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN 1 END) active_fac,\n COALESCE(SUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN f.COMMIT_AMT END),0) active_commit\nFROM BANK_DEMO.CORE.CLIENT c LEFT JOIN BANK_DEMO.LENDING.FACILITY f ON f.CIF_NO=c.CIF_NO\nWHERE c.CIF_NO IN ('0000041850','0000042498','0000041539','0000041642','0000042036','0000042083','0000042648','0000041002','0000042233','0000042657','0000042037','0000042452','0000041974','0000041022','0000041168')\nGROUP BY 1,2,3,4 ORDER BY active_commit DESC",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 8.09
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT CIF_REF, COUNT(*) n, STRING_AGG(ENTITY_ID, ',') ids FROM dbo.LEGAL_ENTITY WHERE CIF_REF IN ('41850','42498','41539','41642','42036','42083','42648','41002','42233','42657','42037','42452','41974','41022','41168') GROUP BY CIF_REF HAVING COUNT(*)>1",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.35
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CIF_NO, FACILITY_STATUS, COUNT(*), SUM(COMMIT_AMT) FROM BANK_DEMO.LENDING.FACILITY WHERE CIF_NO='0000041002' GROUP BY 1,2",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.3
+    }
+  ],
+  "cypher_queries": 8,
+  "usage": {
+    "input": 12,
+    "output": 4576,
+    "cache_read": 40356,
+    "cache_write": 14638
+  },
+  "cost_usd": 0.1728,
+  "latency_s": 56.3
+}

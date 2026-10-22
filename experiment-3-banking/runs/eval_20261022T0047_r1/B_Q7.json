@@ -1,0 +1,43 @@
+{
+  "run_id": "eval_20261022T0047_r1",
+  "agent": "B",
+  "qid": "Q7",
+  "question": "Which individual borrowers (each client CIF on its own, not rolled up to its group) also have more than $5 million of capital-markets credit exposure in their own name, and what is each one's combined exposure?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "14 individual borrowers have more than $5M of capital-markets credit exposure in their own name. Together they have **$546.1M** of combined exposure: $244.9M of active loan commitments plus $301.2M of capital-markets exposure. Each is measured on its own client number (CIF), not rolled up to its group.\n\n| # | CIF | Borrower | Active commitments | Capital-markets exposure | **Combined** |\n|---|---|---|---|---|---|\n| 1 | 0000042498 | Harrowgate Health Co | $29.20M (2 facilities) | $37.16M | **$66.36M** |\n| 2 | 0000041850 | Pinecrest Valley Group LLC | $20.45M (2) | $38.83M | **$59.28M** |\n| 3 | 0000041022 | Kestrel Automation Systems LLC | $45.00M (1) | $6.50M | **$51.50M** |\n| 4 | 0000042036 | Pinecrest Properties Inc | $13.85M (1) | $32.04M | **$45.89M** |\n| 5 | 0000041642 | Yarrowby Industries LLC | $7.30M (1) | $33.32M | **$40.62M** |\n| 6 | 0000042083 | Foxmere Valley Holdings LLC | $8.10M (1) | $31.63M | **$39.73M** |\n| 7 | 0000042648 | Calloway Health Inc | $14.25M (1) | $24.27M | **$38.52M** |\n| 8 | 0000041539 | Ravensholm Systems Inc | $2.60M (1) | $33.62M | **$36.22M** |\n| 9 | 0000041974 | Ivorline Services Inc | $24.10M (2) | $7.15M | **$31.25M** |\n| 10 | 0000042657 | Blackridge Supply LLC | $17.65M (1) | $12.14M | **$29.79M** |\n| 11 | 0000041168 | Dunmore Energy Inc | $23.10M (3) | $6.14M | **$29.24M** |\n| 12 | 0000042037 | Pinecrest Distribution LLC | $16.25M (1) | $10.77M | **$27.02M** |\n| 13 | 0000042233 | Kingsmere Ridge Group LLC | $8.40M (2) | $18.44M | **$26.84M** |\n| 14 | 0000042452 | Hollinsby Engineering Co | $14.65M (2) | $9.17M | **$23.82M** |\n\n**Excluded from the list:**\n- **Halvorsen Capital Services LLC (CIF 0000041002):** it has $22.0M of capital-markets exposure but no loan facilities, so it isn't a borrower.\n- **Five other counterparties over $5M with no client number:** Moorcroft Global Opportunities Fund LP ($26.37M), Pinecrest Macro Fund LP ($19.05M), Moorcroft Macro Fund LP ($17.99M), Brandvold Macro Fund LP ($15.15M) and Hollinsby Capital Markets LLC ($8.29M).\n\n**These figures don't measure risk at the customer level.** Under BR-CUST-01, the bank treats the obligor group as the customer, never a single CIF. Three of the borrowers appear to be in the same Pinecrest family: Pinecrest Valley Group, Pinecrest Properties and Pinecrest Distribution, $132.2M combined. Hollinsby Engineering may belong with Hollinsby Capital Markets LLC. I haven't checked whether they share a group. Before using these numbers against limits or for approvals, run a group check (`trace_obligor_group`) and use group exposure (BR-EXP-01).\n\n**Sources and definitions**\n- **Capital-markets exposure:** the ratified `cm_current_exposure` metric, i.e. the sum of current exposure (mark-to-market value floored at zero) in `RISK_DEMO.dbo.CM_EXPOSURE` at the latest snapshot, 2026-09-30. Notional amounts and earlier snapshots aren't counted. The $5M threshold applies to this figure alone.\n- **Loan commitments:** committed amount of ACTIVE facilities in `BANK_DEMO.LENDING.FACILITY`, consistent with BR-EXP-01. Paid-off and charged-off facilities are excluded, and drawn balances aren't used.\n- **Combined exposure:** active commitments plus capital-markets exposure for the same CIF only, with no group roll-up and no guarantee mitigation.\n- **Linking the two systems:** the risk system's client number (`dbo.LEGAL_ENTITY.CIF_REF`) was padded with leading zeros to 10 digits to match `BANK_DEMO.CORE.CLIENT.CIF_NO`, using the approved join path. All 14 borrowers are active clients.\n- **Data access:** the Credit Analyst role had full access to these tables with no masking, and no deprecated tables were used.\n- **Assumption:** a \"borrower\" is a client with at least one ACTIVE credit facility.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT e.ENTITY_ID, le.ENTITY_NM, le.CIF_REF, RIGHT('0000000000' + CAST(le.CIF_REF AS varchar(20)),10) AS CIF_NO, SUM(e.CURRENT_EXPOSURE) AS CM_EXP, COUNT(*) AS TRADES\nFROM dbo.CM_EXPOSURE e LEFT JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID = e.ENTITY_ID\nWHERE e.SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE)\nGROUP BY e.ENTITY_ID, le.ENTITY_NM, le.CIF_REF\nHAVING SUM(e.CURRENT_EXPOSURE) > 5000000\nORDER BY CM_EXP DESC",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 3.83
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.CIF_NO, c.CLIENT_NM, c.SEGMENT_CD, c.CLIENT_STATUS,\n COUNT_IF(f.FACILITY_STATUS='ACTIVE') AS ACTIVE_FACS,\n COALESCE(SUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN f.COMMIT_AMT END),0) AS ACTIVE_COMMIT,\n COUNT(f.FACILITY_ID) AS ALL_FACS\nFROM BANK_DEMO.CORE.CLIENT c LEFT JOIN BANK_DEMO.LENDING.FACILITY f ON f.CIF_NO=c.CIF_NO\nWHERE c.CIF_NO IN ('0000041850','0000042498','0000041539','0000041642','0000042036','0000042083','0000042648','0000041002','0000042233','0000042657','0000042037','0000042452','0000041974','0000041022','0000041168')\nGROUP BY 1,2,3,4 ORDER BY ACTIVE_COMMIT DESC",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 9.61
+    }
+  ],
+  "cypher_queries": 6,
+  "usage": {
+    "input": 10,
+    "output": 4148,
+    "cache_read": 26268,
+    "cache_write": 13764
+  },
+  "cost_usd": 0.1571,
+  "latency_s": 53.7
+}

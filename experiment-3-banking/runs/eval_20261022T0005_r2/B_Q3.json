@@ -1,0 +1,52 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "B",
+  "qid": "Q3",
+  "question": "For the C&I East team, what is each relationship manager's new-commitment production this quarter versus their goal?",
+  "role": "RM_MANAGER",
+  "effort": "high",
+  "answer": "**C&I East \u2014 new-commitment production vs. goal, Q3 2026 (Jul 1 \u2013 Sep 30, 2026)**\n\nThe team booked **$406.6M of new commitments against a $525.2M goal, which is 77.4% of goal and $118.6M short.** Two of the six RMs beat their goal. Almost all of the gap comes from the two RMs with the biggest goals.\n\n| RM | Name | Facilities booked | New commitments | Q3 goal | Attainment | Over / (under) goal |\n|---|---|---|---|---|---|---|\n| RM001 | Sage Garrow | 4 | $75.9M | $64.3M | **118.0%** | +$11.6M |\n| RM002 | Marlow Calder | 4 | $89.8M | $85.5M | **105.0%** | +$4.3M |\n| RM003 | Harper Garrow | 3 | $56.8M | $59.2M | 95.9% | ($2.4M) |\n| RM004 | Sawyer Rourke | 2 | $29.8M | $33.9M | 87.9% | ($4.1M) |\n| RM005 | Jordan Thorne | 4 | $85.7M | $150.4M | 56.9% | ($64.7M) |\n| RM006 | Gray Lowry | 4 | $68.6M | $131.9M | 52.0% | ($63.3M) |\n| **Team** | | **21** | **$406.6M** | **$525.2M** | **77.4%** | **($118.6M)** |\n\n**What stands out:**\n- Garrow and Calder are over goal. Harper Garrow and Rourke are close, within $5M combined.\n- Thorne and Lowry together are $128M short. That is more than the whole team's shortfall, because the over-goal RMs offset part of it. Their dollar volume is in line with their peers (Thorne's $85.7M is the second-highest on the team), so the low percentages come mostly from their goals being about twice everyone else's. When reviewing them, it's worth asking whether those goals were set right as well as looking at the volume.\n- All 21 facilities booked in Q3 were still active at quarter-end, so none were paid off or charged off. Counting all bookings or only active ones gives the same result.\n\n**Sources and definitions**\n- **Metric:** `new_commit_attainment` (ratified by Finance) = sum of `COMMIT_AMT` for facilities with `ORIG_DT` in the quarter, credited by `ORIG_RM_ID`, divided by `NEW_COMMIT_GOAL`.\n- **Tables (Client & Coverage product, ratified):**\n  - `BANK_DEMO.CORE.RM_ROSTER` (`TEAM = 'C&I East'`, 6 RMs covering Large Corporate (LC) clients in the East region)\n  - `BANK_DEMO.CORE.RM_GOAL` (`FQTR = '2026Q3'`)\n  - `BANK_DEMO.LENDING.FACILITY`\n- **Policy:** the goal table is only visible to RM managers and compensation analysts. Your RM_MANAGER role is allowed for this analysis, and no columns were masked.\n\n**Assumptions**\n- \"This quarter\" means fiscal 2026Q3, the only quarter in the goal table. I treated it as the calendar quarter July 1 \u2013 September 30, 2026, which ends on the 2026-09-30 data date.\n- Production is credited to the RM who booked each facility, not the client's current primary RM.\n- New production is measured as total committed amount at booking, drawn plus undrawn, not the drawn balance.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT TEAM, REGION, SEGMENT_CD, COUNT(*) n FROM BANK_DEMO.CORE.RM_ROSTER GROUP BY 1,2,3 ORDER BY 1",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 12.95
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT FQTR, COUNT(*) n, MIN(NEW_COMMIT_GOAL), MAX(NEW_COMMIT_GOAL) FROM BANK_DEMO.CORE.RM_GOAL GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.79
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH prod AS (\n  SELECT ORIG_RM_ID, COUNT(*) n_fac, SUM(COMMIT_AMT) new_commit,\n         SUM(CASE WHEN FACILITY_STATUS='ACTIVE' THEN COMMIT_AMT ELSE 0 END) active_commit,\n         COUNT_IF(FACILITY_STATUS<>'ACTIVE') n_not_active\n  FROM BANK_DEMO.LENDING.FACILITY\n  WHERE ORIG_DT BETWEEN '2026-07-01' AND '2026-09-30'\n  GROUP BY 1)\nSELECT r.RM_ID, r.RM_NM, r.HIRE_DT, g.NEW_COMMIT_GOAL, COALESCE(p.n_fac,0) n_fac, COALESCE(p.new_commit,0) new_commit,\n       p.active_commit, p.n_not_active,\n       COALESCE(p.new_commit,0)/NULLIF(g.NEW_COMMIT_GOAL,0) attainment\nFROM BANK_DEMO.CORE.RM_ROSTER r\nLEFT JOIN BANK_DEMO.CORE.RM_GOAL g ON g.RM_ID=r.RM_ID AND g.FQTR='2026Q3'\nLEFT JOIN prod p ON p.ORIG_RM_ID=r.RM_ID\nWHERE r.TEAM='C&I East'\nORDER BY attainment DESC",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 3.48
+    }
+  ],
+  "cypher_queries": 6,
+  "usage": {
+    "input": 10,
+    "output": 2570,
+    "cache_read": 22378,
+    "cache_write": 11360
+  },
+  "cost_usd": 0.1127,
+  "latency_s": 48.4
+}

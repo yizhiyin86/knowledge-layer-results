@@ -1,0 +1,167 @@
+{
+  "run_id": "eval_20261022T0005_r1",
+  "agent": "A",
+  "qid": "Q9",
+  "question": "Which sources feed the non-performing loan ratio, and is it defined the same way in the Credit Risk Report and the Finance Report?",
+  "role": "FINANCE_ANALYST",
+  "effort": "high",
+  "answer": "**Short answer:** I can trace where the NPL inputs come from, but I can't confirm whether the Credit Risk Report and the Finance Report define the ratio the same way. Neither platform holds those reports' definitions: no views, procedures, column comments or metric dictionary. Claiming they match, or differ, would be a guess. The data does show four choices that change the number a lot, and these are what you'd need to compare against each report's documented method.\n\n**Where the NPL inputs come from (Snowflake BANK_DEMO)**\n1. **LENDING.FACILITY**: facility master with product, commitment, status (ACTIVE / PAIDOFF / CHARGEDOFF), charge-off date and risk rating.\n2. **LENDING.FACILITY_BAL_MTHLY**: month-end drawn and undrawn balances, days past due and accrual status (A = accruing, N = nonaccrual).\n3. **MART.CREDIT_QUALITY_MTH**: a summary by product, built from tables 1 and 2 and limited to ACTIVE facilities. It holds commitment, drawn balance, 30+ days past due, 90+ days past due and still accruing, and nonaccrual balances. I rebuilt the September 2026 figures from the source tables and they match exactly, product by product.\n4. **REF.PRODUCT** (which products are on the balance sheet; standby letters of credit are not) and **REF.RISK_RATING** (grades 8\u201310 are Substandard, Doubtful and Loss).\n- The Fabric RISK_DEMO warehouse has no NPL inputs or definitions. It covers ratings, limits, exposure, guarantees and covenants only.\n- **SANDBOX.NPL_CALC_TEST** has an NPL % by product, but it has no description and no date, and it doesn't reconcile to any month in the summary table. For example, it shows commercial real estate at 3.63%; the summary table shows 0% for every month through August and 1.87% in September. I wouldn't treat it as a source for either report.\n\n**What the ratio comes to at 2026-09-30, depending on the definition**\n\n| Definition | NPL ratio |\n|---|---|\n| Nonaccrual + 90+ days past due and accruing, over drawn balances of on-balance-sheet loans, active facilities only | **0.713%** ($113.9M / $15,963.2M) |\n| Same, with standby letters of credit added to the drawn balance | 0.712% |\n| Same, over commitments instead of drawn balances | 0.546% ($113.9M / $20,852.0M) |\n| Charged-off facilities' leftover balances counted as non-performing | 2.24% ($363.1M / $16,212.5M) |\n| For contrast, 30+ days past due (a delinquency rate, not NPL) | 3.15% ($503.1M) |\n\n**Data issues that would make the two reports disagree**\n- **Charged-off loans still carry balances.** All 65 charged-off equipment-finance facilities, charged off between February and August 2026, still show $249.3M drawn at September 30. The summary table leaves them out. A report built on the raw tables without a status filter would more than triple the NPL ratio.\n- **Nonaccrual loans have passing risk grades.** All $113.9M of nonaccrual, six commercial real estate loans at 95\u2013120 days past due, sit at grades 3\u20135. A report that defines NPL by classified grades (8 and above) would show **0%** non-performing on active loans.\n- **No 90+ day accruing balances.** Every loan 90+ days past due is already on nonaccrual. So whether a report includes that bucket makes no difference right now, but it could later.\n- **Product scope.** Standby letters of credit are in the summary table but are off-balance-sheet. Including them barely moves the ratio today.\n\n**Next step:** get the written NPL definition from the owner of each report (Credit Risk and Finance), specifically the numerator, the denominator, the product scope and the charged-off treatment, and compare them against the table above. Separately, the leftover charged-off balances and the passing grades on nonaccrual loans should be raised with the data owners.\n\n**Sources and assumptions**\n- Snowflake BANK_DEMO tables: LENDING.FACILITY, LENDING.FACILITY_BAL_MTHLY, MART.CREDIT_QUALITY_MTH, REF.PRODUCT, REF.RISK_RATING, SANDBOX.NPL_CALC_TEST; information-schema metadata checked on both platforms.\n- Snapshot: 2026-09-30.\n- I used the standard NPL definition (nonaccrual plus 90+ days past due and still accruing, over gross loans) as the baseline. It is an assumption, not either report's confirmed method.",
+  "stop_reason": "end_turn",
+  "model_turns": 10,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT table_schema, table_name, table_type, comment FROM BANK_DEMO.INFORMATION_SCHEMA.TABLES WHERE table_schema <> 'INFORMATION_SCHEMA' ORDER BY 1,2",
+      "ok": true,
+      "rows": 21,
+      "error": null,
+      "elapsed_s": 2.26
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT 'RR' t, risk_rating::text a, rating_nm b, reg_class c, null d FROM BANK_DEMO.REF.RISK_RATING UNION ALL SELECT 'PR', product_cd, product_nm, product_family, on_bs_flg FROM BANK_DEMO.REF.PRODUCT",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 1.33
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT table_schema, table_name, column_name, comment FROM BANK_DEMO.INFORMATION_SCHEMA.COLUMNS WHERE comment IS NOT NULL AND table_schema <> 'INFORMATION_SCHEMA' ORDER BY 1,2",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 2.18
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES UNION ALL SELECT name, 'VIEW/PROC:'+type_desc FROM sys.objects WHERE type IN ('V','P','FN','IF','TF')",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Cannot resolve collation conflict between \"Latin1_General_CI_AS_KS_WS\" and \"Latin1_General_100_BIN2_UTF8\" in UNION ALL operator occurring in SELECT statement column 2. (451) (SQLExecDirectW)')",
+      "elapsed_s": 0.94
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.MART.CREDIT_QUALITY_MTH WHERE snap_dt='2026-09-30' ORDER BY product_cd",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 3.2
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.SANDBOX.NPL_CALC_TEST",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.05
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT name, type_desc FROM sys.objects WHERE type IN ('U','V','P','FN','IF','TF') ORDER BY type_desc, name",
+      "ok": true,
+      "rows": 22,
+      "error": null,
+      "elapsed_s": 0.87
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT o.name AS obj, c.name AS col, CAST(ep.value AS nvarchar(500)) AS descr FROM sys.extended_properties ep JOIN sys.objects o ON ep.major_id=o.object_id LEFT JOIN sys.columns c ON c.object_id=o.object_id AND c.column_id=ep.minor_id",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT snap_dt, product_cd, ROUND(100*nonaccrual_bal_amt/NULLIF(total_drawn_amt,0),2) na_pct, ROUND(100*(nonaccrual_bal_amt+dpd90_accruing_bal_amt)/NULLIF(total_drawn_amt,0),2) npl_pct, ROUND(100*dpd30_bal_amt/NULLIF(total_drawn_amt,0),2) dpd30_pct, ROUND(100*nonaccrual_bal_amt/NULLIF(total_commit_amt,0),2) na_commit_pct FROM BANK_DEMO.MART.CREDIT_QUALITY_MTH ORDER BY product_cd, snap_dt",
+      "ok": true,
+      "rows": 72,
+      "error": null,
+      "elapsed_s": 1.26
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.facility_status, b.accrual_stat, CASE WHEN b.dpd>=90 THEN '90+' WHEN b.dpd>=30 THEN '30-89' ELSE '<30' END dpd_b, f.risk_rating>=8 AS classified, COUNT(*) n, SUM(b.drawn_amt) drawn\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.facility_id=b.facility_id\nWHERE b.snap_dt='2026-09-30' GROUP BY 1,2,3,4 ORDER BY 1,2,3,4",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.59
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT facility_status, COUNT(*) n, COUNT(chgoff_dt) chgoff, COUNT(payoff_dt) payoff FROM BANK_DEMO.LENDING.FACILITY GROUP BY 1",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 3.31
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT DATE_TRUNC('month', f.chgoff_dt) chgoff_mth, COUNT(DISTINCT f.facility_id) n, SUM(IFF(b.snap_dt='2026-09-30', b.drawn_amt,0)) drawn_sep26, MIN(b.snap_dt) first_snap, MAX(b.snap_dt) last_snap\nFROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.facility_id=f.facility_id\nWHERE f.facility_status='CHARGEDOFF' GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 11.67
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.product_cd,\n SUM(IFF(f.facility_status='ACTIVE',b.drawn_amt,0)) drawn_active,\n SUM(IFF(f.facility_status='ACTIVE' AND b.accrual_stat='N',b.drawn_amt,0)) nonaccrual_active,\n SUM(IFF(f.facility_status='ACTIVE' AND b.accrual_stat='A' AND b.dpd>=90,b.drawn_amt,0)) dpd90acc_active,\n SUM(IFF(f.facility_status='ACTIVE' AND b.dpd>=30,b.drawn_amt,0)) dpd30_active,\n SUM(IFF(f.facility_status='ACTIVE' AND f.risk_rating>=8,b.drawn_amt,0)) classified_active,\n SUM(IFF(f.facility_status='CHARGEDOFF',b.drawn_amt,0)) drawn_chgoff\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.facility_id=b.facility_id\nWHERE b.snap_dt='2026-09-30' GROUP BY 1 ORDER BY 1",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.39
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH m AS (SELECT m.*, p.on_bs_flg FROM BANK_DEMO.MART.CREDIT_QUALITY_MTH m JOIN BANK_DEMO.REF.PRODUCT p USING(product_cd) WHERE snap_dt='2026-09-30')\nSELECT\n SUM(IFF(on_bs_flg='Y',total_drawn_amt,0)) drawn_onbs, SUM(total_drawn_amt) drawn_all,\n SUM(IFF(on_bs_flg='Y',total_commit_amt,0)) commit_onbs, SUM(total_commit_amt) commit_all,\n SUM(nonaccrual_bal_amt) nonaccrual, SUM(dpd90_accruing_bal_amt) dpd90acc, SUM(IFF(on_bs_flg='Y',dpd30_bal_amt,0)) dpd30_onbs,\n ROUND(100*SUM(nonaccrual_bal_amt+dpd90_accruing_bal_amt)/SUM(IFF(on_bs_flg='Y',total_drawn_amt,0)),3) npl_drawn_onbs,\n ROUND(100*SUM(nonaccrual_bal_amt+dpd90_accruing_bal_amt)/SUM(total_drawn_amt),3) npl_drawn_all,\n ROUND(100*SUM(nonaccrual_bal_amt+dpd90_accruing_bal_amt)/SUM(IFF(on_bs_flg='Y',total_commit_amt,0)),3) npl_commit_onbs,\n ROUND(100*SUM(IFF(on_bs_flg='Y',dpd30_bal_amt,0))/SUM(IFF(on_bs_flg='Y',total_drawn_amt,0)),3) dpd30_pct,\n ROUND(100*(SUM(nonaccrual_bal_amt)+249256000)/(SUM(IFF(on_bs_flg='Y',total_drawn_amt,0))+249256000),3) npl_incl_chgoff\nFROM m",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.18
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.facility_id, f.product_cd, f.risk_rating, b.dpd, b.accrual_stat, b.drawn_amt FROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f USING(facility_id) WHERE b.snap_dt='2026-09-30' AND f.facility_status='ACTIVE' AND b.accrual_stat='N'",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.13
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 22,
+    "output": 7573,
+    "cache_read": 95319,
+    "cache_write": 20498
+  },
+  "cost_usd": 0.2731,
+  "latency_s": 144.6
+}

@@ -1,0 +1,43 @@
+{
+  "run_id": "eval_20261022T0047_r3",
+  "agent": "B",
+  "qid": "Q7",
+  "question": "Which individual borrowers (each client CIF on its own, not rolled up to its group) also have more than $5 million of capital-markets credit exposure in their own name, and what is each one's combined exposure?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**14 individual borrowers** each have more than $5M of capital-markets credit exposure in their own name. Across those 14 CIFs, combined exposure is **$546.1M**: $244.9M of active loan commitments plus $301.2M of capital-markets exposure.\n\nEach CIF is counted on its own, not rolled up to its group, as you asked. Capital-markets exposure is taken from the latest month-end snapshot (2026-09-30).\n\n| # | CIF | Borrower | Segment | Active facilities | Active commitments | Capital-markets exposure | **Combined exposure** |\n|---|---|---|---|---|---|---|---|\n| 1 | 0000042498 | Harrowgate Health Co | MM | 2 | $29.20M | $37.16M | **$66.36M** |\n| 2 | 0000041850 | Pinecrest Valley Group LLC | MM | 2 | $20.45M | $38.83M | **$59.28M** |\n| 3 | 0000041022 | Kestrel Automation Systems LLC | LC | 1 | $45.00M | $6.50M | **$51.50M** |\n| 4 | 0000042036 | Pinecrest Properties Inc | MM | 1 | $13.85M | $32.04M | **$45.89M** |\n| 5 | 0000041642 | Yarrowby Industries LLC | LC | 1 | $7.30M | $33.32M | **$40.62M** |\n| 6 | 0000042083 | Foxmere Valley Holdings LLC | MM | 1 | $8.10M | $31.63M | **$39.73M** |\n| 7 | 0000042648 | Calloway Health Inc | MM | 1 | $14.25M | $24.27M | **$38.52M** |\n| 8 | 0000041539 | Ravensholm Systems Inc | LC | 1 | $2.60M | $33.62M | **$36.22M** |\n| 9 | 0000041974 | Ivorline Services Inc | MM | 2 | $24.10M | $7.15M | **$31.25M** |\n| 10 | 0000042657 | Blackridge Supply LLC | MM | 1 | $17.65M | $12.14M | **$29.79M** |\n| 11 | 0000041168 | Dunmore Energy Inc | LC | 3 | $23.10M | $6.14M | **$29.24M** |\n| 12 | 0000042037 | Pinecrest Distribution LLC | MM | 1 | $16.25M | $10.77M | **$27.02M** |\n| 13 | 0000042233 | Kingsmere Ridge Group LLC | MM | 2 | $8.40M | $18.44M | **$26.84M** |\n| 14 | 0000042452 | Hollinsby Engineering Co | MM | 2 | $14.65M | $9.17M | **$23.82M** |\n| | | **Total** | | | **$244.90M** | **$301.18M** | **$546.08M** |\n\n**Left out of the list:**\n- **Halvorsen Capital Services LLC** (CIF 0000041002) has $22.0M of capital-markets exposure, but it has no credit facilities, so it isn't a borrower.\n- **Five counterparties have more than $5M of capital-markets exposure but no bank client number:** Moorcroft Global Opportunities Fund LP ($26.37M), Pinecrest Macro Fund LP ($19.05M), Moorcroft Macro Fund LP ($17.99M), Brandvold Macro Fund LP ($15.15M) and Hollinsby Capital Markets LLC ($8.29M).\n\n**These single-CIF figures shouldn't be used for limits or approvals.** Under the bank's rule BR-CUST-01, a single CIF is never the customer on its own; the customer for credit purposes is the obligor group. Some names here probably belong to the same group: the three Pinecrest entities (#2, #4, #12) total $132.2M on their own. Hollinsby Engineering and Hollinsby Capital Markets LLC may also be one group. Group totals could be well above the per-CIF numbers. I haven't checked the ownership hierarchy, so these links are only suggested by the names. For limit, lending-limit or approval-authority purposes, the next step is to run the group trace on these names and use group exposure (BR-EXP-01).\n\n**Sources and definitions**\n- **Capital-markets exposure:** ratified metric `cm_current_exposure`. It is the sum of `RISK_DEMO.dbo.CM_EXPOSURE.CURRENT_EXPOSURE` (mark-to-market or zero, whichever is higher) at the latest snapshot. Notional isn't counted. The threshold is more than $5M per legal entity.\n- **Loan commitments:** `BANK_DEMO.LENDING.FACILITY.COMMIT_AMT`, active facilities only. Paid-off and charged-off facilities are excluded, and standby letters of credit are included, following BR-EXP-01.\n- **Combined exposure:** the BR-EXP-01 definition (commitments plus capital-markets exposure), applied to each CIF rather than the group, as you asked.\n- **Matching the two systems:** each risk-system entity's client number was padded to 10 digits to match `BANK_DEMO.CORE.CLIENT.CIF_NO`, using the approved \"LegalEntity to Client\" join path.\n- **Data used:** the ratified Counterparty Exposure and Client & Coverage data products. I didn't use the deprecated `CM_EXPOSURE_ARCHIVE` or `CPTY_HIER_LEGACY` tables. Your role (CREDIT_ANALYST) had no policy restrictions on these tables.\n\n**Assumptions**\n- A \"borrower\" means a client with at least one active credit facility.\n- Each legal entity maps to exactly one CIF. Exposure booked under other group members is not included in any row.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT e.ENTITY_ID, le.ENTITY_NM, le.CIF_REF, RIGHT('0000000000' + le.CIF_REF, 10) AS CIF_NO, SUM(e.CURRENT_EXPOSURE) AS CM_EXP, COUNT(*) AS TRADES\nFROM dbo.CM_EXPOSURE e LEFT JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID = e.ENTITY_ID\nWHERE e.SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE)\nGROUP BY e.ENTITY_ID, le.ENTITY_NM, le.CIF_REF\nHAVING SUM(e.CURRENT_EXPOSURE) > 5000000\nORDER BY CM_EXP DESC",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 1.91
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.CIF_NO, c.CLIENT_NM, c.SEGMENT_CD, c.CLIENT_STATUS,\n COUNT_IF(f.FACILITY_STATUS='ACTIVE') AS ACTIVE_FAC,\n COALESCE(SUM(IFF(f.FACILITY_STATUS='ACTIVE', f.COMMIT_AMT, 0)),0) AS ACTIVE_COMMIT,\n COUNT(f.FACILITY_ID) AS ALL_FAC\nFROM BANK_DEMO.CORE.CLIENT c LEFT JOIN BANK_DEMO.LENDING.FACILITY f ON f.CIF_NO = c.CIF_NO\nWHERE c.CIF_NO IN ('0000041850','0000042498','0000041539','0000041642','0000042036','0000042083','0000042648','0000041002','0000042233','0000042657','0000042037','0000042452','0000041974','0000041022','0000041168')\nGROUP BY 1,2,3,4 ORDER BY ACTIVE_COMMIT DESC",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 15.28
+    }
+  ],
+  "cypher_queries": 6,
+  "usage": {
+    "input": 10,
+    "output": 4676,
+    "cache_read": 37198,
+    "cache_write": 2851
+  },
+  "cost_usd": 0.1153,
+  "latency_s": 63.6
+}

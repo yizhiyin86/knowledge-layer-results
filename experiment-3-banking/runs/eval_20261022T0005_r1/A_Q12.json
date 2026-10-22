@@ -1,0 +1,192 @@
+{
+  "run_id": "eval_20261022T0005_r1",
+  "agent": "A",
+  "qid": "Q12",
+  "question": "After Halvorsen's downgrade to CCC+, which facilities have rating-trigger covenants that are now breached, what internal risk rating should the group move to, and who has to approve the credit response?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "I found two facilities whose rating-trigger covenants are now breached. The data can't tell us what the new internal risk rating should be or who has to approve the response. Neither platform holds a policy mapping agency ratings to internal grades, or a credit-approval authority table, so I haven't made either one up.\n\n**1. Rating-trigger covenants after the agency downgrade**\n\nAgency AGY1 downgraded Halvorsen Industrial Group Inc (LE-10001) from BB- to CCC+ on 2026-09-28, with a negative outlook. All the group's rating triggers are tied to AGY1.\n\n| Facility | Borrower | Product | Trigger floor (AGY1) | Commitment | Drawn 9/30/26 | Status |\n|---|---|---|---|---|---|---|\n| **F0000003** | Halvorsen Supply Co (CIF 41009) | ABL | B | $45.0M | $33.4M | **Breached**: CCC+ is below B. Guaranteed by Halvorsen Distribution Holdings (LE-10002), $45M |\n| **F0000007** | Kestrel Tooling Inc (CIF 41020) | Term loan | B- | $50.0M | $42.6M | **Breached**: CCC+ is below B-. Guaranteed by Halvorsen Industrial Group Inc (the downgraded parent), $50M |\n| F0000002 | Halvorsen Precision Parts (CIF 41007) | Term loan | CCC | $35.0M | $30.5M | **Not breached**, but one notch away. A further cut to CCC would breach it |\n\n- **Total breached:** $95.0M committed and $76.0M drawn. Both loans are current today (0 days past due, still accruing).\n- **Covenant records not updated:** none of these covenants has a recorded test result, so the system doesn't yet show the breaches.\n- **AGY2 rating:** the other agency still rates the parent B (June 2026, negative). It doesn't matter for these covenants because they reference AGY1 only.\n\n**2. Internal risk rating: the data can't answer this**\n- All 10 facilities in the group are rated **5 (Acceptable, Pass)**. The bank's scale is 6 Watch, 7 Special Mention, 8 Substandard, 9 Doubtful, 10 Loss.\n- A CCC+ parent with two breached triggers is hard to square with a Pass grade. But the specific new grade has to come from the bank's credit policy and the approver's judgement, not from me.\n\n**3. Who approves: the data can't answer this either**\n- The data holds no approval-authority table. You'll need the bank's credit approval rules (likely held by credit policy or the Chief Credit Officer's office).\n- Related point: the group's credit limit (LM0001) is **$300M**, due for review 2026-12-31. Loan commitments for the group already total **$308M**. Adding $36.3M of current derivatives exposure brings the total to about $344M, over the limit. The approver should probably see this alongside the covenant response.\n\n**Other things to check**\n- Six group facilities show maturity dates before 9/30/26 but are still marked ACTIVE: F0000001\u2013F0000006, including the breached F0000003. These may be extensions that were never recorded, so check them before any waiver or reset.\n- I didn't look at the financial-crime case table. It isn't relevant to this question, and a credit analyst shouldn't be using it.\n\n**Sources and definitions**\n- **Risk platform (Fabric):**\n  - Company list, current ownership links and agency ratings (latest AGY1 rating).\n  - Covenants: breached means the AGY1 rating is below the covenant floor.\n  - Guarantees, the group credit limit, and derivatives exposure at 9/30/26.\n- **Banking platform (Snowflake):** facility details (commitment, risk rating), 9/30/26 balances, the internal rating scale and the client list. Records were matched on client number (zero-padded on this platform).\n\n**Assumptions**\n- **Who counts as the group:** companies majority-controlled by Halvorsen Industrial Group Inc as of 9/30/26, which includes the Kestrel companies acquired in June 2025. I used the current ownership data rather than the old hierarchy table, which was last synced in Nov 2024. Two companies are excluded:\n  - Halvorsen Marine Logistics (F0000011, $60M), sold to Tidemark Shipping on 12/1/2025.\n  - Halvorsen-Kito JV (F0000012, $25M), only 40% owned and not controlled.\n  \n  Neither has a rating-trigger covenant.\n- **Rating order:** the standard order, B > B- > CCC+ > CCC.",
+  "stop_reason": "end_turn",
+  "model_turns": 14,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "describe_table",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.LEGAL_ENTITY WHERE ENTITY_NM LIKE '%Halvorsen%'",
+      "ok": true,
+      "rows": 19,
+      "error": null,
+      "elapsed_s": 0.98
+    },
+    {
+      "platform": "fabric",
+      "sql": "WITH h AS (\n SELECT CAST('LE-10001' AS varchar(20)) AS ENTITY_ID, CAST(NULL AS varchar(20)) AS PARENT, CAST(100.0 AS decimal(18,6)) AS OWN_PCT, CAST('Y' AS varchar(1)) AS CTRL, 0 AS LVL\n UNION ALL\n SELECT CAST(o.CHILD_ENTITY_ID AS varchar(20)), CAST(o.PARENT_ENTITY_ID AS varchar(20)), CAST(o.OWN_PCT AS decimal(18,6)), CAST(o.CONTROL_FLG AS varchar(1)), h.LVL+1\n FROM dbo.OWNERSHIP o JOIN h ON o.PARENT_ENTITY_ID = h.ENTITY_ID\n WHERE o.EFF_FROM <= '2026-09-30' AND o.EFF_TO > '2026-09-30' AND h.LVL < 10\n)\nSELECT h.*, e.ENTITY_NM, e.ENTITY_TYP, e.CIF_REF FROM h LEFT JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID=h.ENTITY_ID ORDER BY LVL, ENTITY_ID",
+      "ok": false,
+      "rows": null,
+      "error": "('42000', '[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Recursive CTEs are unsupported in this version of Synapse SQL. (8768) (SQLExecDirectW)')",
+      "elapsed_s": 1.65
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.OWNERSHIP WHERE CHILD_ENTITY_ID IN (SELECT ENTITY_ID FROM dbo.LEGAL_ENTITY WHERE ENTITY_NM LIKE '%Halvorsen%') OR PARENT_ENTITY_ID IN (SELECT ENTITY_ID FROM dbo.LEGAL_ENTITY WHERE ENTITY_NM LIKE '%Halvorsen%') ORDER BY PARENT_ENTITY_ID, CHILD_ENTITY_ID",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 0.43
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT e.*, o.PARENT_ENTITY_ID, o.CHILD_ENTITY_ID, o.EFF_FROM, o.EFF_TO FROM dbo.LEGAL_ENTITY e LEFT JOIN dbo.OWNERSHIP o ON o.PARENT_ENTITY_ID = e.ENTITY_ID OR o.CHILD_ENTITY_ID=e.ENTITY_ID WHERE e.ENTITY_ID IN ('LE-10015','LE-10029','LE-10013')",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.34
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.RATING WHERE ENTITY_ID IN (SELECT ENTITY_ID FROM dbo.LEGAL_ENTITY WHERE ENTITY_NM LIKE '%Halvorsen%' OR ENTITY_ID IN ('LE-10015')) ORDER BY ENTITY_ID, AGENCY, RATING_DT",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.38
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT o.*, e.ENTITY_NM, e.ENTITY_TYP, e.CIF_REF FROM dbo.OWNERSHIP o JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID=o.CHILD_ENTITY_ID WHERE o.PARENT_ENTITY_ID IN ('LE-10015','LE-10017','LE-10018','LE-10025','LE-10019','LE-10020','LE-10021','LE-10027','LE-10028') OR o.CHILD_ENTITY_ID IN ('LE-10017','LE-10018','LE-10025','LE-10019','LE-10020','LE-10021','LE-10027','LE-10028')",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.94
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT o.PARENT_ENTITY_ID, o.CHILD_ENTITY_ID, o.OWN_PCT, o.CONTROL_FLG, o.EFF_FROM, o.EFF_TO FROM dbo.OWNERSHIP o WHERE o.PARENT_ENTITY_ID BETWEEN 'LE-10001' AND 'LE-10031' OR o.CHILD_ENTITY_ID BETWEEN 'LE-10001' AND 'LE-10031' ORDER BY 1,2",
+      "ok": true,
+      "rows": 30,
+      "error": null,
+      "elapsed_s": 1.47
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.REF.RISK_RATING ORDER BY 1",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.15
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.FACILITY_ID, f.CIF_NO, c.CLIENT_NM, f.PRODUCT_CD, f.COMMIT_AMT, f.FACILITY_STATUS, f.MATURITY_DT, f.PAYOFF_DT, f.CHGOFF_DT, f.RISK_RATING, b.DRAWN_AMT_X\nFROM BANK_DEMO.LENDING.FACILITY f JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nLEFT JOIN (SELECT 1 AS DRAWN_AMT_X) b ON 1=0\nWHERE LTRIM(f.CIF_NO,'0') IN ('41000','41002','41005','41007','41009','41012','41014','41017','41020','41022','41025','41027')\nORDER BY f.CIF_NO, f.FACILITY_ID",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.28
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.COVENANT WHERE FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010','F0000011','F0000012') ORDER BY FACILITY_ID",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.19
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT COV_TYP, AGENCY, THRESHOLD_VAL, COUNT(*) n FROM dbo.COVENANT GROUP BY COV_TYP, AGENCY, THRESHOLD_VAL ORDER BY 1,2,3",
+      "ok": true,
+      "rows": 200,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT g.*, c.COVENANT_ID, c.COV_TYP, c.THRESHOLD_VAL, c.AGENCY FROM dbo.GUARANTEE g LEFT JOIN dbo.COVENANT c ON c.FACILITY_ID=g.FACILITY_ID\nWHERE g.GUARANTOR_ENTITY_ID BETWEEN 'LE-10001' AND 'LE-10029' OR g.FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010','F0000011','F0000012') ORDER BY g.FACILITY_ID",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.99
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.CREDIT_LIMIT WHERE ULT_PARENT_ENTITY_ID IN ('LE-10001','LE-10002','LE-10029')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.37
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT ENTITY_ID, PRODUCT, SUM(NOTIONAL_AMT) notional, SUM(CURRENT_EXPOSURE) ce FROM dbo.CM_EXPOSURE WHERE SNAP_DT='2026-09-30' AND ENTITY_ID BETWEEN 'LE-10001' AND 'LE-10029' GROUP BY ENTITY_ID, PRODUCT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 0.81
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT b.FACILITY_ID, b.SNAP_DT, b.DRAWN_AMT, b.UNDRAWN_AMT, b.DPD, b.ACCRUAL_STAT FROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b WHERE b.FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010','F0000011','F0000012') AND b.SNAP_DT='2026-09-30' ORDER BY 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 15.23
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT TABLE_SCHEMA, TABLE_NAME, COMMENT FROM BANK_DEMO.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA <> 'INFORMATION_SCHEMA' ORDER BY 1,2",
+      "ok": true,
+      "rows": 21,
+      "error": null,
+      "elapsed_s": 1.76
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.CIF_NO, c.CLIENT_NM, c.SEGMENT_CD, c.RM_ID, c.CLIENT_STATUS FROM BANK_DEMO.CORE.CLIENT c WHERE LTRIM(c.CIF_NO,'0') IN ('41000','41002','41005','41007','41009','41012','41014','41017','41020','41022','41025','41027','41029') OR c.CLIENT_NM ILIKE '%halvorsen%' OR c.CLIENT_NM ILIKE '%kestrel%' ORDER BY 1",
+      "ok": true,
+      "rows": 13,
+      "error": null,
+      "elapsed_s": 1.09
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 30,
+    "output": 9918,
+    "cache_read": 209382,
+    "cache_write": 35202
+  },
+  "cost_usd": 0.4164,
+  "latency_s": 159.7
+}

@@ -1,0 +1,97 @@
+{
+  "run_id": "eval_20261022T0035_r1",
+  "agent": "A",
+  "qid": "Q7",
+  "question": "Which individual borrowers (each client CIF on its own, not rolled up to its group) also have more than $5 million of capital-markets credit exposure in their own name, and what is each one's combined exposure?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Answer:** 14 client CIFs are borrowers with the bank and also have more than $5M of capital-markets current exposure booked to their own legal entity at 2026-09-30. Each one's combined exposure (lending commitment plus capital-markets exposure) is below. Together they come to about **$546.1M**: $244.9M of lending commitments and $301.2M of capital-markets exposure.\n\n| # | CIF | Borrower | Cap-mkts current exposure (product) | Active lending commitment (drawn + undrawn) | Drawn | **Combined exposure** |\n|---|---|---|---|---|---|---|\n| 1 | 0000042498 | Harrowgate Health Co | $37.16M | $29.20M (EQP, SBLC) | $17.12M | **$66.36M** |\n| 2 | 0000041850 | Pinecrest Valley Group LLC | $38.83M | $20.45M (EQP, TL) | $17.19M | **$59.28M** |\n| 3 | 0000041022 | Kestrel Automation Systems LLC | $6.50M | $45.00M (RLOC) | $31.67M | **$51.50M** |\n| 4 | 0000042036 | Pinecrest Properties Inc | $32.04M | $13.85M (EQP) | $11.14M | **$45.89M** |\n| 5 | 0000041642 | Yarrowby Industries LLC | $33.32M | $7.30M (ABL) | $4.29M | **$40.62M** |\n| 6 | 0000042083 | Foxmere Valley Holdings LLC | $31.63M | $8.10M (TL) | $7.12M | **$39.73M** |\n| 7 | 0000042648 | Calloway Health Inc | $24.27M | $14.25M (RLOC) | $6.64M | **$38.52M** |\n| 8 | 0000041539 | Ravensholm Systems Inc | $33.62M | $2.60M (ABL) | $1.75M | **$36.22M** |\n| 9 | 0000041974 | Ivorline Services Inc | $7.15M | $24.10M (TL, SBLC) | $9.41M | **$31.25M** |\n| 10 | 0000042657 | Blackridge Supply LLC | $12.14M | $17.65M (SBLC) | $0.00M | **$29.79M** |\n| 11 | 0000041168 | Dunmore Energy Inc | $6.14M | $23.10M (ABL, TL, RLOC) | $14.96M | **$29.24M** |\n| 12 | 0000042037 | Pinecrest Distribution LLC | $10.77M | $16.25M (EQP) | $12.98M | **$27.02M** |\n| 13 | 0000042233 | Kingsmere Ridge Group LLC | $18.44M | $8.40M (EQP, SBLC) | $4.06M | **$26.84M** |\n| 14 | 0000042452 | Hollinsby Engineering Co | $9.17M | $14.65M (RLOC, ABL) | $10.13M | **$23.82M** |\n\nIf you count only drawn balances on the lending side, the totals are lower. For example, Harrowgate falls to $54.3M and Blackridge to $12.1M.\n\n**Excluded, or worth a look:**\n- **Halvorsen Capital Services LLC (CIF 0000041002)** has $22.0M of capital-markets exposure but no credit facilities, so it isn't a borrower.\n- **Five entities with no CIF link** together hold $86.85M of capital-markets exposure: Moorcroft Global Opportunities Fund LP ($26.37M), Pinecrest Macro Fund LP ($19.05M), Moorcroft Macro Fund LP ($17.99M), Brandvold Macro Fund LP ($15.15M) and Hollinsby Capital Markets LLC ($8.29M). None matched a client CIF, so they can't be tied to a borrower.\n- **Charged-off facilities were left out:** Pinecrest Valley Group has one with $1.34M still on the books, and Kingsmere Ridge has one with $6.25M. Both are rated 10. Kingsmere also has an active facility rated 7, so both names have credit-quality concerns as well as high exposure.\n- **No group roll-up, as you asked.** Three of the names are Pinecrest entities (rows 2, 4 and 12) and stay on separate lines. They likely belong to one group, and together they would be much larger (about $132M).\n\n**Sources and definitions**\n- **Capital-markets exposure:** Fabric `dbo.CM_EXPOSURE`, 2026-09-30 snapshot, summed by entity. This is current exposure, equal to the trade's mark-to-market value when positive and zero otherwise; notional amounts were not used. Each qualifying entity had one trade.\n- **Linking entities to clients:** `dbo.LEGAL_ENTITY.CIF_REF` holds a 5-digit CIF, which I zero-padded to match the 10-digit `CIF_NO` in Snowflake `CORE.CLIENT`. Every matched CIF mapped to exactly one entity. Exposure is direct only: no ownership roll-up and no guarantees.\n- **Lending exposure:** Snowflake `LENDING.FACILITY` joined to `LENDING.FACILITY_BAL_MTHLY` at 2026-09-30. I used active facilities only, measured as drawn plus undrawn, which equals the commitment. SBLCs are included at full face value even though they're off-balance-sheet. Paid-off and charged-off facilities are excluded.\n- **Borrower:** a CIF with at least one active credit facility. All 14 clients are active.\n- **Threshold:** strictly more than $5,000,000 of capital-markets current exposure in the entity's own name.",
+  "stop_reason": "end_turn",
+  "model_turns": 8,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT * FROM BANK_DEMO.REF.PRODUCT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.32
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SNAP_DT, PRODUCT, COUNT(*) n, COUNT(DISTINCT TRADE_ID) trades, SUM(CURRENT_EXPOSURE) ce, SUM(CASE WHEN CURRENT_EXPOSURE<0 THEN 1 ELSE 0 END) neg, SUM(CASE WHEN CURRENT_EXPOSURE IS NULL THEN 1 ELSE 0 END) nulls, SUM(CASE WHEN CURRENT_EXPOSURE<>CASE WHEN MTM_AMT>0 THEN MTM_AMT ELSE 0 END THEN 1 ELSE 0 END) ce_ne_mtm FROM dbo.CM_EXPOSURE GROUP BY SNAP_DT, PRODUCT ORDER BY SNAP_DT, PRODUCT",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.47
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT ENTITY_TYP, COUNT(*) n, COUNT(CIF_REF) with_cif, COUNT(DISTINCT CIF_REF) dist_cif, MIN(LEN(CIF_REF)) minlen, MAX(LEN(CIF_REF)) maxlen, MIN(CIF_REF) mn, MAX(CIF_REF) mx FROM dbo.LEGAL_ENTITY GROUP BY ENTITY_TYP",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.39
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT e.ENTITY_ID, le.ENTITY_NM, le.ENTITY_TYP, le.CIF_REF, COUNT(*) trades, SUM(e.CURRENT_EXPOSURE) ce, SUM(e.NOTIONAL_AMT) notional,\n (SELECT COUNT(*) FROM dbo.LEGAL_ENTITY x WHERE x.CIF_REF = le.CIF_REF) cif_dups\nFROM dbo.CM_EXPOSURE e LEFT JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID = e.ENTITY_ID\nWHERE e.SNAP_DT='2026-09-30'\nGROUP BY e.ENTITY_ID, le.ENTITY_NM, le.ENTITY_TYP, le.CIF_REF\nHAVING SUM(e.CURRENT_EXPOSURE) > 5000000\nORDER BY ce DESC",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 1.47
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.FACILITY_STATUS, COUNT(*) n, COUNT(b.FACILITY_ID) with_sep_bal, SUM(b.DRAWN_AMT) drawn, SUM(b.UNDRAWN_AMT) undrawn, SUM(f.COMMIT_AMT) commit, MIN(f.PAYOFF_DT), MAX(f.CHGOFF_DT)\nFROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.FACILITY_ID=f.FACILITY_ID AND b.SNAP_DT='2026-09-30'\nGROUP BY 1",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.33
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT CIF_NO, CLIENT_NM, SEGMENT_CD, CLIENT_STATUS FROM BANK_DEMO.CORE.CLIENT WHERE LTRIM(CIF_NO,'0') IN ('41850','42498','41539','41642','42036','42083','42648','41002','42233','42657','42037','42452','41974','41022','41168') OR CLIENT_NM ILIKE '%Fund LP%' OR CLIENT_NM ILIKE '%Capital Markets%' ORDER BY CIF_NO",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 1.3
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.CIF_NO, f.FACILITY_STATUS, COUNT(*) n_fac, LISTAGG(f.PRODUCT_CD, ',') prods, SUM(f.COMMIT_AMT) commit, SUM(b.DRAWN_AMT) drawn, SUM(b.UNDRAWN_AMT) undrawn, MAX(f.RISK_RATING) max_rr\nFROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.FACILITY_ID=f.FACILITY_ID AND b.SNAP_DT='2026-09-30'\nWHERE f.CIF_NO IN ('0000041850','0000042498','0000041539','0000041642','0000042036','0000042083','0000042648','0000041002','0000042233','0000042657','0000042037','0000042452','0000041974','0000041022','0000041168')\nGROUP BY 1,2 ORDER BY 1,2",
+      "ok": true,
+      "rows": 16,
+      "error": null,
+      "elapsed_s": 1.54
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 18,
+    "output": 7592,
+    "cache_read": 65308,
+    "cache_write": 17442
+  },
+  "cost_usd": 0.2522,
+  "latency_s": 108.9
+}

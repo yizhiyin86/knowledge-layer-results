@@ -1,0 +1,64 @@
+{
+  "run_id": "eval_20261022T0005_r1",
+  "agent": "B",
+  "qid": "Q11",
+  "question": "For the Halvorsen group, which facilities are supported by guarantees from outside the group, and how much of the group's exposure is not covered by an eligible guarantee?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "Two Halvorsen facilities have guarantees from outside the group, but only one of those guarantees is eligible. That leaves **$314.3M of the group's $344.3M exposure (91.3%) not covered by an eligible guarantee**, as of 30 Sep 2026.\n\n**Facilities guaranteed by companies outside the group**\n\n| Facility | Borrower | Commitment | Guarantee | Guarantor | Amount | Status | Counts? |\n|---|---|---|---|---|---|---|---|\n| F0000008 (revolving line) | Kestrel Automation Systems LLC | $45.0M | G00003, surety | Northcastle Mutual Insurance Co (LE-10027) | $30.0M | Active until 14 Aug 2028 | **Yes, covers $30.0M** |\n| F0000004 (equipment finance) | Halvorsen Metalworks LLC | $30.0M | G00004, third party | Brandvold Industrial Partners LLC (LE-10028) | $20.0M | **Expired 30 Jun 2026** | No |\n\nNeither guarantor has any ownership link to the group. The Brandvold guarantee no longer covers anything, so all $30M of F0000004 is now uncovered. If we still rely on it, it should be renewed or replaced.\n\n**Guarantees from inside the group don't count:**\n- F0000003 (Halvorsen Supply Co, $45M): $45M guarantee from Halvorsen North America Holdings LLC, a group member.\n- F0000007 (Kestrel Tooling Inc, $50M): $50M guarantee from the parent, Halvorsen Industrial Group Inc.\n\nUnder the bank's guarantee rule these are the group guaranteeing itself, so they don't reduce exposure.\n\n**Exposure not covered**\n\n| | Amount |\n|---|---|\n| Active loan commitments (10 facilities) | $308.0M |\n| Derivatives and FX exposure at 30 Sep (7 trades) | $36.3M |\n| **Total group exposure** | **$344.3M** |\n| Less: eligible guarantee (G00003; the guarantee and commitment are $30M and $45M, so the smaller, $30M, counts) | \u2013$30.0M |\n| **Not covered** | **$314.3M** (91.3%) |\n\nOf the $314.3M, $278.0M is loan commitments and $36.3M is derivatives and FX exposure, none of which is guaranteed. Even after the $30M guarantee, the uncovered amount is above the group's $300M limit. A past answer reported the group at $344.3M, 114.8% of that limit; this answer's totals match it.\n\n**Sources and definitions**\n- **Group members:** the governed obligor-group reference (parent LE-10001, 24 entities, 10 client numbers, $300M limit). The ownership-tracing tool returned an error, so I used this list instead.\n- **Rules:**\n  - Group exposure is active loan commitments plus derivatives exposure on the latest snapshot only.\n  - A guarantee counts only if it is active, unexpired at 30 Sep 2026, and from a guarantor outside the group. The amount counted is the guarantee or the commitment, whichever is smaller.\n  - The customer is the whole group, not a single entity.\n- **Tables:** facilities from Snowflake (BANK_DEMO.LENDING.FACILITY); guarantees, legal entities, ownership and derivatives exposure from Fabric (RISK_DEMO.dbo.GUARANTEE, LEGAL_ENTITY, OWNERSHIP, CM_EXPOSURE). Guarantees were matched to facilities by facility ID.\n- **Assumptions:**\n  - Only loan facilities can carry guarantees; none of the derivatives exposure is guaranteed.\n  - No collateral or other credit protection is counted.\n  - No access restrictions applied to this request for a credit analyst.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "trace_obligor_group",
+    "get_reference",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.FACILITY_ID, f.CIF_NO, c.CLIENT_NM, f.PRODUCT_CD, f.FACILITY_STATUS, f.COMMIT_AMT\nFROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nWHERE f.CIF_NO IN ('0000041000','0000041002','0000041009','0000041007','0000041017','0000041014','0000041020','0000041022','0000041025','0000041027')\nORDER BY f.FACILITY_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 13.93
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT g.GUARANTEE_ID, g.FACILITY_ID, g.GUARANTOR_ENTITY_ID, le.ENTITY_NM AS GUARANTOR_NM, g.GUAR_AMT, g.GUAR_TYP, g.EFF_DT, g.EXP_DT, g.STATUS,\nCASE WHEN g.GUARANTOR_ENTITY_ID IN ('LE-10001','LE-10022','LE-10004','LE-10003','LE-10002','LE-10023','LE-10008','LE-10006','LE-10005','LE-10011','LE-10012','LE-10009','LE-10024','LE-10010','LE-10016','LE-10026','LE-10014','LE-10015','LE-10017','LE-10025','LE-10018','LE-10019','LE-10020','LE-10021') THEN 'Y' ELSE 'N' END AS IN_GROUP\nFROM dbo.GUARANTEE g LEFT JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID=g.GUARANTOR_ENTITY_ID\nWHERE g.FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010','F0000011','F0000012')\nORDER BY g.FACILITY_ID",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.61
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MAX(SNAP_DT) AS snap, SUM(CURRENT_EXPOSURE) AS cm_exp, COUNT(*) AS trades\nFROM dbo.CM_EXPOSURE\nWHERE SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE)\nAND ENTITY_ID IN ('LE-10001','LE-10022','LE-10004','LE-10003','LE-10002','LE-10023','LE-10008','LE-10006','LE-10005','LE-10011','LE-10012','LE-10009','LE-10024','LE-10010','LE-10016','LE-10026','LE-10014','LE-10015','LE-10017','LE-10025','LE-10018','LE-10019','LE-10020','LE-10021')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.28
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT o.CHILD_ENTITY_ID, o.PARENT_ENTITY_ID, o.OWN_PCT, o.CONTROL_FLG, o.EFF_FROM, o.EFF_TO\nFROM dbo.OWNERSHIP o WHERE o.CHILD_ENTITY_ID IN ('LE-10027','LE-10028') OR o.PARENT_ENTITY_ID IN ('LE-10027','LE-10028')",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 0.51
+    }
+  ],
+  "cypher_queries": 11,
+  "usage": {
+    "input": 12,
+    "output": 3496,
+    "cache_read": 45037,
+    "cache_write": 16575
+  },
+  "cost_usd": 0.1619,
+  "latency_s": 58.1
+}

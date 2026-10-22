@@ -1,0 +1,53 @@
+{
+  "run_id": "eval_20261022T0047_r3",
+  "agent": "B",
+  "qid": "Q6",
+  "question": "Halvorsen Industrial Group was just downgraded. What is our total credit exposure to the Halvorsen group across lending and capital markets, and which entities and facilities make it up?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Total credit exposure to the Halvorsen obligor group is $344.3M as of 2026-09-30.** That is $308.0M of active loan commitments plus $36.3M of capital-markets current exposure, spread across 24 entities the parent currently controls. The group is $44.3M (115%) over its $300M house limit and $15.7M below the $360M legal lending limit.\n\n**Rating impact:** AGY1 cut Halvorsen Industrial Group Inc to CCC+ (negative outlook) on 2026-09-28; AGY2 still has it at B. The rule uses the lower of the two, so the group maps to internal rating **8 (Substandard)**. All 10 facilities are still booked at rating 5 and must be re-rated within 5 business days.\n\n**Lending: active commitments (Snowflake)**\n\n| Facility | Borrower (entity) | Product | Commitment | Drawn 9/30 |\n|---|---|---|---|---|\n| F0000001 | Halvorsen Industrial Group Inc (LE-10001, parent) | Revolver | $40.0M | $17.0M |\n| F0000002 | Halvorsen Precision Parts Inc (LE-10009) | Term loan | $35.0M | $30.5M |\n| F0000003 | Halvorsen Supply Co (LE-10011) | Asset-based loan | $45.0M | $33.4M |\n| F0000004 | Halvorsen Metalworks LLC (LE-10014) | Equipment finance | $30.0M | $22.8M |\n| F0000005 | Halvorsen Metalworks LLC (LE-10014) | Revolver | $10.0M | $6.8M |\n| F0000006 | Halvorsen Freight LLC (LE-10016) | Revolver | $20.0M | $9.4M |\n| F0000007 | Kestrel Tooling Inc (LE-10017) | Term loan | $50.0M | $42.6M |\n| F0000008 | Kestrel Automation Systems LLC (LE-10019) | Revolver | $45.0M | $31.7M |\n| F0000009 | Kestrel Robotics LLC (LE-10020) | Equipment finance | $15.0M | $12.3M |\n| F0000010 | Kestrel Controls Real Estate SPV LLC (LE-10021) | Commercial real estate mortgage | $18.0M | $17.5M |\n| **Total** | | | **$308.0M** | $224.0M |\n\nAll of these loans are current: 0 days past due and accruing.\n\n**Capital markets: current exposure at the 2026-09-30 snapshot (Fabric)**\n- Halvorsen Capital Services LLC (LE-10004), interest rate swap: **$22.0M**. The trade's notional is $400M, but notional is not exposure. This entity has no loans, so lending data alone would miss it.\n- Kestrel Automation Systems LLC (LE-10019), interest rate swap: $6.5M\n- Halvorsen Freight LLC (LE-10016), FX forward: $4.0M\n- Halvorsen Supply Co (LE-10011), commodity swap: $3.8M\n- Three other member trades are out of the money (LE-10002, LE-10015 and LE-10025), so they count as $0.\n- **Total: $36.3M**\n\n**Excluded from the group, but report as related exposure ($87M)**\n- Halvorsen-Kito Components JV (40% stake, not controlled): $25.0M term loan plus $2.0M FX forward.\n- Halvorsen Marine Logistics (sold to Tidemark Shipping on 2025-11-30): $60.0M term loan, plus a swap currently worth $0. This loan is still booked under a Halvorsen-branded name.\n\n**Other points for the credit action**\n- **Guarantees:** Only the $30M guarantee from Northcastle Mutual (rated A+) on F0000008 actually reduces exposure. That brings net exposure to $314.3M, still over the limit. The parent's guarantee on F0000007 and the guarantee from Halvorsen North America Holdings on F0000003 come from inside the group, so they don't count. Brandvold's guarantee on F0000004 expired on 2026-06-30.\n- **Rating-trigger covenants (AGY1):** Assuming a trigger fires when the rating falls below its threshold:\n  - F0000007 ($50M, threshold B-) is **breached** by CCC+.\n  - F0000003 ($45M, threshold B) is **breached** by CCC+.\n  - F0000002 ($35M, threshold CCC) is not breached, with one notch of headroom left.\n- **Who must approve:** The rating of 8, exposure above $250M and the limit breach each require **Senior Credit Committee** approval on their own.\n- **Data issue:** F0000001\u2013F0000006 ($180M) are marked ACTIVE but have maturity dates before 2026-09-30, some as far back as 2024. They are counted as booked, but someone should confirm whether they were extended or renewed.\n\n**Sources and definitions**\n- Knowledge-layer rules: BR-CUST-01 (who the group includes), BR-EXP-01 (how exposure is measured), BR-GUAR-01 (which guarantees count), BR-RATE-01 (rating mapping), BR-LLL-01 (legal lending limit) and BR-DLA-01 (approval authority). Ratified metrics: group_exposure, cm_current_exposure and limit_utilization.\n- `trace_obligor_group` built the group from current, controlled links in `dbo.OWNERSHIP`. The deprecated hierarchy table `CPTY_HIER_LEGACY` was not used.\n- Tables: `BANK_DEMO.LENDING.FACILITY`, `FACILITY_BAL_MTHLY` and `CORE.CLIENT` (Snowflake); `RISK_DEMO.dbo.CM_EXPOSURE` (latest snapshot only), `CREDIT_LIMIT`, `GUARANTEE` and `COVENANT` (Fabric).\n- Exposure counts commitments, not drawn balances, and capital-markets exposure is max(mark-to-market, 0). The $344.3M is gross; guarantee relief is shown separately.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.FACILITY_ID, f.CIF_NO, c.CLIENT_NM, f.PRODUCT_CD, f.FACILITY_STATUS, f.COMMIT_AMT, f.RISK_RATING, f.MATURITY_DT, b.DRAWN_AMT, b.DPD, b.ACCRUAL_STAT\nFROM BANK_DEMO.LENDING.FACILITY f\nLEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO = f.CIF_NO\nLEFT JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.FACILITY_ID = f.FACILITY_ID AND b.SNAP_DT = '2026-09-30'\nWHERE f.CIF_NO IN ('0000041000','0000041002','0000041007','0000041009','0000041014','0000041017','0000041020','0000041022','0000041025','0000041027','0000041012','0000041005')\nORDER BY f.CIF_NO, f.FACILITY_ID",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 18.99
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT e.ENTITY_ID, e.PRODUCT, COUNT(*) AS trades, SUM(e.NOTIONAL_AMT) AS notional, SUM(e.MTM_AMT) AS mtm, SUM(e.CURRENT_EXPOSURE) AS cur_exp, MAX(e.SNAP_DT) AS snap\nFROM dbo.CM_EXPOSURE e\nWHERE e.SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE)\nAND e.ENTITY_ID IN ('LE-10001','LE-10002','LE-10003','LE-10004','LE-10022','LE-10023','LE-10005','LE-10006','LE-10008','LE-10009','LE-10010','LE-10011','LE-10012','LE-10024','LE-10014','LE-10015','LE-10016','LE-10026','LE-10017','LE-10018','LE-10025','LE-10019','LE-10020','LE-10021','LE-10013','LE-10007')\nGROUP BY e.ENTITY_ID, e.PRODUCT\nORDER BY e.ENTITY_ID, e.PRODUCT",
+      "ok": true,
+      "rows": 9,
+      "error": null,
+      "elapsed_s": 1.82
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT * FROM dbo.COVENANT WHERE FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010')",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.18
+    }
+  ],
+  "cypher_queries": 8,
+  "usage": {
+    "input": 10,
+    "output": 4099,
+    "cache_read": 45423,
+    "cache_write": 3661
+  },
+  "cost_usd": 0.1094,
+  "latency_s": 64.8
+}

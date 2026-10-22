@@ -1,0 +1,34 @@
+{
+  "run_id": "eval_20261022T0005_r1",
+  "agent": "B",
+  "qid": "Q4",
+  "question": "Which Large Corporate clients with more than $25 million of active commitments have had no contact from any banker in the last 90 days?",
+  "role": "RM_MANAGER",
+  "effort": "high",
+  "answer": "**Answer: 12 Large Corporate clients are over the 90-day contact limit.** Each has more than $25M of active commitments, and no banker (relationship manager or treasury-management officer) has logged a contact with any of them since 2026-07-02. Together they hold **$352.2M of active commitments**. Every one of them was last contacted between 136 and 242 days ago, so none is a borderline case.\n\n| # | Client (CIF) | Active commitments | Last contact (any banker) | Days since | Primary RM / team |\n|---|---|---|---|---|---|\n| 1 | Alderwick Health Inc (0000041139) | $27.9M | 2026-01-31 | 242 | Harper Garrow, C&I East |\n| 2 | Dunmore Technologies LLC (0000041178) | $38.1M | 2026-02-17 | 225 | Sawyer Rourke, C&I East |\n| 3 | Oakhurst Systems Inc (0000041445) | $26.5M | 2026-03-06 | 208 | Marlow Nolan, C&I West |\n| 4 | Ivorline Energy LLC (0000041313) | $29.6M | 2026-03-08 | 206 | Jordan Thorne, C&I East |\n| 5 | Brightwater Manufacturing LLC (0000041037) | $25.8M | 2026-03-14 | 200 | Sawyer Rourke, C&I East |\n| 6 | Brightwater Supply Co (0000041053) | $25.8M | 2026-03-23 | 191 | Sage Garrow, C&I East |\n| 7 | Valewood Technologies Inc (0000041615) | $26.2M | 2026-03-24 | 190 | Dana Abbott, C&I Central |\n| 8 | Glenhaven Properties Inc (0000041243) | $28.2M | 2026-03-28 | 186 | Sage Garrow, C&I East |\n| 9 | Stellmark-Orsa Ventures JV LLC (0000041099) | $30.0M | 2026-04-15 | 168 | Dana Abbott, C&I Central |\n| 10 | Eastvale Industries Co (0000041205) | $35.2M | 2026-04-26 | 157 | Gray Lowry, C&I East |\n| 11 | Alderwick Group Inc (0000041128) | $28.4M | 2026-05-10 | 143 | Jordan Thorne, C&I East |\n| 12 | Glenhaven Systems Inc (0000041251) | $30.5M | 2026-05-17 | 136 | Gray Lowry, C&I East |\n\n**Who to follow up with:** 9 of the 12 sit with the C&I East team. Sage Garrow, Sawyer Rourke, Jordan Thorne, Gray Lowry and Dana Abbott each have two overdue clients.\n\n**What else I found:**\n- **Coverage overall:** 38 Large Corporate clients have more than $25M of active commitments. The other 26 have a contact in the last 90 days.\n- **Treasury-management contacts matter:** four clients only pass because a treasury-management officer contacted them recently: Larkspire Technologies Co (both CIFs), Oakhurst Manufacturing and Brightwater Distribution. If only relationship-manager contacts counted, they would also be overdue.\n- **Possible duplicate client records:** \"Brightwater Manufacturing LLC\" is under two CIFs (0000041037, overdue, and 0000041050, contacted 35 days ago). \"Larkspire Technologies Co\" also has two CIFs. Please check with the client-data team whether these are the same company. If they are, the Brightwater one may not really be uncovered.\n\n**Sources and definitions**\n- **Rule used:** BR-COVER-01 says Large Corporate clients with more than $25M of active commitments need a documented contact from a banker (relationship manager or product partner) at least every 90 days.\n- **Tables (Client & Coverage and lending data, all ratified):**\n  - `CORE.CLIENT` for the client list, using the Large Corporate segment code (LC).\n  - `LENDING.FACILITY` for commitments: the sum of committed amounts on active facilities, per client.\n  - `CORE.RM_CONTACT` for each client's latest contact date, counting all banker roles, through the approved \"Client to ClientContact\" link.\n  - `CORE.RM_ROSTER` for the primary relationship manager and team.\n- **Assumptions:**\n  - Data is as of 2026-09-30, so the 90-day cutoff is 2026-07-02.\n  - The test is per client number (CIF), as the rule is written. It is not rolled up to the obligor group, which is the credit-exposure view.\n  - Capital-markets exposure is not counted toward the $25M, since the rule refers to commitments only.\n- **Policy:** the knowledge layer found no restricted tables or masked columns for the RM_MANAGER role for this analysis.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "WITH c AS (\n  SELECT c.CIF_NO, c.CLIENT_NM, c.RM_ID, c.CLIENT_STATUS, SUM(f.COMMIT_AMT) commit_amt, COUNT(*) n_fac\n  FROM BANK_DEMO.CORE.CLIENT c JOIN BANK_DEMO.LENDING.FACILITY f ON f.CIF_NO=c.CIF_NO AND f.FACILITY_STATUS='ACTIVE'\n  WHERE c.SEGMENT_CD='LC'\n  GROUP BY 1,2,3,4 HAVING SUM(f.COMMIT_AMT) > 25000000),\nk AS (SELECT CIF_NO, MAX(CONTACT_DT) last_any, MAX(IFF(BANKER_ROLE='RM',CONTACT_DT,NULL)) last_rm, MAX(IFF(BANKER_ROLE='TM_OFFICER',CONTACT_DT,NULL)) last_tm\n      FROM BANK_DEMO.CORE.RM_CONTACT WHERE CONTACT_DT <= '2026-09-30' GROUP BY 1)\nSELECT c.*, r.RM_NM, r.TEAM, r.REGION, k.last_any, k.last_rm, k.last_tm, DATEDIFF('day', k.last_any, '2026-09-30'::date) days_since,\n  IFF(k.last_any IS NULL OR k.last_any < DATEADD('day',-90,'2026-09-30'::date),'NO_CONTACT_90D','OK') flag\nFROM c LEFT JOIN k ON k.CIF_NO=c.CIF_NO LEFT JOIN BANK_DEMO.CORE.RM_ROSTER r ON r.RM_ID=c.RM_ID\nORDER BY flag, commit_amt DESC",
+      "ok": true,
+      "rows": 38,
+      "error": null,
+      "elapsed_s": 2.98
+    }
+  ],
+  "cypher_queries": 5,
+  "usage": {
+    "input": 8,
+    "output": 3084,
+    "cache_read": 12706,
+    "cache_write": 14500
+  },
+  "cost_usd": 0.1368,
+  "latency_s": 36.6
+}

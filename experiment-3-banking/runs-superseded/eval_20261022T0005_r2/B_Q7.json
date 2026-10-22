@@ -1,0 +1,71 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "B",
+  "qid": "Q7",
+  "question": "Which of our commercial lending clients also have more than $5 million of capital-markets credit exposure, and what is each one's combined exposure?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**14 commercial lending clients have more than $5 million of capital-markets credit exposure.** Their combined exposure is **$546.1M**: $244.9M of active loan commitments plus $301.2M of capital-markets exposure. All figures are as of 2026-09-30.\n\n| # | Client (CIF) | Segment | Active commitments | Capital-markets exposure (products) | **Combined** |\n|---|---|---|---|---|---|\n| 1 | Harrowgate Health Co (0000042498) | Middle Market | $29.20M | $37.16M (cross-currency swap) | **$66.36M** |\n| 2 | Pinecrest Valley Group LLC (0000041850) | Middle Market | $20.45M | $38.83M (FX forward) | **$59.28M** |\n| 3 | Kestrel Automation Systems LLC (0000041022) | Large Corporate | $45.00M | $6.50M (interest rate swap) | **$51.50M** |\n| 4 | Pinecrest Properties Inc (0000042036) | Middle Market | $13.85M | $32.04M (interest rate swap) | **$45.89M** |\n| 5 | Yarrowby Industries LLC (0000041642) | Large Corporate | $7.30M | $33.32M (interest rate swap) | **$40.62M** |\n| 6 | Foxmere Valley Holdings LLC (0000042083) | Middle Market | $8.10M | $31.63M (interest rate swap) | **$39.73M** |\n| 7 | Calloway Health Inc (0000042648) | Middle Market | $14.25M | $24.27M (cross-currency swap) | **$38.52M** |\n| 8 | Ravensholm Systems Inc (0000041539) | Large Corporate | $2.60M | $33.62M (cross-currency swap) | **$36.22M** |\n| 9 | Ivorline Services Inc (0000041974) | Middle Market | $24.10M | $7.15M (FX forward) | **$31.25M** |\n| 10 | Blackridge Supply LLC (0000042657) | Middle Market | $17.65M | $12.14M (interest rate swap) | **$29.79M** |\n| 11 | Dunmore Energy Inc (0000041168) | Large Corporate | $23.10M | $6.14M (FX forward) | **$29.24M** |\n| 12 | Pinecrest Distribution LLC (0000042037) | Middle Market | $16.25M | $10.77M (FX forward) | **$27.02M** |\n| 13 | Kingsmere Ridge Group LLC (0000042233) | Middle Market | $8.40M | $18.44M (FX forward) | **$26.84M** |\n| 14 | Hollinsby Engineering Co (0000042452) | Middle Market | $14.65M | $9.17M (FX forward) | **$23.82M** |\n\n**Points to note**\n- **Trading is larger than lending for 7 clients.** Ravensholm Systems has $33.6M of capital-markets exposure against only $2.6M of loans, about 13 times as much. Yarrowby, Foxmere and Kingsmere follow the same pattern, so a lending-only view understates these clients.\n- **Two clients are in the same group.** Pinecrest Properties Inc and Pinecrest Distribution LLC are both 100% owned and controlled by Pinecrest Properties LLC (CIF 0000042035). Together they come to $72.9M before counting the parent's own facilities, which I didn't query. The bank's credit policy (rule BR-CUST-01) treats the group, not the single client, as the customer for limits and approvals.\n- **Six counterparties have more than $5M of capital-markets exposure but are not lending clients, so I left them out:**\n  - Halvorsen Capital Services LLC ($22.0M) has a client number but no loans. It belongs to the Halvorsen Industrial Group, which has a $300M limit, and other members of that group do borrow.\n  - Five funds have no client number and no ownership links, so they are standalone trading counterparties. Together they hold $86.85M. They are Moorcroft Global Opportunities Fund, Pinecrest Macro Fund, Moorcroft Macro Fund, Brandvold Macro Fund and Hollinsby Capital Markets LLC. Two of them share names with our clients but are not owned by them.\n\n**Sources and definitions**\n- **Capital-markets exposure:** the approved measure `cm_current_exposure`, from the trade-level capital-markets exposure table on the risk platform. It counts only positive mark-to-market values at the latest month-end. It never uses notional amounts and never adds across months; the table also holds July and August.\n- **Lending:** active loan commitments (drawn plus undrawn) from the Snowflake facilities table. Paid-off and charged-off facilities are excluded; this dropped one facility each at Pinecrest Valley Group and Kingsmere Ridge.\n- **Combined exposure:** loan commitments plus capital-markets exposure, following the bank's exposure rule (BR-EXP-01).\n- **Matching the two platforms:** the client number in the risk platform's legal-entity table was padded with leading zeros to 10 digits to match Snowflake. I used parent\u2013child ownership records to check group links, and avoided the deprecated tables (the old hierarchy table and the archived exposure table).\n\n**Assumptions**\n- \"Client\" means a single client number that has at least one active loan.\n- The $5M test applies to each client's own capital-markets exposure, not the group total.\n\nI can also run this at the group level, adding up all controlled members and comparing each group with its approved limit.",
+  "stop_reason": "end_turn",
+  "model_turns": 7,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_reference",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT e.ENTITY_ID, le.CIF_REF, SUM(e.CURRENT_EXPOSURE) ce, SUM(e.NOTIONAL_AMT) notl, COUNT(*) n\nFROM dbo.CM_EXPOSURE e LEFT JOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID=e.ENTITY_ID\nWHERE e.SNAP_DT=(SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE)\nGROUP BY e.ENTITY_ID, le.CIF_REF ORDER BY ce DESC",
+      "ok": true,
+      "rows": 200,
+      "error": null,
+      "elapsed_s": 1.3
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT le.*, x.ce, x.prods FROM (\nSELECT e.ENTITY_ID, SUM(e.CURRENT_EXPOSURE) ce, STRING_AGG(e.PRODUCT, ',') prods\nFROM dbo.CM_EXPOSURE e WHERE e.SNAP_DT=(SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE)\nGROUP BY e.ENTITY_ID HAVING SUM(e.CURRENT_EXPOSURE)>5000000) x\nJOIN dbo.LEGAL_ENTITY le ON le.ENTITY_ID=x.ENTITY_ID ORDER BY x.ce DESC",
+      "ok": true,
+      "rows": 20,
+      "error": null,
+      "elapsed_s": 1.77
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SNAP_DT, COUNT(*) n, SUM(CURRENT_EXPOSURE) ce FROM dbo.CM_EXPOSURE GROUP BY SNAP_DT ORDER BY SNAP_DT",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 0.52
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT c.CIF_NO, c.CLIENT_NM, c.SEGMENT_CD, c.CLIENT_STATUS,\n SUM(CASE WHEN f.FACILITY_STATUS='ACTIVE' THEN f.COMMIT_AMT ELSE 0 END) active_commit,\n COUNT_IF(f.FACILITY_STATUS='ACTIVE') n_active, COUNT(f.FACILITY_ID) n_all\nFROM BANK_DEMO.CORE.CLIENT c LEFT JOIN BANK_DEMO.LENDING.FACILITY f ON f.CIF_NO=c.CIF_NO\nWHERE c.CIF_NO IN (SELECT LPAD(v,10,'0') FROM (SELECT column1 v FROM VALUES ('41850'),('42498'),('41539'),('41642'),('42036'),('42083'),('42648'),('41002'),('42233'),('42657'),('42037'),('42452'),('41974'),('41022'),('41168')))\nGROUP BY 1,2,3,4 ORDER BY 1",
+      "ok": true,
+      "rows": 15,
+      "error": null,
+      "elapsed_s": 9.8
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT o.CHILD_ENTITY_ID, c.ENTITY_NM child_nm, o.PARENT_ENTITY_ID, p.ENTITY_NM parent_nm, p.CIF_REF parent_cif, o.OWN_PCT, o.CONTROL_FLG, o.EFF_FROM, o.EFF_TO\nFROM dbo.OWNERSHIP o JOIN dbo.LEGAL_ENTITY c ON c.ENTITY_ID=o.CHILD_ENTITY_ID JOIN dbo.LEGAL_ENTITY p ON p.ENTITY_ID=o.PARENT_ENTITY_ID\nWHERE o.CHILD_ENTITY_ID IN ('LE-11788','LE-11789','LE-11790','LE-11791','LE-11792','LE-10597','LE-10701','LE-10702','LE-10944','LE-10727','LE-10822')\n OR o.PARENT_ENTITY_ID IN ('LE-11788','LE-11789','LE-11790','LE-11791','LE-11792')",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.99
+    }
+  ],
+  "cypher_queries": 10,
+  "usage": {
+    "input": 16,
+    "output": 7059,
+    "cache_read": 113249,
+    "cache_write": 30410
+  },
+  "cost_usd": 0.3159,
+  "latency_s": 85.7
+}

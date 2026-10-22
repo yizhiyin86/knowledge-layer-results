@@ -1,0 +1,53 @@
+{
+  "run_id": "eval_20261022T0047_r3",
+  "agent": "B",
+  "qid": "Q11",
+  "question": "For the Halvorsen group, which facilities are supported by guarantees from outside the group, and how much of the group's exposure is not covered by an eligible guarantee?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Answer:** Two Halvorsen facilities have guarantees from outside the group, and only one of those guarantees is still valid. Of the group's **$344.3M** exposure, **$314.3M (91.3%) is not covered by a valid guarantee**. Only $30.0M is covered.\n\n**Guarantees from outside the group**\n\n| Facility | Borrower | Product | Commitment | Guarantor (external rating) | Guarantee | Status | Counts as cover? |\n|---|---|---|---|---|---|---|---|\n| F0000008 | Kestrel Automation Systems LLC (LE-10019) | Revolving line | $45.0M | Northcastle Mutual Insurance Co, LE-10027 (A+ at one agency) | G00003, surety bond, $30.0M, expires 2028-08-14 | Active | **Yes, $30.0M.** The remaining $15.0M of this facility is uncovered. |\n| F0000004 | Halvorsen Metalworks LLC (LE-10014) | Equipment finance | $30.0M | Brandvold Industrial Partners LLC, LE-10028 (BBB- at one agency) | G00004, third-party guarantee, $20.0M | **Expired 2026-06-30** | **No.** The full $30.0M is uncovered. |\n\nTwo other guarantees don't count because they come from inside the group. A guarantee from a parent in the same group doesn't reduce the group's exposure:\n- **G00001:** Halvorsen Industrial Group Inc guarantees $50.0M on F0000007 (Kestrel Tooling Inc term loan).\n- **G00002:** Halvorsen North America Holdings LLC guarantees $45.0M on F0000003 (Halvorsen Supply Co asset-based loan).\n\n**Group exposure and uncovered amount (as of 2026-09-30)**\n- **Loan commitments:** 10 active facilities totalling $308.0M.\n- **Derivatives/FX exposure:** $36.3M on the latest snapshot.\n  - Halvorsen Capital Services: $22.0M\n  - Kestrel Automation Systems: $6.5M\n  - Halvorsen Freight: $4.0M\n  - Halvorsen Supply: $3.8M\n- **Total group exposure:** $344.3M.\n- **Covered by a valid guarantee:** $30.0M. This is the smaller of the guarantee amount and the commitment on F0000008.\n- **Not covered: $314.3M.** That is $278.0M of loan commitments plus all $36.3M of derivatives/FX exposure.\n\n**Points for credit review**\n- **House limit:** The group's limit is $300M. Total exposure is 114.8% of it, and even the uncovered amount alone (104.8%) is over. Exposure above the limit needs Senior Credit Committee approval. Total exposure is still under the $360M legal lending limit.\n- **Rating:** The parent's ratings are CCC+ (negative outlook, cut 2026-09-28) and B, and the lower one applies to the group. CCC+ maps to internal rating 8 (Substandard), which also requires Senior Credit Committee.\n- **Lapsed guarantee:** The Brandvold guarantee lapsed three months ago. Renewing it would cover up to $20M more.\n- **Possible data problem:** Six facilities (F0000001\u2013F0000006) are marked active but have maturity dates before 2026-09-30. They're included as recorded, but someone should check whether they've been extended or should be closed.\n\n**Sources and definitions**\n- **Group members:** from the knowledge layer's ownership trace. There are 24 controlled members under Halvorsen Industrial Group Inc. Two entities are left out:\n  - Halvorsen-Kito Components JV, a 40% minority stake.\n  - Halvorsen Marine Logistics, sold 2025-11-30.\n- **Loan commitments:** `BANK_DEMO.LENDING.FACILITY` (amount committed on active facilities).\n- **Derivatives/FX exposure:** `RISK_DEMO.dbo.CM_EXPOSURE` (current exposure at the latest snapshot date, 2026-09-30).\n- **Guarantees:** `RISK_DEMO.dbo.GUARANTEE` joined to `dbo.LEGAL_ENTITY` for guarantor names. The trace and SQL results agree.\n- **Rules applied:**\n  - BR-CUST-01: the customer is the whole group.\n  - BR-EXP-01: how group exposure is measured.\n  - BR-GUAR-01: a guarantee counts only if it is active, unexpired and from outside the group, up to the smaller of the guarantee and the commitment.\n  - BR-LLL-01: legal lending limit.\n  - BR-RATE-01: rating mapping.\n  - BR-DLA-01: who must approve.\n- **Assumption:** Guarantees only reduce loan commitments, since none are attached to derivatives/FX trades. The house-limit comparison uses total exposure, with the uncovered figure shown alongside.\n- **Policy:** No access restrictions or masking applied for the CREDIT_ANALYST role.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT FACILITY_ID, CIF_NO, PRODUCT_CD, COMMIT_AMT, FACILITY_STATUS, MATURITY_DT FROM BANK_DEMO.LENDING.FACILITY WHERE CIF_NO IN ('0000041000','0000041002','0000041007','0000041009','0000041014','0000041017','0000041020','0000041022','0000041025','0000041027') ORDER BY FACILITY_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 19.67
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT ENTITY_ID, COUNT(*) AS trades, SUM(CURRENT_EXPOSURE) AS ce, MAX(SNAP_DT) AS snap FROM dbo.CM_EXPOSURE WHERE SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AND ENTITY_ID IN ('LE-10001','LE-10002','LE-10003','LE-10004','LE-10022','LE-10023','LE-10005','LE-10006','LE-10008','LE-10009','LE-10010','LE-10011','LE-10012','LE-10024','LE-10014','LE-10015','LE-10016','LE-10026','LE-10017','LE-10018','LE-10025','LE-10019','LE-10020','LE-10021') GROUP BY ENTITY_ID",
+      "ok": true,
+      "rows": 7,
+      "error": null,
+      "elapsed_s": 2.43
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT g.GUARANTEE_ID, g.FACILITY_ID, g.GUARANTOR_ENTITY_ID, e.ENTITY_NM, g.GUAR_AMT, g.GUAR_TYP, g.EFF_DT, g.EXP_DT, g.STATUS FROM dbo.GUARANTEE g LEFT JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID = g.GUARANTOR_ENTITY_ID WHERE g.FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010')",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 0.53
+    }
+  ],
+  "cypher_queries": 8,
+  "usage": {
+    "input": 8,
+    "output": 3397,
+    "cache_read": 18442,
+    "cache_write": 12102
+  },
+  "cost_usd": 0.1322,
+  "latency_s": 60.2
+}

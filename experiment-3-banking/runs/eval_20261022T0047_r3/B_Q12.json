@@ -1,0 +1,62 @@
+{
+  "run_id": "eval_20261022T0047_r3",
+  "agent": "B",
+  "qid": "Q12",
+  "question": "After Halvorsen's downgrade to CCC+, which facilities have rating-trigger covenants that are now breached, what internal risk rating should the group move to, and who has to approve the credit response?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Answer:** Two facilities have breached rating-trigger covenants: **F0000003** and **F0000007**. The group should move to **internal risk rating 8 (Substandard)**. The credit response has to be approved by the **Senior Credit Committee, chaired by the Chief Risk Officer**.\n\n**1. Rating-trigger covenants (rule BR-COV-01)**\nAGY1 downgraded Halvorsen Industrial Group Inc (LE-10001), the group's ultimate parent, to **CCC+** on 2026-09-28, with a negative outlook. A trigger is breached when the parent's current rating from the named agency is *below* the threshold; being equal to it is not a breach.\n\n| Facility | Borrower | Product / commitment | Trigger (AGY1) | Status |\n|---|---|---|---|---|\n| **F0000003** | Halvorsen Supply Co | Asset-based loan / $45.0M | Not below B | **Breached** (CCC+ is 2 notches below B) |\n| **F0000007** | Kestrel Tooling Inc | Term loan / $50.0M | Not below B- | **Breached** (CCC+ is 1 notch below B-) |\n| F0000002 | Halvorsen Precision Parts Inc | Term loan / $35.0M | Not below CCC | Not breached, but only 1 notch of headroom. One more AGY1 notch would breach it. |\n\n- The two breached facilities total $95M of commitments. The breaches let the bank stop further drawings, and they must be reported to the approver.\n- The only other covenants are financial ones, and both last passed at the 2026-06-30 test, before the downgrade:\n  - F0000001: debt-service coverage of 1.31 against a 1.25 minimum.\n  - F0000004: leverage of 4.10 against a 4.50 maximum.\n\n**2. Internal rating (rule BR-RATE-01)**\n- The group's rating is the lower of the parent's two agency ratings: AGY1 is CCC+ and AGY2 is B (since 2026-06-10, negative outlook). The lower one is CCC+.\n- CCC+ to CCC- maps to **8 (Substandard)**, and that rating applies to every group member.\n- All 10 active facilities are currently rated **5**, which is a Pass rating. They are 3 notches too high and need re-rating to 8 within 5 business days of the rating action, which means by about **2026-10-05**.\n\n**3. Exposure and approver (rules BR-EXP-01, BR-DLA-01, BR-LLL-01)**\n- **Loan commitments:** $308.0M across 10 active facilities and 10 borrowing entities.\n- **Capital-markets exposure:** $36.3M from 7 trades at the 2026-09-30 snapshot.\n- **Group exposure: $344.3M.**\n- **House limit:** $300M, so utilisation is **114.8%** ($44.3M over).\n- **Legal lending limit:** $360M, leaving only **$15.7M** of headroom.\n- **Guarantees:** only the Northcastle Mutual guarantee (A+, $30M) on F0000008 is eligible. Even after it, net exposure is $314.3M, still over the house limit. The parent guarantee on F0000007 and the holding-company guarantee on F0000003 come from inside the group, so they reduce nothing. The Brandvold guarantee on F0000004 expired on 2026-06-30.\n- **Approver:** three separate grounds each send this to the Senior Credit Committee: a rating of 8 or worse, exposure above $250M, and exposure above the group credit limit.\n\n**Data-quality points to raise**\n- Six \"active\" facilities have maturity dates already past, back to 2024-06-11: F0000001, F0000002, F0000003, F0000004, F0000005 and F0000006. Their status should be confirmed. If any are actually paid off, exposure falls.\n- The financial covenant tests are from before the downgrade and should be re-tested.\n\n**Sources and definitions**\n- Knowledge layer: `get_context` (rules BR-COV-01, BR-RATE-01, BR-DLA-01, BR-EXP-01, BR-GUAR-01, BR-LLL-01; the Credit Event Response process; the group_exposure and limit_utilization metrics). `trace_obligor_group` (LE-10001: 24 controlled members, $300M limit).\n- Fabric: dbo.COVENANT, dbo.RATING (latest rating per agency), dbo.CM_EXPOSURE (latest snapshot only; uses current exposure, not notional).\n- Snowflake: BANK_DEMO.LENDING.FACILITY (active facilities' commitments).\n\n**Assumptions**\n- The rating-trigger thresholds apply to the ultimate parent's AGY1 rating, as the COVENANT table defines them.\n- Two entities are not group members and were left out: the 40% Halvorsen-Kito JV (minority stake, not controlled) and Halvorsen Marine Logistics (sold 2025-11-30).\n- No data-use restrictions applied for the CREDIT_ANALYST role.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT COVENANT_ID, FACILITY_ID, COV_TYP, THRESHOLD_VAL, AGENCY, LAST_TEST_VAL, LAST_TEST_DT FROM dbo.COVENANT WHERE FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010') ORDER BY FACILITY_ID, COV_TYP",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 2.51
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT r.ENTITY_ID, r.AGENCY, r.RATING, r.RATING_DT, r.OUTLOOK FROM dbo.RATING r WHERE r.ENTITY_ID='LE-10001' AND r.RATING_DT = (SELECT MAX(RATING_DT) FROM dbo.RATING r2 WHERE r2.ENTITY_ID=r.ENTITY_ID AND r2.AGENCY=r.AGENCY)",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.79
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SNAP_DT, SUM(CURRENT_EXPOSURE) AS cm_exp, COUNT(*) n FROM dbo.CM_EXPOSURE WHERE SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AND ENTITY_ID IN ('LE-10001','LE-10002','LE-10003','LE-10004','LE-10022','LE-10023','LE-10005','LE-10006','LE-10008','LE-10009','LE-10010','LE-10011','LE-10012','LE-10024','LE-10014','LE-10015','LE-10016','LE-10026','LE-10017','LE-10018','LE-10025','LE-10019','LE-10020','LE-10021') GROUP BY SNAP_DT",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 0.53
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT FACILITY_ID, CIF_NO, PRODUCT_CD, COMMIT_AMT, FACILITY_STATUS, RISK_RATING, MATURITY_DT FROM BANK_DEMO.LENDING.FACILITY WHERE CIF_NO IN ('0000041000','0000041002','0000041007','0000041009','0000041014','0000041017','0000041020','0000041022','0000041025','0000041027') ORDER BY FACILITY_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 12.76
+    }
+  ],
+  "cypher_queries": 9,
+  "usage": {
+    "input": 8,
+    "output": 3733,
+    "cache_read": 18655,
+    "cache_write": 12454
+  },
+  "cost_usd": 0.1407,
+  "latency_s": 57.2
+}

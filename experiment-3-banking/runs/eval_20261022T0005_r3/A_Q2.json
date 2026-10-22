@@ -1,0 +1,140 @@
+{
+  "run_id": "eval_20261022T0005_r3",
+  "agent": "A",
+  "qid": "Q2",
+  "question": "Which commercial loan product had the highest 30+ days-past-due rate at the latest month-end, and which industry sectors are driving it?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Commercial real estate mortgages (CREM) had the highest 30+ days-past-due rate at 30 Sep 2026: 7.10%, or $432.0MM past due out of $6,085.8MM drawn.** That's about 4 times the next-highest product. CRE Office borrowers account for most of it.\n\n**30+ DPD rate by loan product, 30 Sep 2026 (active facilities)**\n\n| Product | Drawn ($MM) | 30+ DPD ($MM) | Rate |\n|---|---|---|---|\n| **CREM \u2013 Commercial real estate mortgage** | 6,085.8 | 432.0 | **7.10%** |\n| ABL \u2013 Asset-based loan | 1,258.5 | 23.1 | 1.84% |\n| SBLC \u2013 Standby letter of credit (off balance sheet) | 24.3 | 0.3 | 1.28% |\n| TL \u2013 Term loan | 3,629.7 | 21.4 | 0.59% |\n| EQP \u2013 Equipment finance | 2,232.5 | 12.8 | 0.57% |\n| RLOC \u2013 Revolving line of credit | 2,756.6 | 13.8 | 0.50% |\n\n**Sectors driving CREM delinquency**\n\n| Sector | Facilities (past due / total) | Drawn ($MM) | 30+ DPD ($MM) | Rate | Share of CREM 30+ DPD |\n|---|---|---|---|---|---|\n| **CRE Office** | 22 / 205 | 4,051.5 | **381.1** | **9.41%** | **88%** |\n| CRE Multifamily | 3 / 105 | 2,034.3 | 50.9 | 2.50% | 12% |\n\n- **CRE Office is the main driver.** Both of its industry codes contribute: lessors of nonresidential buildings ($216.1MM past due, 14 facilities) and nonresidential property managers ($165.1MM, 8 facilities).\n- **The Office delinquency is new and getting worse.** Its 30+ DPD rate was 0.81% in March and 1.58% in June, then jumped to 9.41% in September. Most of it is early-stage:\n  - 30\u201359 days: $236.8MM across 11 borrowers\n  - 60\u201389 days: $30.5MM\n  - 90+ days on nonaccrual: $113.9MM across 6 facilities. This is all of CREM's nonaccrual balance.\n  The large 30\u201359-day group could roll into later buckets next quarter.\n- **Multifamily is a smaller, secondary issue.** It was at 2.81% in Oct 2025, fell to 0% in March and June, and is back to 2.50%. Most of it ($43.7MM) is two facilities that are 60\u201389 days past due and still accruing.\n\n**Sources and definitions**\n- Snowflake BANK_DEMO tables:\n  - `LENDING.FACILITY_BAL_MTHLY`: drawn balance, days past due (DPD) and accrual status at the 2026-09-30 snapshot.\n  - `LENDING.FACILITY`: product and status.\n  - `CORE.CLIENT`: each borrower's industry (NAICS) code.\n  - `BIZ.SECTOR_MAP`: maps industry codes to sector groups.\n  - `REF.PRODUCT`: product names.\n- 30+ DPD rate = drawn balance on facilities 30 or more days past due (nonaccrual included) \u00f7 total drawn balance, by facility.\n- My facility-level totals tie exactly to the reporting table `MART.CREDIT_QUALITY_MTH` for 2026-09-30.\n\n**Assumptions**\n- Only active facilities are counted. 65 charged-off facilities still show $249.3MM of balances in the snapshot; I excluded them because they're no longer on the books. This matches the reporting table.\n- Rates are weighted by balance, not by number of facilities.\n- I listed SBLC because the product table classes it as a loan product, but it's off balance sheet and almost undrawn, so it doesn't change the answer.\n- Data quality was clean: all facilities matched a client, and every client's industry code mapped to a sector. I didn't use any sandbox tables or the Fabric risk data.",
+  "stop_reason": "end_turn",
+  "model_turns": 9,
+  "tool_calls": [
+    "list_tables",
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select * from BANK_DEMO.REF.PRODUCT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.17
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from BANK_DEMO.BIZ.SECTOR_MAP order by naics_cd, eff_from",
+      "ok": true,
+      "rows": 33,
+      "error": null,
+      "elapsed_s": 1.29
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select *, dpd30_bal_amt/nullif(total_drawn_amt,0) r from BANK_DEMO.MART.CREDIT_QUALITY_MTH where snap_dt='2026-09-30' order by r desc",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.17
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select f.facility_status, b.accrual_stat, count(*) n, sum(b.drawn_amt) drawn, sum(iff(b.dpd>=30,b.drawn_amt,0)) dpd30, min(b.dpd), max(b.dpd), count_if(b.dpd is null) null_dpd\nfrom BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b join BANK_DEMO.LENDING.FACILITY f on f.facility_id=b.facility_id\nwhere b.snap_dt='2026-09-30' group by 1,2 order by 1,2",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 3.29
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*), count(distinct facility_id), count(distinct facility_id||snap_dt::string), max(snap_dt) from BANK_DEMO.LENDING.FACILITY_BAL_MTHLY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.19
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*), count(distinct facility_id) from BANK_DEMO.LENDING.FACILITY",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.25
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*), count(distinct cif_no), count_if(naics_cd is null), count_if(naics_cd not in (select naics_cd from BANK_DEMO.BIZ.SECTOR_MAP)), count_if(len(cif_no)<>10) from BANK_DEMO.CORE.CLIENT",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.38
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select count(*) n, count_if(c.cif_no is null) unmatched_client, count_if(len(f.cif_no)<>10) bad_cif from BANK_DEMO.LENDING.FACILITY f left join BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.52
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with b as (\nselect f.product_cd, s.sector, f.facility_id, b.drawn_amt, b.dpd, b.accrual_stat\nfrom BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b\njoin BANK_DEMO.LENDING.FACILITY f on f.facility_id=b.facility_id\njoin BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no\njoin BANK_DEMO.BIZ.SECTOR_MAP s on s.naics_cd=c.naics_cd and '2026-09-30' between s.eff_from and s.eff_to\nwhere b.snap_dt='2026-09-30' and f.facility_status='ACTIVE')\nselect product_cd, sector, count(*) n_fac, count_if(dpd>=30) n_dpd30, round(sum(drawn_amt)/1e6,1) drawn_mm,\n round(sum(iff(dpd>=30,drawn_amt,0))/1e6,1) dpd30_mm, round(sum(iff(dpd>=30,drawn_amt,0))/nullif(sum(drawn_amt),0)*100,2) rate_pct,\n round(sum(iff(accrual_stat='N',drawn_amt,0))/1e6,1) nonacc_mm\nfrom b where product_cd='CREM' group by rollup(product_cd, sector) order by product_cd nulls first, dpd30_mm desc",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.49
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with b as (\nselect b.snap_dt, s.sector, c.naics_cd, b.drawn_amt, b.dpd\nfrom BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b\njoin BANK_DEMO.LENDING.FACILITY f on f.facility_id=b.facility_id\njoin BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no\njoin BANK_DEMO.BIZ.SECTOR_MAP s on s.naics_cd=c.naics_cd\nwhere f.facility_status='ACTIVE' and f.product_cd='CREM')\nselect snap_dt, sector, round(sum(iff(dpd>=30,drawn_amt,0))/1e6,1) dpd30_mm, round(sum(iff(dpd>=30,drawn_amt,0))/sum(drawn_amt)*100,2) rate\nfrom b where snap_dt in ('2025-10-31','2026-03-31','2026-06-30','2026-09-30') group by 1,2 order by 1,2",
+      "ok": true,
+      "rows": 8,
+      "error": null,
+      "elapsed_s": 2.31
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select s.sector, c.naics_cd, s.naics_desc, count(*) n, count_if(b.dpd>=30) n30, round(sum(b.drawn_amt)/1e6,1) drawn_mm, round(sum(iff(b.dpd>=30,b.drawn_amt,0))/1e6,1) dpd30_mm\nfrom BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b\njoin BANK_DEMO.LENDING.FACILITY f on f.facility_id=b.facility_id\njoin BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no\njoin BANK_DEMO.BIZ.SECTOR_MAP s on s.naics_cd=c.naics_cd\nwhere f.facility_status='ACTIVE' and f.product_cd='CREM' and b.snap_dt='2026-09-30' group by 1,2,3 order by dpd30_mm desc",
+      "ok": true,
+      "rows": 3,
+      "error": null,
+      "elapsed_s": 1.34
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select s.sector, case when b.dpd between 30 and 59 then '30-59' when b.dpd between 60 and 89 then '60-89' else '90+' end bucket, b.accrual_stat,\n count(*) n, count(distinct f.cif_no) clients, round(sum(b.drawn_amt)/1e6,1) mm\nfrom BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b\njoin BANK_DEMO.LENDING.FACILITY f on f.facility_id=b.facility_id\njoin BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no\njoin BANK_DEMO.BIZ.SECTOR_MAP s on s.naics_cd=c.naics_cd\nwhere f.facility_status='ACTIVE' and f.product_cd='CREM' and b.snap_dt='2026-09-30' and b.dpd>=30 group by 1,2,3 order by 1,2,3",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 7.2
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 20,
+    "output": 5762,
+    "cache_read": 83402,
+    "cache_write": 17224
+  },
+  "cost_usd": 0.2181,
+  "latency_s": 118.6
+}

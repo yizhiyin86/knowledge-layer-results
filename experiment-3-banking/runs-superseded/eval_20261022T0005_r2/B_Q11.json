@@ -1,0 +1,64 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "B",
+  "qid": "Q11",
+  "question": "For the Halvorsen group, which facilities are supported by guarantees from outside the group, and how much of the group's exposure is not covered by an eligible guarantee?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Answer:** Two Halvorsen facilities have guarantees from outside the group, but only one of those guarantees counts. **$314.3M of the group's $344.3M exposure (91%) is not covered by an eligible guarantee.** Only $30.0M is covered.\n\n**Guarantees from outside the group**\n\n| Facility | Borrower | Committed | Guarantor (outside the group) | Guarantee | Counts? |\n|---|---|---|---|---|---|\n| F0000008, revolving line | Kestrel Automation Systems LLC | $45.0M | Northcastle Mutual Insurance Co (LE\u201110027), surety bond | G00003, $30.0M, active, expires 2028\u201108\u201114 | **Yes**, covers $30.0M (the lower of the $30.0M guarantee and the $45.0M commitment). $15.0M of this facility is still uncovered. |\n| F0000004, equipment finance | Halvorsen Metalworks LLC | $30.0M | Brandvold Industrial Partners LLC (LE\u201110028), third party | G00004, $20.0M | **No.** It expired on 2026\u201106\u201130. The full $30.0M is uncovered. |\n\n**Guarantees from inside the group (these don't reduce exposure)**\n- **F0000007** (Kestrel Tooling, $50.0M): the parent, Halvorsen Industrial Group Inc (LE\u201110001), guarantees $50.0M (G00001).\n- **F0000003** (Halvorsen Supply, $45.0M): Halvorsen North America Holdings LLC (LE\u201110002) guarantees $45.0M (G00002).\n\nBoth guarantors are controlled members of the same group, so these are $95M of guarantees that look like protection but don't count.\n\n**Exposure calculation (as of 2026\u201109\u201130)**\n\n| | Amount |\n|---|---|\n| Committed amount of active loans (10 facilities, F0000001 to F0000010) | $308.0M |\n| Derivatives exposure at the latest month end (7 trades) | $36.3M |\n| **Total group exposure** | **$344.3M** |\n| Less eligible guarantee (G00003) | \u2212$30.0M |\n| **Not covered by an eligible guarantee** | **$314.3M** |\n\n- Looking at loans only, $278.0M of the $308.0M is uncovered. No guarantee covers the derivatives exposure.\n- Even after the guarantee, the uncovered $314.3M is above the group's internal credit limit of $300M. Total exposure is $344.3M against the $360M legal lending limit. Measuring the limits on net exposure is my illustration only: the rules state both limits in terms of total exposure, and none of them nets guarantees against a limit.\n- **Action point:** the Brandvold guarantee lapsed on 2026\u201106\u201130. Unless it was renewed somewhere outside this data, F0000004 has had no outside support since then, so it's worth following up.\n\n**Sources, definitions and assumptions**\n- **Rules:**\n  - Eligible guarantees (BR\u2011GUAR\u201101): the guarantee must be active, not expired as of the date, and from a guarantor outside the group. The amount it covers is the lower of the guarantee and the commitment.\n  - Group exposure (BR\u2011EXP\u201101): committed amount of active loans plus current derivatives exposure.\n  - Who the customer is (BR\u2011CUST\u201101): the whole group of entities the parent controls.\n- **Group membership:** the tool that normally traces the group returned an error. Instead I followed current, controlled ownership links in `dbo.OWNERSHIP` down 8 levels from LE\u201110001. That gave the same 24 entities and 10 client numbers as the governed obligor\u2011group reference data, which also holds the $300M limit. Neither outside guarantor (LE\u201110027, LE\u201110028) is a group member.\n- **Tables:**\n  - `BANK_DEMO.LENDING.FACILITY` (active commitments)\n  - `RISK_DEMO.dbo.GUARANTEE` with `dbo.LEGAL_ENTITY` (guarantee to facility link)\n  - `RISK_DEMO.dbo.CM_EXPOSURE` (current exposure at the latest month end, 2026\u201109\u201130, not notional)\n- **Consistency check:** these figures match the earlier saved answer on Halvorsen's total exposure ($344.3M).\n- **Data-use policy:** no restrictions or masking apply to a credit analyst for this request.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "trace_obligor_group",
+    "get_reference",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "WITH o AS (SELECT CHILD_ENTITY_ID c, PARENT_ENTITY_ID p FROM dbo.OWNERSHIP WHERE CONTROL_FLG='Y' AND EFF_TO>='2026-09-30')\nSELECT DISTINCT m FROM (\nSELECT 'LE-10001' m UNION ALL\nSELECT l1.c FROM o l1 WHERE l1.p='LE-10001' UNION ALL\nSELECT l2.c FROM o l1 JOIN o l2 ON l2.p=l1.c WHERE l1.p='LE-10001' UNION ALL\nSELECT l3.c FROM o l1 JOIN o l2 ON l2.p=l1.c JOIN o l3 ON l3.p=l2.c WHERE l1.p='LE-10001' UNION ALL\nSELECT l4.c FROM o l1 JOIN o l2 ON l2.p=l1.c JOIN o l3 ON l3.p=l2.c JOIN o l4 ON l4.p=l3.c WHERE l1.p='LE-10001' UNION ALL\nSELECT l5.c FROM o l1 JOIN o l2 ON l2.p=l1.c JOIN o l3 ON l3.p=l2.c JOIN o l4 ON l4.p=l3.c JOIN o l5 ON l5.p=l4.c WHERE l1.p='LE-10001' UNION ALL\nSELECT l6.c FROM o l1 JOIN o l2 ON l2.p=l1.c JOIN o l3 ON l3.p=l2.c JOIN o l4 ON l4.p=l3.c JOIN o l5 ON l5.p=l4.c JOIN o l6 ON l6.p=l5.c WHERE l1.p='LE-10001' UNION ALL\nSELECT l7.c FROM o l1 JOIN o l2 ON l2.p=l1.c JOIN o l3 ON l3.p=l2.c JOIN o l4 ON l4.p=l3.c JOIN o l5 ON l5.p=l4.c JOIN o l6 ON l6.p=l5.c JOIN o l7 ON l7.p=l6.c WHERE l1.p='LE-10001' UNION ALL\nSELECT l8.c FROM o l1 JOIN o l2 ON l2.p=l1.c JOIN o l3 ON l3.p=l2.c JOIN o l4 ON l4.p=l3.c JOIN o l5 ON l5.p=l4.c JOIN o l6 ON l6.p=l5.c JOIN o l7 ON l7.p=l6.c JOIN o l8 ON l8.p=l7.c WHERE l1.p='LE-10001'\n) x ORDER BY m",
+      "ok": true,
+      "rows": 24,
+      "error": null,
+      "elapsed_s": 1.59
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.CIF_NO, c.CLIENT_NM, f.FACILITY_ID, f.PRODUCT_CD, f.FACILITY_STATUS, f.COMMIT_AMT\nFROM BANK_DEMO.LENDING.FACILITY f LEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nWHERE f.CIF_NO IN ('0000041000','0000041002','0000041009','0000041007','0000041017','0000041014','0000041020','0000041022','0000041025','0000041027')\nORDER BY f.FACILITY_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 3.55
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT g.GUARANTEE_ID, g.FACILITY_ID, g.GUARANTOR_ENTITY_ID, e.ENTITY_NM, e.ENTITY_TYP, g.GUAR_AMT, g.GUAR_TYP, g.EFF_DT, g.EXP_DT, g.STATUS\nFROM dbo.GUARANTEE g LEFT JOIN dbo.LEGAL_ENTITY e ON e.ENTITY_ID=g.GUARANTOR_ENTITY_ID\nWHERE g.FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010','F0000011','F0000012')\nORDER BY g.FACILITY_ID",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.64
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MAX(SNAP_DT) snap, SUM(CURRENT_EXPOSURE) cm_exp, COUNT(*) n FROM dbo.CM_EXPOSURE\nWHERE SNAP_DT=(SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE)\nAND ENTITY_ID IN ('LE-10001','LE-10002','LE-10003','LE-10004','LE-10005','LE-10006','LE-10008','LE-10009','LE-10010','LE-10011','LE-10012','LE-10014','LE-10015','LE-10016','LE-10017','LE-10018','LE-10019','LE-10020','LE-10021','LE-10022','LE-10023','LE-10024','LE-10025','LE-10026')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.2
+    }
+  ],
+  "cypher_queries": 11,
+  "usage": {
+    "input": 12,
+    "output": 4204,
+    "cache_read": 44058,
+    "cache_write": 17205
+  },
+  "cost_usd": 0.179,
+  "latency_s": 53.1
+}

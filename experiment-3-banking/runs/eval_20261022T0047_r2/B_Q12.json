@@ -1,0 +1,62 @@
+{
+  "run_id": "eval_20261022T0047_r2",
+  "agent": "B",
+  "qid": "Q12",
+  "question": "After Halvorsen's downgrade to CCC+, which facilities have rating-trigger covenants that are now breached, what internal risk rating should the group move to, and who has to approve the credit response?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "Two Halvorsen facilities have breached rating triggers. The group moves to internal rating 8 (Substandard), and the credit response has to go to the Senior Credit Committee, chaired by the Chief Risk Officer.\n\n**1. Rating-trigger covenants (rule BR-COV-01)**\nOn 2026-09-28 AGY1 cut the ultimate parent, Halvorsen Industrial Group Inc (LE-10001), from BB- to CCC+ with a negative outlook. AGY2 rates it B, last changed on 2026-06-10. A trigger is breached only when the agency's rating falls below the threshold; equal to the threshold is not a breach.\n\n| Facility | Borrower | Product | Commitment | Trigger (AGY1) | Status |\n|---|---|---|---|---|---|\n| F0000003 (CV00002) | Halvorsen Supply Co | Asset-based loan | $45.0M | B | **Breached** |\n| F0000007 (CV00001) | Kestrel Tooling Inc | Term loan | $50.0M | B- | **Breached** |\n| F0000002 (CV00003) | Halvorsen Precision Parts Inc | Term loan | $35.0M | CCC | Not breached: CCC+ is one notch above. Any further AGY1 downgrade breaches it. |\n\n- **Commitments in breach:** $95M in total. The bank may stop further drawings on both facilities, and the breaches must be reported to the approver.\n- **Parent guarantee:** F0000007 has a $50M guarantee from the parent, but the parent is inside the group, so it gives no credit protection.\n- **Financial covenants:** both currently pass, but these figures were last tested on 2026-06-30, before the downgrade:\n  - F0000001 debt-service coverage was 1.31 against a 1.25 minimum.\n  - F0000004 leverage was 4.10 against a 4.50 maximum.\n\n**2. Internal risk rating (rule BR-RATE-01)**\n- The group rating is the lower of the two agency ratings, CCC+ (AGY1) and B (AGY2), so it is CCC+. That maps to **internal rating 8, Substandard**, and applies to every group member.\n- All 10 active facilities are still booked at rating 5 (Pass). They must be re-rated to 8 within 5 business days of the rating action, which is by about 2026-10-05.\n\n**3. Group exposure and approver (rule BR-DLA-01)**\n- **Loan commitments:** $308.0M across 10 active facilities.\n- **Capital-markets exposure:** $36.3M across 7 trades, as of 2026-09-30.\n- **Total group exposure:** **$344.3M** against a **$300M house limit**, so the group is $44.3M over (115% used).\n- **Legal lending limit:** $360M, leaving only $15.7M of room.\n- **Guarantee relief:** the only usable outside guarantee is Northcastle Mutual's $30M (rated A+) on F0000008. Even after it, exposure is about $314.3M, still over the house limit.\n- **Guarantees that don't count:**\n  - Brandvold's $20M guarantee on F0000004 expired on 2026-06-30.\n  - Halvorsen North America's $45M guarantee on F0000003 comes from inside the group.\n\nThree separate conditions each send the decision to the **Senior Credit Committee (chaired by the CRO)**:\n- the rating is 8 or worse;\n- exposure is above $250M;\n- exposure is above the group credit limit.\n\nApproval is needed for:\n- the re-rating;\n- the response to the two breaches, such as stopping further drawings;\n- the over-limit position;\n- a plan to reduce exposure, given how close the group is to the legal lending limit.\n\n**Sources and definitions**\n- **Knowledge-layer context:** business rules BR-COV-01, BR-RATE-01, BR-DLA-01, BR-EXP-01, BR-GUAR-01 and BR-LLL-01, and the 4-step Credit Event Response process. There were no similar past answers.\n- **Group membership (`trace_obligor_group`):** 24 current controlled members. Two entities are left out: the 40% Halvorsen-Kito joint venture, which the group doesn't control, and Halvorsen Marine Logistics, sold on 2025-11-30.\n- **Fabric (RISK_DEMO):**\n  - `dbo.COVENANT` for the covenants.\n  - `dbo.RATING`, using the latest rating per agency.\n  - `dbo.CM_EXPOSURE`, latest snapshot only and never notional.\n  - The group credit limit, as returned by `trace_obligor_group`.\n- **Snowflake (BANK_DEMO):** `LENDING.FACILITY` for active commitments and current ratings.\n- **Assumptions:**\n  - Exposure is reported gross, as the exposure rule defines it. The figure net of the eligible guarantee is shown only for information.\n  - The re-rating deadline counts business days from 2026-09-28 and ignores holidays.",
+  "stop_reason": "end_turn",
+  "model_turns": 3,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT COVENANT_ID, FACILITY_ID, COV_TYP, THRESHOLD_VAL, AGENCY, LAST_TEST_VAL, LAST_TEST_DT FROM dbo.COVENANT WHERE FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010') ORDER BY COV_TYP, FACILITY_ID",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 1.66
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT r.ENTITY_ID, r.AGENCY, r.RATING, r.RATING_DT, r.OUTLOOK FROM dbo.RATING r WHERE r.ENTITY_ID='LE-10001' ORDER BY r.AGENCY, r.RATING_DT DESC",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.99
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT SNAP_DT, SUM(CURRENT_EXPOSURE) AS ce, COUNT(*) n FROM dbo.CM_EXPOSURE WHERE SNAP_DT = (SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AND ENTITY_ID IN ('LE-10001','LE-10002','LE-10003','LE-10004','LE-10022','LE-10023','LE-10005','LE-10006','LE-10008','LE-10009','LE-10010','LE-10011','LE-10012','LE-10024','LE-10014','LE-10015','LE-10016','LE-10026','LE-10017','LE-10018','LE-10025','LE-10019','LE-10020','LE-10021') GROUP BY SNAP_DT",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.62
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT FACILITY_ID, CIF_NO, PRODUCT_CD, COMMIT_AMT, FACILITY_STATUS, RISK_RATING FROM BANK_DEMO.LENDING.FACILITY WHERE CIF_NO IN ('0000041000','0000041002','0000041007','0000041009','0000041014','0000041017','0000041020','0000041022','0000041025','0000041027') ORDER BY FACILITY_ID",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 3.53
+    }
+  ],
+  "cypher_queries": 9,
+  "usage": {
+    "input": 8,
+    "output": 3441,
+    "cache_read": 28663,
+    "cache_write": 2314
+  },
+  "cost_usd": 0.0862,
+  "latency_s": 46.2
+}

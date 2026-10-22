@@ -1,0 +1,70 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "B",
+  "qid": "Q2",
+  "question": "Which commercial loan product had the highest 30+ days-past-due rate at the latest month-end, and which industry sectors are driving it?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**The product with the highest 30+ days-past-due rate at 2026-09-30 is the Commercial Real Estate Mortgage (CREM), at 7.10%. That's $432.0M of $6.09B drawn, across 25 facilities. CRE Office is the main driver: it holds 88% of the past-due balance and has a 9.4% rate.**\n\n**30+ DPD rate by product (active facilities, 2026-09-30)**\n\n| Product | Drawn | 30+ DPD balance | # facilities 30+ | 30+ DPD rate |\n|---|---|---|---|---|\n| **CREM \u2013 CRE mortgage** | $6,085.8M | $432.0M | 25 | **7.10%** |\n| ABL \u2013 Asset-based loan | $1,258.5M | $23.1M | 4 | 1.84% |\n| SBLC \u2013 Standby LC | $24.3M | $0.3M | 2 | 1.28% |\n| TL \u2013 Term loan | $3,629.7M | $21.4M | 3 | 0.59% |\n| EQP \u2013 Equipment finance | $2,232.5M | $12.8M | 7 | 0.57% |\n| RLOC \u2013 Revolving line | $2,756.6M | $13.8M | 4 | 0.50% |\n\nCREM's rate is almost 4 times that of the next product (ABL).\n\n**Sectors driving the CREM delinquency**\n\n| Sector | Drawn | 30+ DPD balance | Share of CREM 30+ DPD | Sector 30+ DPD rate | Loans / clients 30+ |\n|---|---|---|---|---|---|\n| **CRE Office** | $4,051.5M | **$381.1M** | **88%** | **9.41%** | 22 / 20 |\n| CRE Multifamily | $2,034.3M | $50.9M | 12% | 2.50% | 3 / 3 |\n\n- **CRE Office:**\n  - **How the past-due balance splits:**\n    - $267.3M is 30\u201389 days past due.\n    - $113.9M is 90+ days past due, and all of it is already non-accrual.\n  - **Spread across borrowers:** 20 different clients are past due, so the problem runs through the whole sector. The largest single past-due loan is $40.3M.\n- **CRE Multifamily:** The $50.9M is all 30\u201389 days past due, with nothing 90+ and nothing non-accrual. Most of it is in one loan of $29.1M (about 57%), so it looks like a few individual credits rather than a sector trend.\n\n**What this means:** The CREM delinquency is mainly a CRE Office problem. Office loans past due 30\u201389 days ($267M) are the next group that could become non-performing. I'd prioritise them for watch-list and rating review, and check how they line up with the risk ratings and covenant tests.\n\n**Sources and definitions**\n- **Metric:** I used the ratified metric `dpd30_rate` from the Commercial Lending data product (owned by Credit Risk; used in the Credit Risk Report). It is drawn balance at 30+ days past due divided by total drawn balance, for active facilities only. Charged-off and paid-off facilities are excluded.\n- **Tables:**\n  - `BANK_DEMO.LENDING.FACILITY_BAL_MTHLY`: balances, days past due and accrual status at SNAP_DT 2026-09-30.\n  - `LENDING.FACILITY`: status and product code.\n  - `REF.PRODUCT`: product names.\n- **Cross-check:** The product totals match `MART.CREDIT_QUALITY_MTH` exactly (CREM 30+ balance $431,976,209.75).\n- **Sectors:** I used the approved \"Client to IndustrySector\" join path: `CORE.CLIENT.NAICS_CD` to `BIZ.SECTOR_MAP.SECTOR`. These are the bank's own sector groups, not 2-digit NAICS groups. Every CREM client mapped to a sector, and each NAICS code maps to only one sector, so nothing was double-counted.\n- **Assumptions:**\n  - I counted SBLC as a loan product because it is listed that way in `REF.PRODUCT`. Its drawn balance is very small, so it doesn't change the ranking.\n  - Sector is based on the borrowing client's NAICS code.\n- **Policy:** Credit-analyst analysis use is allowed, with no restricted tables or masked columns.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.PRODUCT_CD, p.PRODUCT_NM, p.PRODUCT_FAMILY, COUNT(*) n_fac,\n SUM(b.DRAWN_AMT) drawn, SUM(CASE WHEN b.DPD>=30 THEN b.DRAWN_AMT ELSE 0 END) dpd30,\n SUM(CASE WHEN b.DPD>=30 THEN 1 ELSE 0 END) n_dpd30,\n SUM(CASE WHEN b.DPD>=30 THEN b.DRAWN_AMT ELSE 0 END)/NULLIF(SUM(b.DRAWN_AMT),0) dpd30_rate\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nLEFT JOIN BANK_DEMO.REF.PRODUCT p ON p.PRODUCT_CD=f.PRODUCT_CD\nWHERE b.SNAP_DT='2026-09-30' AND f.FACILITY_STATUS='ACTIVE'\nGROUP BY 1,2,3 ORDER BY dpd30_rate DESC",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 8.94
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT NAICS_CD, COUNT(*) n, COUNT(DISTINCT SECTOR) ns, MIN(EFF_FROM), MAX(EFF_TO) FROM BANK_DEMO.BIZ.SECTOR_MAP GROUP BY 1 HAVING COUNT(*)>1 ORDER BY 2 DESC LIMIT 50",
+      "ok": true,
+      "rows": 0,
+      "error": null,
+      "elapsed_s": 1.81
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT PRODUCT_CD, TOTAL_DRAWN_AMT, DPD30_BAL_AMT, DPD30_BAL_AMT/NULLIF(TOTAL_DRAWN_AMT,0) r FROM BANK_DEMO.MART.CREDIT_QUALITY_MTH WHERE SNAP_DT='2026-09-30' ORDER BY r DESC",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 1.4
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT COALESCE(s.SECTOR,'UNMAPPED') sector, COUNT(*) n_fac, SUM(b.DRAWN_AMT) drawn,\n SUM(CASE WHEN b.DPD>=30 THEN b.DRAWN_AMT ELSE 0 END) dpd30, SUM(CASE WHEN b.DPD>=30 THEN 1 ELSE 0 END) n_dpd30,\n COUNT(DISTINCT CASE WHEN b.DPD>=30 THEN f.CIF_NO END) n_clients_dpd30,\n SUM(CASE WHEN b.DPD>=30 THEN b.DRAWN_AMT ELSE 0 END)/NULLIF(SUM(b.DRAWN_AMT),0) rate\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nJOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nLEFT JOIN BANK_DEMO.BIZ.SECTOR_MAP s ON s.NAICS_CD=c.NAICS_CD\nWHERE b.SNAP_DT='2026-09-30' AND f.FACILITY_STATUS='ACTIVE' AND f.PRODUCT_CD='CREM'\nGROUP BY 1 ORDER BY dpd30 DESC",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 3.59
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT s.SECTOR,\n SUM(CASE WHEN b.DPD BETWEEN 30 AND 89 THEN b.DRAWN_AMT ELSE 0 END) dpd30_89,\n SUM(CASE WHEN b.DPD>=90 THEN b.DRAWN_AMT ELSE 0 END) dpd90p,\n SUM(CASE WHEN b.DPD>=30 AND b.ACCRUAL_STAT='N' THEN b.DRAWN_AMT ELSE 0 END) dpd30_nonaccr,\n MAX(CASE WHEN b.DPD>=30 THEN b.DRAWN_AMT END) largest_dpd30_loan\nFROM BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b JOIN BANK_DEMO.LENDING.FACILITY f ON f.FACILITY_ID=b.FACILITY_ID\nJOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nJOIN BANK_DEMO.BIZ.SECTOR_MAP s ON s.NAICS_CD=c.NAICS_CD\nWHERE b.SNAP_DT='2026-09-30' AND f.FACILITY_STATUS='ACTIVE' AND f.PRODUCT_CD='CREM'\nGROUP BY 1",
+      "ok": true,
+      "rows": 2,
+      "error": null,
+      "elapsed_s": 1.72
+    }
+  ],
+  "cypher_queries": 9,
+  "usage": {
+    "input": 12,
+    "output": 4004,
+    "cache_read": 32053,
+    "cache_write": 11794
+  },
+  "cost_usd": 0.1455,
+  "latency_s": 57.9
+}

@@ -1,0 +1,43 @@
+{
+  "run_id": "eval_20261022T0035_r1",
+  "agent": "B",
+  "qid": "Q13",
+  "question": "For our quarterly credit portfolio review, show each C&I East relationship manager's new-commitment production versus their goal this quarter, next to the 30+ days-past-due rate of their book.",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "I can't show the goals or attainment for you. Under policy POL-IC-03, RM production goals (`CORE.RM_GOAL`) are only visible to the RM_MANAGER and COMP_ANALYST roles, so I can't report goals or \"% of goal\" to a CREDIT_ANALYST. As the policy suggests instead, below is each C&I East RM's new-commitment production for Q3 2026 next to the 30+ days-past-due rate of their book. If the review needs attainment, a requester with an RM_MANAGER or COMP_ANALYST role can add the goal column using the ratified `new_commit_attainment` metric.\n\n**C&I East: Q3 2026 new commitments vs. 30+ DPD rate (book as of 2026-09-30)**\n\n| RM | Name | New facilities | New commitments | Active facilities in book | Drawn balance | 30+ DPD drawn | 30+ DPD rate |\n|---|---|---|---|---|---|---|---|\n| RM001 | Sage Garrow | 4 | $75.9M | 29 | $253.6M | $2.30M | **0.91%** |\n| RM002 | Marlow Calder | 4 | $89.8M | 18 | $120.8M | $0 | 0.00% |\n| RM003 | Harper Garrow | 3 | $56.8M | 17 | $108.2M | $4.66M | **4.30%** |\n| RM004 | Sawyer Rourke | 2 | $29.8M | 24 | $151.9M | $0 | 0.00% |\n| RM005 | Jordan Thorne | 4 | $85.7M | 22 | $144.9M | $0 | 0.00% |\n| RM006 | Gray Lowry | 4 | $68.6M | 21 | $126.4M | $0 | 0.00% |\n| **Team** | | **21** | **$406.6M** | **131** | **$905.8M** | **$6.95M** | **0.77%** |\n\n**Main points:**\n- All of the team's 30+ DPD balance sits with two RMs. Harper Garrow's 4.30% rate is well above the team's 0.77%, even though she booked one of the lower production totals ($56.8M from 3 deals).\n- Sage Garrow has the largest book ($253.6M drawn) and a modest 0.91% rate.\n- Marlow Calder ($89.8M) and Jordan Thorne ($85.7M) booked the most new commitments, and neither book has any 30+ DPD balance.\n- Sawyer Rourke booked the least ($29.8M from 2 deals), and his book is clean.\n\n**Sources and definitions:**\n- **Data products:** Client & Coverage and Commercial Lending (both ratified). Tables used: `BANK_DEMO.CORE.RM_ROSTER` (filtered to TEAM = 'C&I East'), `CORE.CLIENT`, `LENDING.FACILITY` and `LENDING.FACILITY_BAL_MTHLY`.\n- **New-commitment production:** the commitments in the ratified `new_commit_attainment` metric, without the goal. It is the sum of `COMMIT_AMT` for facilities originated in the quarter (`ORIG_DT` 2026-07-01 to 2026-09-30), credited to the originating RM (`ORIG_RM_ID`).\n- **30+ DPD rate:** the ratified `dpd30_rate` metric used in the Credit Risk Report. It is drawn balance with DPD \u2265 30 divided by total drawn balance, for active facilities only, at the 2026-09-30 snapshot. It follows the approved CreditFacility \u2192 Delinquency join path, so charged-off facilities are excluded.\n- **Policy:** POL-IC-03 (Commercial Banking Incentive Plan FY2026) restricts `CORE.RM_GOAL`, so I did not query it.\n\n**Assumptions:**\n- \"This quarter\" is Q3 2026, taken as July 1 to September 30, 2026.\n- An RM's \"book\" means the facilities of clients where they are the primary RM (`CLIENT.RM_ID`), not facilities they originated. Production, by contrast, is credited by originator, as the ratified metric specifies.\n- New production counts every facility booked in the quarter, whatever its current status.",
+  "stop_reason": "end_turn",
+  "model_turns": 4,
+  "tool_calls": [
+    "get_context",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "SELECT RM_ID, RM_NM, TEAM, REGION, SEGMENT_CD FROM BANK_DEMO.CORE.RM_ROSTER WHERE TEAM ILIKE '%C&I%East%' OR (REGION='East') ORDER BY TEAM, RM_ID",
+      "ok": true,
+      "rows": 22,
+      "error": null,
+      "elapsed_s": 13.82
+    },
+    {
+      "platform": "snowflake",
+      "sql": "WITH rm AS (SELECT RM_ID, RM_NM FROM BANK_DEMO.CORE.RM_ROSTER WHERE TEAM = 'C&I East'),\nprod AS (\n  SELECT f.ORIG_RM_ID AS RM_ID, COUNT(*) AS new_fac_cnt, SUM(f.COMMIT_AMT) AS new_commit_amt\n  FROM BANK_DEMO.LENDING.FACILITY f\n  WHERE f.ORIG_DT BETWEEN '2026-07-01' AND '2026-09-30'\n  GROUP BY f.ORIG_RM_ID),\nbook AS (\n  SELECT c.RM_ID, COUNT(DISTINCT f.FACILITY_ID) AS active_fac_cnt,\n         SUM(b.DRAWN_AMT) AS drawn_amt,\n         SUM(CASE WHEN b.DPD >= 30 THEN b.DRAWN_AMT ELSE 0 END) AS dpd30_amt\n  FROM BANK_DEMO.LENDING.FACILITY f\n  JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.FACILITY_ID = f.FACILITY_ID AND b.SNAP_DT = '2026-09-30'\n  JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO = f.CIF_NO\n  WHERE f.FACILITY_STATUS = 'ACTIVE'\n  GROUP BY c.RM_ID)\nSELECT rm.RM_ID, rm.RM_NM, COALESCE(p.new_fac_cnt,0) new_fac_cnt, COALESCE(p.new_commit_amt,0) new_commit_amt,\n       bk.active_fac_cnt, bk.drawn_amt, bk.dpd30_amt, bk.dpd30_amt/NULLIF(bk.drawn_amt,0) AS dpd30_rate\nFROM rm LEFT JOIN prod p ON p.RM_ID = rm.RM_ID LEFT JOIN book bk ON bk.RM_ID = rm.RM_ID\nORDER BY rm.RM_ID",
+      "ok": true,
+      "rows": 6,
+      "error": null,
+      "elapsed_s": 4.28
+    }
+  ],
+  "cypher_queries": 5,
+  "usage": {
+    "input": 10,
+    "output": 3057,
+    "cache_read": 25752,
+    "cache_write": 13365
+  },
+  "cost_usd": 0.1332,
+  "latency_s": 51.8
+}

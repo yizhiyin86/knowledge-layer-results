@@ -1,0 +1,73 @@
+{
+  "run_id": "eval_20261022T0005_r2",
+  "agent": "B",
+  "qid": "Q12",
+  "question": "After Halvorsen's downgrade to CCC+, which facilities have rating-trigger covenants that are now breached, what internal risk rating should the group move to, and who has to approve the credit response?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "**Two Halvorsen facilities now breach their rating-trigger covenants: F0000003 and F0000007. The group should move to internal risk rating 8 (Substandard), and the credit response needs Senior Credit Committee approval.** A third facility with a rating trigger, F0000002, is not breached yet, but one more notch down would breach it.\n\n**1. Rating-trigger covenants (AGY1 rated the ultimate parent, Halvorsen Industrial Group Inc, CCC+ on 2026-09-28)**\n\n| Facility | Borrower | Product | Trigger (AGY1 floor) | Status | Committed | Drawn / undrawn at 2026-09-30 |\n|---|---|---|---|---|---|---|\n| F0000003 | Halvorsen Supply Co | Asset-based loan | B | **Breached** (CCC+ is below B) | $45.0M | $33.4M / $11.6M |\n| F0000007 | Kestrel Tooling Inc | Term loan | B- | **Breached** (CCC+ is below B-) | $50.0M | $42.6M / $7.4M |\n| F0000002 | Halvorsen Precision Parts Inc | Term loan | CCC | Not breached: CCC+ is one notch above the floor | $35.0M | $30.5M / $4.5M |\n\n- Under rule BR-COV-01, these triggers test the parent's rating, even when the borrower is a subsidiary such as Kestrel Tooling. A rating equal to the floor is not a breach.\n- The breaches let us stop further drawings. That would freeze about **$19.0M** of undrawn availability ($11.6M + $7.4M). The breaches must also be reported to the approver.\n- No other group facility has a rating trigger. F0000001 and F0000004 have financial covenants that passed at their last test on 2026-06-30: debt-service coverage of 1.31 against a 1.25 minimum, and leverage of 4.10 against a 4.50 maximum.\n\n**2. Internal risk rating: move the group from 5 to 8 (Substandard)**\n- The current ratings are AGY1 CCC+ (negative outlook, 2026-09-28) and AGY2 B (negative, 2026-06-10). The group rating is the lower of the two, CCC+, which maps to **8 (Substandard)** (rule BR-RATE-01).\n- All 10 group facilities (F0000001\u2013F0000010) are still rated **5**. They must all be re-rated within 5 business days of the rating action. That is about **2026-10-05**, assuming no holidays.\n\n**3. Approval: Senior Credit Committee, chaired by the Chief Risk Officer (rule BR-DLA-01)**\nThree separate conditions each require it:\n- **Exposure is over $250M.** Group exposure is **$344.3M**: $308.0M of active loan commitments plus $36.3M of current derivatives exposure.\n- **The rating is 8 or worse.**\n- **The group is over its credit limit.** The limit is $300M, so exposure is $44.3M over it (115% used).\n\nExposure is also only **$15.7M** below the $360M legal lending limit, so the Committee should not approve any increase.\n\n**Sources and definitions**\n- Ratings come from RISK_DEMO.dbo.RATING, using the latest rating date per agency for LE-10001.\n- Covenants come from dbo.COVENANT. Exposure comes from LENDING.FACILITY and FACILITY_BAL_MTHLY in Snowflake, plus dbo.CM_EXPOSURE at the latest snapshot (2026-09-30).\n- Business rules used: BR-COV-01, BR-RATE-01, BR-DLA-01, BR-EXP-01 and BR-LLL-01. Metrics used: group_exposure and limit_utilization (both ratified). Process followed: the Credit Event Response steps (Detect \u2192 Aggregate exposure \u2192 Assess \u2192 Approve).\n- This builds on the earlier Halvorsen group-exposure answer, and the figures match it.\n\n**Assumptions**\n- The group-tracing tool returned an error, so I took the group members (24 entities, 10 client numbers) and the $300M limit from the governed obligor-group reference data instead.\n- F0000011 (Halvorsen Marine Logistics) and F0000012 (Halvorsen-Kito JV) are not in that member list, so I left them out. Going by the earlier analysis, the first is a sold subsidiary and the second a minority JV. Neither has a rating-trigger covenant, so leaving them out doesn't change the breach list.",
+  "stop_reason": "end_turn",
+  "model_turns": 5,
+  "tool_calls": [
+    "get_context",
+    "trace_obligor_group",
+    "trace_obligor_group",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "get_reference",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "fabric",
+      "sql": "SELECT ENTITY_ID, AGENCY, RATING, RATING_DT, OUTLOOK FROM dbo.RATING WHERE ENTITY_ID='LE-10001' ORDER BY AGENCY, RATING_DT",
+      "ok": true,
+      "rows": 4,
+      "error": null,
+      "elapsed_s": 1.52
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT c.*, e.ENTITY_NM FROM dbo.COVENANT c LEFT JOIN dbo.LEGAL_ENTITY e ON 1=0 WHERE c.FACILITY_ID IN ('F0000001','F0000002','F0000003','F0000004','F0000005','F0000006','F0000007','F0000008','F0000009','F0000010','F0000011','F0000012') ORDER BY c.FACILITY_ID, c.COV_TYP",
+      "ok": true,
+      "rows": 5,
+      "error": null,
+      "elapsed_s": 0.53
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT c.COVENANT_ID, c.FACILITY_ID, c.COV_TYP, c.THRESHOLD_VAL, c.AGENCY FROM dbo.COVENANT c WHERE c.COV_TYP='RATING_TRIGGER' ORDER BY c.FACILITY_ID",
+      "ok": true,
+      "rows": 55,
+      "error": null,
+      "elapsed_s": 2.15
+    },
+    {
+      "platform": "snowflake",
+      "sql": "SELECT f.FACILITY_ID, f.CIF_NO, c.CLIENT_NM, f.PRODUCT_CD, f.FACILITY_STATUS, f.COMMIT_AMT, f.RISK_RATING, b.DRAWN_AMT, b.UNDRAWN_AMT\nFROM BANK_DEMO.LENDING.FACILITY f\nLEFT JOIN BANK_DEMO.CORE.CLIENT c ON c.CIF_NO=f.CIF_NO\nLEFT JOIN BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b ON b.FACILITY_ID=f.FACILITY_ID AND b.SNAP_DT='2026-09-30'\nWHERE f.CIF_NO IN ('0000041000','0000041002','0000041009','0000041007','0000041017','0000041014','0000041020','0000041022','0000041025','0000041027','0000041005','0000041012')\nORDER BY f.FACILITY_ID",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.69
+    },
+    {
+      "platform": "fabric",
+      "sql": "SELECT MAX(SNAP_DT) snap, SUM(CURRENT_EXPOSURE) cur_exp FROM dbo.CM_EXPOSURE WHERE SNAP_DT=(SELECT MAX(SNAP_DT) FROM dbo.CM_EXPOSURE) AND ENTITY_ID IN ('LE-10001','LE-10022','LE-10004','LE-10003','LE-10002','LE-10023','LE-10008','LE-10006','LE-10005','LE-10011','LE-10012','LE-10009','LE-10024','LE-10010','LE-10016','LE-10026','LE-10014','LE-10015','LE-10017','LE-10025','LE-10018','LE-10019','LE-10020','LE-10021')",
+      "ok": true,
+      "rows": 1,
+      "error": null,
+      "elapsed_s": 1.46
+    }
+  ],
+  "cypher_queries": 12,
+  "usage": {
+    "input": 12,
+    "output": 4396,
+    "cache_read": 49401,
+    "cache_write": 19418
+  },
+  "cost_usd": 0.1949,
+  "latency_s": 51.0
+}

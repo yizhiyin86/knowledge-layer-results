@@ -1,0 +1,102 @@
+{
+  "run_id": "eval_20261022T0005_r3",
+  "agent": "A",
+  "qid": "Q5",
+  "question": "How has revolving-line utilization trended over the last six months by industry sector, and where is it rising?",
+  "role": "CREDIT_ANALYST",
+  "effort": "high",
+  "answer": "Overall revolver utilization rose from **46.2% to 49.8%** between Mar 31 and Sep 30, 2026. The whole increase comes from two sectors, **Manufacturing and Wholesale Distribution**. In both, utilization climbed about 3.5 points every month, ending about 23 points higher. Every other sector stayed flat at about 44\u201347%.\n\n**Utilization by sector (drawn \u00f7 commitment, all revolving lines at each month-end)**\n\n| Sector | Mar | Apr | May | Jun | Jul | Aug | Sep | Change (pts) | Sep commitment / drawn ($mm) |\n|---|---|---|---|---|---|---|---|---|---|\n| **Manufacturing** | 46.0 | 51.6 | 55.1 | 58.6 | 62.1 | 65.6 | **69.1** | **+23.1** | 531 / 367 |\n| **Wholesale Distribution** | 45.4 | 51.0 | 54.5 | 58.0 | 61.5 | 65.1 | **68.6** | **+23.2** | 337 / 231 |\n| CRE Multifamily | 44.5 | 44.5 | 45.0 | 44.3 | 45.8 | 45.3 | 46.2 | +1.7* | 41 / 19 |\n| Healthcare Services | 45.9 | 46.1 | 45.9 | 45.9 | 45.8 | 45.8 | 46.4 | +0.5 | 471 / 219 |\n| Technology | 46.0 | 46.2 | 46.6 | 46.6 | 46.1 | 46.4 | 46.3 | +0.3 | 502 / 233 |\n| Holding & Financial Cos. | 46.3 | 46.2 | 46.3 | 46.2 | 46.2 | 46.4 | 46.4 | +0.1 | 1,206 / 560 |\n| Energy | 45.9 | 45.7 | 45.3 | 45.9 | 46.0 | 46.2 | 45.8 | \u22120.1 | 272 / 125 |\n| Professional Services | 46.4 | 46.5 | 46.2 | 46.1 | 46.5 | 46.3 | 46.3 | \u22120.1 | 317 / 147 |\n| Public & Not-for-Profit | 46.5 | 46.6 | 46.8 | 46.5 | 46.7 | 46.4 | 46.4 | \u22120.1 | 870 / 404 |\n| Retail | 46.4 | 46.2 | 46.1 | 45.9 | 46.0 | 46.6 | 46.2 | \u22120.2 | 229 / 106 |\n| CRE Office | 46.3 | 46.5 | 46.5 | 46.6 | 46.4 | 46.0 | 46.1 | \u22120.2 | 336 / 155 |\n| Transportation & Logistics | 46.2 | 46.2 | 46.4 | 46.4 | 46.1 | 46.5 | 46.2 | 0.0 | 417 / 193 |\n| **Total** | 46.2 | 47.1 | 47.7 | 48.2 | 48.8 | 49.4 | **49.8** | **+3.6** | 5,530 / 2,757 |\n\n*CRE Multifamily is only 10\u201313 lines and $41mm committed. Lines that existed throughout show +1.3 points, which is noise.\n\n**Why this is a real increase in drawdowns, not a change in the mix of lines**\n- The revolver book grew from 620 to 682 lines in Jul\u2013Sep. To rule out new lines skewing the numbers, I re-ran the trend for only the 613 lines that existed in every month from Mar to Sep. The result is almost identical: total 46.2% \u2192 50.0%, Manufacturing 46.0% \u2192 69.1%, Wholesale Distribution 45.4% \u2192 68.5%.\n- Drawn balances on those lines rose by **$190mm**. Manufacturing accounts for $113mm and Wholesale Distribution for $76mm. All other sectors combined net to about +$1mm.\n- **The increase is broad within both sectors.** All 65 Manufacturing lines and all 44 Wholesale Distribution lines rose by more than 10 points. The typical line rose about 23 points. No line in any other sector moved by more than 10 points either way.\n\n**Credit context and what to watch**\n- No revolver is at or above 80% utilization yet. None of the Manufacturing or Wholesale Distribution lines were past due at Sep 30. The 6 past-due lines in the portfolio are in CRE Office, Holding & Financial and Professional Services.\n- The steady climb across every line in both sectors suggests a shared cause, such as inventory or working-capital build or customers paying more slowly. It isn't trouble at a few individual borrowers.\n- If the pace continues, these lines will average about 80% within about three months. Both sectors should go on the watch list now. That means getting borrowing-base and covenant updates and checking whether the drawn funds are building inventory or covering cash shortfalls.\n- The risk ratings available here are point-in-time values on the facility record, so this data can't show rating migration.\n\n**Sources and definitions**\n- Snowflake BANK_DEMO tables:\n  - `LENDING.FACILITY` (revolving lines are `PRODUCT_CD = 'RLOC'`, decoded via `REF.PRODUCT`)\n  - `LENDING.FACILITY_BAL_MTHLY` (month-end drawn and undrawn balances)\n  - `CORE.CLIENT` (NAICS code)\n  - `BIZ.SECTOR_MAP` (NAICS to sector, v4 driver file, effective 2024 onward)\n- **Utilization** = total drawn \u00f7 total commitment across the sector's lines. Larger lines therefore count more than in a simple average of line-level percentages. Drawn plus undrawn equalled commitment on every row, and every revolver mapped to a sector.\n- **Window:** month-ends Mar 31 to Sep 30, 2026. March is the starting point, followed by six month-ends of trend. Lines that were paid off drop out of the snapshots after payoff.\n- I didn't need any data from the Fabric risk database for this question.",
+  "stop_reason": "end_turn",
+  "model_turns": 7,
+  "tool_calls": [
+    "list_tables",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "describe_table",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql",
+    "run_sql"
+  ],
+  "sql": [
+    {
+      "platform": "snowflake",
+      "sql": "select * from BANK_DEMO.REF.PRODUCT",
+      "ok": true,
+      "rows": 10,
+      "error": null,
+      "elapsed_s": 1.12
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select * from BANK_DEMO.BIZ.SECTOR_MAP order by naics_cd, eff_from",
+      "ok": true,
+      "rows": 33,
+      "error": null,
+      "elapsed_s": 3.32
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select product_cd, facility_status, count(*), sum(commit_amt) from BANK_DEMO.LENDING.FACILITY group by 1,2 order by 1,2",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 3.32
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select b.snap_dt, count(*) n, count(distinct b.facility_id) nd, sum(b.drawn_amt) drawn, sum(b.undrawn_amt) undrawn, sum(f.commit_amt) commit,\nsum(iff(abs(b.drawn_amt+b.undrawn_amt-f.commit_amt)>1,1,0)) mismatch, sum(iff(b.drawn_amt<0 or b.undrawn_amt<0,1,0)) neg, sum(iff(b.drawn_amt is null,1,0)) nulls\nfrom BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b join BANK_DEMO.LENDING.FACILITY f on f.facility_id=b.facility_id\nwhere f.product_cd='RLOC' group by 1 order by 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 6.85
+    },
+    {
+      "platform": "snowflake",
+      "sql": "select coalesce(s.sector,'UNMAPPED') sector, c.naics_cd is null naics_null, count(distinct f.facility_id) fac, count(distinct c.cif_no) clients, sum(iff(c.cif_no is null,1,0)) no_client\nfrom BANK_DEMO.LENDING.FACILITY f left join BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no\nleft join BANK_DEMO.BIZ.SECTOR_MAP s on s.naics_cd=c.naics_cd\nwhere f.product_cd='RLOC' group by 1,2 order by 1",
+      "ok": true,
+      "rows": 12,
+      "error": null,
+      "elapsed_s": 1.3
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with b as (\n select s.sector, b.facility_id, b.snap_dt, b.drawn_amt, f.commit_amt\n from BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b join BANK_DEMO.LENDING.FACILITY f on f.facility_id=b.facility_id\n join BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no join BANK_DEMO.BIZ.SECTOR_MAP s on s.naics_cd=c.naics_cd\n where f.product_cd='RLOC' and b.snap_dt between '2026-03-31' and '2026-09-30')\nselect sector,\n round(100*sum(iff(snap_dt='2026-03-31',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-03-31',commit_amt,0)),0),1) mar,\n round(100*sum(iff(snap_dt='2026-04-30',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-04-30',commit_amt,0)),0),1) apr,\n round(100*sum(iff(snap_dt='2026-05-31',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-05-31',commit_amt,0)),0),1) may,\n round(100*sum(iff(snap_dt='2026-06-30',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-06-30',commit_amt,0)),0),1) jun,\n round(100*sum(iff(snap_dt='2026-07-31',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-07-31',commit_amt,0)),0),1) jul,\n round(100*sum(iff(snap_dt='2026-08-31',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-08-31',commit_amt,0)),0),1) aug,\n round(100*sum(iff(snap_dt='2026-09-30',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-09-30',commit_amt,0)),0),1) sep,\n count(distinct iff(snap_dt='2026-03-31',facility_id,null)) n_mar, count(distinct iff(snap_dt='2026-09-30',facility_id,null)) n_sep,\n round(sum(iff(snap_dt='2026-09-30',commit_amt,0))/1e6,0) commit_sep_mm, round(sum(iff(snap_dt='2026-09-30',drawn_amt,0))/1e6,0) drawn_sep_mm\nfrom b group by rollup(sector) order by sector",
+      "ok": true,
+      "rows": 13,
+      "error": null,
+      "elapsed_s": 1.37
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with b as (\n select s.sector, b.facility_id, b.snap_dt, b.drawn_amt, f.commit_amt\n from BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b join BANK_DEMO.LENDING.FACILITY f on f.facility_id=b.facility_id\n join BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no join BANK_DEMO.BIZ.SECTOR_MAP s on s.naics_cd=c.naics_cd\n where f.product_cd='RLOC' and b.snap_dt between '2026-03-31' and '2026-09-30'),\ncoh as (select facility_id from b group by 1 having count(distinct snap_dt)=7)\nselect sector,\n round(100*sum(iff(snap_dt='2026-03-31',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-03-31',commit_amt,0)),0),1) mar,\n round(100*sum(iff(snap_dt='2026-04-30',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-04-30',commit_amt,0)),0),1) apr,\n round(100*sum(iff(snap_dt='2026-05-31',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-05-31',commit_amt,0)),0),1) may,\n round(100*sum(iff(snap_dt='2026-06-30',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-06-30',commit_amt,0)),0),1) jun,\n round(100*sum(iff(snap_dt='2026-07-31',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-07-31',commit_amt,0)),0),1) jul,\n round(100*sum(iff(snap_dt='2026-08-31',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-08-31',commit_amt,0)),0),1) aug,\n round(100*sum(iff(snap_dt='2026-09-30',drawn_amt,0))/nullif(sum(iff(snap_dt='2026-09-30',commit_amt,0)),0),1) sep,\n count(distinct facility_id) n,\n round((sum(iff(snap_dt='2026-09-30',drawn_amt,0))-sum(iff(snap_dt='2026-03-31',drawn_amt,0)))/1e6,1) drawn_chg_mm\nfrom b where facility_id in (select facility_id from coh) group by rollup(sector) order by sector",
+      "ok": true,
+      "rows": 13,
+      "error": null,
+      "elapsed_s": 1.42
+    },
+    {
+      "platform": "snowflake",
+      "sql": "with b as (\n select s.sector, b.facility_id, f.cif_no, b.snap_dt, b.drawn_amt, f.commit_amt, b.dpd, f.risk_rating\n from BANK_DEMO.LENDING.FACILITY_BAL_MTHLY b join BANK_DEMO.LENDING.FACILITY f on f.facility_id=b.facility_id\n join BANK_DEMO.CORE.CLIENT c on c.cif_no=f.cif_no join BANK_DEMO.BIZ.SECTOR_MAP s on s.naics_cd=c.naics_cd\n where f.product_cd='RLOC' and b.snap_dt in ('2026-03-31','2026-09-30')),\np as (select sector, facility_id, max(commit_amt) commit_amt, max(risk_rating) rr,\n  max(iff(snap_dt='2026-03-31',drawn_amt,null))/max(commit_amt) u0, max(iff(snap_dt='2026-09-30',drawn_amt,null))/max(commit_amt) u1,\n  max(iff(snap_dt='2026-09-30',dpd,null)) dpd1\n from b group by 1,2 having count(*)=2)\nselect sector, count(*) n, sum(iff(u1-u0>0.10,1,0)) up_gt10pts, sum(iff(u1-u0<-0.10,1,0)) down_gt10pts,\n sum(iff(u1>=0.80,1,0)) n_ge80_sep, sum(iff(u0>=0.80,1,0)) n_ge80_mar, sum(iff(u1>=0.90,1,0)) n_ge90_sep,\n round(median(u1-u0)*100,1) med_chg_pts, sum(iff(dpd1>0,1,0)) dpd_pos_sep, round(avg(rr),2) avg_rr\nfrom p group by rollup(sector) order by sector",
+      "ok": true,
+      "rows": 13,
+      "error": null,
+      "elapsed_s": 3.55
+    }
+  ],
+  "cypher_queries": 0,
+  "usage": {
+    "input": 16,
+    "output": 7228,
+    "cache_read": 49753,
+    "cache_write": 17968
+  },
+  "cost_usd": 0.2444,
+  "latency_s": 108.4
+}
